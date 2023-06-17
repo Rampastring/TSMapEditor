@@ -14,6 +14,7 @@ namespace TSMapEditor
 
         public static bool IsFlatWorld = false;
         public static bool TheaterPaletteForTiberium = false;
+        public static bool NewTheaterGenericBuilding = false;
 
         public static string ExpectedClientExecutableName = "DTA.exe";
         public static string GameRegistryInstallPath = "SOFTWARE\\DawnOfTheTiberiumAge";
@@ -72,6 +73,8 @@ namespace TSMapEditor
         public const string ClipboardMapDataFormatValue = "ScenarioEditorCopiedMapData";
         public const string UserDataFolder = "UserData";
 
+        public const char NewTheaterGenericLetter = 'G';
+
         public static void Init()
         {
             const string ConstantsSectionName = "Constants";
@@ -92,6 +95,7 @@ namespace TSMapEditor
             TheaterPaletteForTiberium = constantsIni.GetBooleanValue(ConstantsSectionName, nameof(TheaterPaletteForTiberium), TheaterPaletteForTiberium);
             ExpectedClientExecutableName = constantsIni.GetStringValue(ConstantsSectionName, nameof(ExpectedClientExecutableName), ExpectedClientExecutableName);
             GameRegistryInstallPath = constantsIni.GetStringValue(ConstantsSectionName, nameof(GameRegistryInstallPath), GameRegistryInstallPath);
+            NewTheaterGenericBuilding = constantsIni.GetBooleanValue(ConstantsSectionName, nameof(NewTheaterGenericBuilding), NewTheaterGenericBuilding);
 
             MaxWaypoint = constantsIni.GetIntValue(ConstantsSectionName, nameof(MaxWaypoint), MaxWaypoint);
 

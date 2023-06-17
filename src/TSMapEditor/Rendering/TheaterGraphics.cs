@@ -621,6 +621,14 @@ namespace TSMapEditor.Rendering
                     shpData = fileManager.LoadFile(newTheaterShpName);
                 }
 
+                // Support generic building letter
+                if (Constants.NewTheaterGenericBuilding && shpData == null)
+                {
+                    string newTheaterShpName = shpFileName.Substring(0, 1) + Constants.NewTheaterGenericLetter + shpFileName.Substring(2);
+
+                    shpData = fileManager.LoadFile(newTheaterShpName);
+                }
+
                 // The game can apparently fall back to the non-theater-specific SHP file name
                 // if the theater-specific SHP is not found
                 if (shpData == null)
