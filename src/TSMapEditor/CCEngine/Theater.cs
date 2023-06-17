@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.IO;
 using TSMapEditor.Models;
 using TSMapEditor.UI;
+using TSMapEditor.Extensions;
 
 namespace TSMapEditor.CCEngine
 {
@@ -89,7 +90,7 @@ namespace TSMapEditor.CCEngine
                 throw new FileNotFoundException("Theater config INI not found: " + ConfigINIPath);
             }
 
-            var theaterIni = new IniFile(iniPath);
+            var theaterIni = new IniFileEx(iniPath);
             int i;
 
             for (i = 0; i < 10000; i++)

@@ -1,6 +1,7 @@
 ﻿using Rampastring.Tools;
 using System.Collections.Generic;
 using System.IO;
+using TSMapEditor.Extensions;
 
 namespace TSMapEditor.Models
 {
@@ -48,7 +49,7 @@ namespace TSMapEditor.Models
         {
             themes = new List<Theme>();
 
-            var themeIni = new IniFile(Path.Combine(gameDirectory, Constants.ThemeIniPath));
+            var themeIni = new IniFileEx(Path.Combine(gameDirectory, Constants.ThemeIniPath));
 
             const string definitionsSectionName = "Themes";
 

@@ -7,6 +7,7 @@ using TSMapEditor.GameMath;
 using TSMapEditor.Initialization;
 using TSMapEditor.Models;
 using TSMapEditor.Rendering;
+using TSMapEditor.Extensions;
 
 namespace TSMapEditor.UI.Windows.MainMenuWindows
 {
@@ -30,11 +31,11 @@ namespace TSMapEditor.UI.Windows.MainMenuWindows
         /// <returns>Null of loading the map was successful, otherwise an error message.</returns>
         public static string InitializeMap(string gameDirectory, bool createNew, string existingMapPath, string newMapTheater, Point2D newMapSize, WindowManager windowManager)
         {
-            IniFile rulesIni = new IniFile(Path.Combine(gameDirectory, Constants.RulesIniPath));
-            IniFile firestormIni = new IniFile(Path.Combine(gameDirectory, Constants.FirestormIniPath));
-            IniFile artIni = new IniFile(Path.Combine(gameDirectory, Constants.ArtIniPath));
-            IniFile artFSIni = new IniFile(Path.Combine(gameDirectory, Constants.FirestormArtIniPath));
-            IniFile artOverridesIni = new IniFile(Path.Combine(Environment.CurrentDirectory, "Config/ArtOverrides.ini"));
+            IniFileEx rulesIni = new(Path.Combine(gameDirectory, Constants.RulesIniPath));
+            IniFileEx firestormIni = new(Path.Combine(gameDirectory, Constants.FirestormIniPath));
+            IniFileEx artIni = new(Path.Combine(gameDirectory, Constants.ArtIniPath));
+            IniFileEx artFSIni = new(Path.Combine(gameDirectory, Constants.FirestormArtIniPath));
+            IniFile artOverridesIni = new(Path.Combine(Environment.CurrentDirectory, "Config/ArtOverrides.ini"));
             IniFile.ConsolidateIniFiles(artFSIni, artOverridesIni);
 
             var tutorialLines = new TutorialLines(Path.Combine(gameDirectory, Constants.TutorialIniPath), a => windowManager.AddCallback(a, null));

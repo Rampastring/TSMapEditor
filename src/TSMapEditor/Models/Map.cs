@@ -9,6 +9,7 @@ using TSMapEditor.CCEngine;
 using TSMapEditor.GameMath;
 using TSMapEditor.Initialization;
 using TSMapEditor.Rendering;
+using TSMapEditor.Extensions;
 
 namespace TSMapEditor.Models
 {
@@ -52,7 +53,7 @@ namespace TSMapEditor.Models
                     return true;
                 }
 
-                LoadedINI = new IniFile(LoadedINI.FileName);
+                LoadedINI = new IniFileEx(LoadedINI.FileName);
 
                 ReloadSections();
 
@@ -170,7 +171,7 @@ namespace TSMapEditor.Models
             const int marginX = 4;
 
             Initialize(rulesIni, firestormIni, artIni, artFirestormIni);
-            LoadedINI = new IniFile();
+            LoadedINI = new IniFileEx();
             var baseMap = new IniFile(Environment.CurrentDirectory + "/Config/BaseMap.ini");
             baseMap.FileName = string.Empty;
             baseMap.SetStringValue("Map", "Theater", theaterName);
@@ -1203,7 +1204,7 @@ namespace TSMapEditor.Models
         // public void StartNew(IniFile rulesIni, IniFile firestormIni, TheaterType theaterType, Point2D size)
         // {
         //     Initialize(rulesIni, firestormIni);
-        //     LoadedINI = new IniFile();
+        //     LoadedINI = new IniFileEx();
         // }
 
         public void Initialize(IniFile rulesIni, IniFile firestormIni, IniFile artIni, IniFile artFirestormIni)

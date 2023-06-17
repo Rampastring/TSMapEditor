@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using TSMapEditor.Extensions;
 
 namespace TSMapEditor.Models
 {
@@ -125,7 +126,7 @@ namespace TSMapEditor.Models
 
             try
             {
-                tutorialIni = new IniFile(iniPath);
+                tutorialIni = new IniFileEx(iniPath);
             }
             catch (IOException ex)
             {
