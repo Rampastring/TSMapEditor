@@ -19,6 +19,9 @@ namespace TSMapEditor
         public static string ExpectedClientExecutableName = "DTA.exe";
         public static string GameRegistryInstallPath = "SOFTWARE\\DawnOfTheTiberiumAge";
 
+        public static bool EnableIniInclude = false;
+        public static bool EnableIniInheritance = false;
+
         public static string RulesIniPath;
         public static string FirestormIniPath;
         public static string ArtIniPath;
@@ -96,6 +99,8 @@ namespace TSMapEditor
             NewTheaterGenericBuilding = constantsIni.GetBooleanValue(ConstantsSectionName, nameof(NewTheaterGenericBuilding), NewTheaterGenericBuilding);
             ExpectedClientExecutableName = constantsIni.GetStringValue(ConstantsSectionName, nameof(ExpectedClientExecutableName), ExpectedClientExecutableName);
             GameRegistryInstallPath = constantsIni.GetStringValue(ConstantsSectionName, nameof(GameRegistryInstallPath), GameRegistryInstallPath);
+            EnableIniInclude = constantsIni.GetBooleanValue(ConstantsSectionName, nameof(EnableIniInclude), EnableIniInclude);
+            EnableIniInheritance = constantsIni.GetBooleanValue(ConstantsSectionName, nameof(EnableIniInheritance), EnableIniInheritance);
 
             MaxWaypoint = constantsIni.GetIntValue(ConstantsSectionName, nameof(MaxWaypoint), MaxWaypoint);
 

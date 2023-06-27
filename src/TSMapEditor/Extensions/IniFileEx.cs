@@ -44,6 +44,9 @@ public class IniFileEx: IniFile
     /// </summary>
     public void Include()
     {
+        if (!Constants.EnableIniInclude)
+            return;
+
         string sectionName;
         if (SectionExists(PhobosIncludeSection))
             sectionName = PhobosIncludeSection;
@@ -66,6 +69,9 @@ public class IniFileEx: IniFile
     /// </summary>
     public void Inherit()
     {
+        if (!Constants.EnableIniInheritance)
+            return;
+
         foreach (var section in Sections)
         {
             if (!section.KeyExists(PhobosInheritsSection))
@@ -78,8 +84,10 @@ public class IniFileEx: IniFile
                     continue;
 
                 foreach (var pair in parent.Keys)
+                {
                     if (!section.KeyExists(pair.Key))
                         section.AddKey(pair.Key, pair.Value);
+                }
             }
         }
     }
