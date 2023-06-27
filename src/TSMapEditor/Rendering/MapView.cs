@@ -73,6 +73,7 @@ namespace TSMapEditor.Rendering
     {
         private const float RightClickScrollRateDivisor = 64f;
         private const double ZoomStep = 0.1;
+        private const float DragScrollRateDivisor = 16f;
 
         private static Color[] MarbleMadnessTileHeightLevelColors = new Color[]
         {
@@ -178,6 +179,10 @@ namespace TSMapEditor.Rendering
 
         private bool isRightClickScrolling = false;
         private Point rightClickScrollInitPos = new Point(-1, -1);
+
+        private bool isDragScrolling = false;
+        private Point dragScrollInitPos = new Point(-1, -1);
+        private Vector2 dragScrollInitCameraPos = new Vector2(-1, -1);
 
         private Point lastClickedPoint;
 
@@ -1271,10 +1276,13 @@ namespace TSMapEditor.Rendering
 
         public override void OnMouseScrolled()
         {
-            if (Cursor.ScrollWheelValue > 0)
-                Camera.ZoomLevel += ZoomStep;
-            else
-                Camera.ZoomLevel -= ZoomStep;
+            if (!isDragScrolling)
+            {
+                if (Cursor.ScrollWheelValue > 0)
+                    Camera.ZoomLevel += ZoomStep;
+                else
+                    Camera.ZoomLevel -= ZoomStep;
+            }
 
             base.OnMouseScrolled();
         }
@@ -1387,11 +1395,33 @@ namespace TSMapEditor.Rendering
             // Right-click scrolling
             if (Cursor.RightDown)
             {
-                if (!isRightClickScrolling)
+                if (!isRightClickScrolling && !isDragScrolling)
                 {
                     isRightClickScrolling = true;
                     rightClickScrollInitPos = GetCursorPoint();
                     Camera.FloatTopLeftPoint = Camera.TopLeftPoint.ToXNAVector();
+                }
+            }
+
+            // Drag scrolling
+            if (Cursor.MiddleDown)
+            {
+                if (!isRightClickScrolling)
+                {
+                    if (!isDragScrolling)
+                    {
+                        dragScrollInitPos = GetCursorPoint();
+                        dragScrollInitCameraPos = Camera.FloatTopLeftPoint;
+                        isDragScrolling = true;
+                    }
+                    else
+                    {
+                        var result = dragScrollInitPos - GetCursorPoint();
+                        float dragScrollRate = (float)((scrollRate / DragScrollRateDivisor) / Camera.ZoomLevel);
+
+                        Camera.FloatTopLeftPoint = new Vector2(dragScrollInitCameraPos.X + result.X * dragScrollRate,
+                           dragScrollInitCameraPos.Y + result.Y * dragScrollRate);
+                    }
                 }
             }
         }
@@ -1447,6 +1477,13 @@ namespace TSMapEditor.Rendering
             isRightClickScrolling = false;
 
             base.OnRightClick();
+        }
+
+        public override void OnMiddleClick()
+        {
+            isDragScrolling = false;
+
+            base.OnMiddleClick();
         }
 
         public override void Update(GameTime gameTime)
