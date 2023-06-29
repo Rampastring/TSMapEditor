@@ -1,5 +1,4 @@
-﻿using SharpDX.MediaFoundation;
-using System;
+﻿using System;
 using System.Buffers.Binary;
 using System.IO;
 using System.Linq;
@@ -65,12 +64,15 @@ internal class KeyDecryptor
 }
 
 
+/// <summary>
+/// Read-only stream that implements Blowfish decryption of an underlying stream.
+/// </summary>
 internal class BlowfishStream : Stream
 {
     /// <summary>
-    /// Byte length of a Blowfish block. Blowfish cannot decrypt chunks that are not a multiple of this.
+    /// Byte length of a Blowfish block. Blowfish only decrypts data chunks of this length.
     /// </summary>
-    public const int BLOCK_SIZE = 8;
+    public const int SIZE_OF_BLOCK = 8;
 
     /// <summary>
     /// Byte length of a Blowfish key used in C&C.
@@ -89,7 +91,7 @@ internal class BlowfishStream : Stream
 
     #region constants
     /// <summary>
-    /// Array of Blowfish subkeys.
+    /// Array of Blowfish subkeys. Also referred to as P array.
     /// </summary>
     private uint[] subkeys = new uint[18]
     {
@@ -101,7 +103,7 @@ internal class BlowfishStream : Stream
     };
 
     /// <summary>
-    /// Array of Blowfish substitution boxes.
+    /// Array of Blowfish substitution boxes. Also referred to as S arrays.
     /// </summary>
     private static readonly uint[,] substitutions = new uint[4, 256]
     {
@@ -249,13 +251,15 @@ internal class BlowfishStream : Stream
         if (key.Length != SIZE_OF_BLOWFISH_KEY)
             throw new ArgumentException("Blowfish key has invalid size");
 
+        // Convert key from 8-bit array into 32-bit array.
         this.stream = stream;
         Buffer.BlockCopy(key, 0, this.key, 0, SIZE_OF_BLOWFISH_KEY);
 
-        // Process subkeys.
+        // Key processing #1. XOR all subkeys using key.
         for (int i = 0; i < subkeys.Length; i++)
             subkeys[i] ^= BinaryPrimitives.ReverseEndianness(this.key[i % this.key.Length]);
 
+        // Key processing #2.
         KeyExpansion();
     }
 
@@ -276,19 +280,15 @@ internal class BlowfishStream : Stream
 
     public override int Read(byte[] buffer, int offset, int count)
     {
-        if ((count & (BLOCK_SIZE - 1)) != 0)
+        if ((count & (SIZE_OF_BLOCK - 1)) != 0)
             throw new System.ArgumentException("Read length must be a multiple of Blowfish block size");
-
-        // in:  00  01  02  03  04  05  06  07
-        // out: 6b	10	7f	b6	69	8f	3f	df
-        // key: eb08f724c5f13ecc8873792ad9014268c3fd7f645b3b18181818181818181818e23a6ef166b34c27af87ca9f9535054f2ed1af7c6225bbbb
 
         var read = stream.Read(buffer, offset, count);
 
-        if ((read & (BLOCK_SIZE - 1)) != 0)
+        if ((read & (SIZE_OF_BLOCK - 1)) != 0)
             throw new System.ArgumentException("Number of bytes read from encapsulated stream isn't a multiple of Blowfish block size");
 
-        for (int i = 0; i < read; i += BLOCK_SIZE)
+        for (int i = 0; i < read; i += SIZE_OF_BLOCK)
             DecryptBlock(buffer, buffer, offset + i);
 
         return read;
@@ -319,8 +319,8 @@ internal class BlowfishStream : Stream
     {
         var temp = new uint[2];
 
-        // 8-bit to 32-bit.
-        Buffer.BlockCopy(source, offset, temp, 0, BLOCK_SIZE);
+        // 8-bit array to 32-bit pair.
+        Buffer.BlockCopy(source, offset, temp, 0, SIZE_OF_BLOCK);
 
         // To big endian.
         temp[0] = BinaryPrimitives.ReverseEndianness(temp[0]);
@@ -333,13 +333,22 @@ internal class BlowfishStream : Stream
         temp[1] = BinaryPrimitives.ReverseEndianness(temp[1]);
 
         // 8-bit to 32-bit.
-        Buffer.BlockCopy(temp, 0, destination, offset, BLOCK_SIZE);
+        Buffer.BlockCopy(temp, 0, destination, offset, SIZE_OF_BLOCK);
     }
 
+    /// <summary>
+    /// Encrypt one pair of 32-bit values.
+    /// Note that encryption is decryption with reversed rounds order.
+    /// </summary>
+    /// <param name="left">First 32-bit input value.</param>
+    /// <param name="right">Second 32-bit input value.</param>
+    /// <param name="outLeft">First 32-bit output value.</param>
+    /// <param name="outRight">Second 32-bit output value.</param>
     private void Encrypt(uint left, uint right, out uint outLeft, out uint outRight)
     {
         uint swap;
 
+        // Perform 16 rounds.
         for (int i = 0; i < 16; i++)
         {
             left ^= subkeys[i];
@@ -350,19 +359,29 @@ internal class BlowfishStream : Stream
             right = swap;
         }
 
-        // Swap.
+        // Undo the last swap.
         swap = left;
         left = right;
         right = swap;
-        // Finish
+
+        // Final processing.
         outRight = right ^ subkeys[16];
         outLeft = left ^ subkeys[17];
     }
 
+    /// <summary>
+    /// Decrypt one pair of 32-bit values.
+    /// Note that decryption is encryption with reversed rounds order.
+    /// </summary>
+    /// <param name="left">First 32-bit input value.</param>
+    /// <param name="right">Second 32-bit input value.</param>
+    /// <param name="outLeft">First 32-bit output value.</param>
+    /// <param name="outRight">Second 32-bit output value.</param>
     private void Decrypt(uint left, uint right, out uint outLeft, out uint outRight)
     {
         uint swap;
 
+        // Perform 16 rounds.
         for (int i = 17; i > 1; i--)
         {
             left ^= subkeys[i];
@@ -373,25 +392,34 @@ internal class BlowfishStream : Stream
             right = swap;
         }
 
-        // Swap.
+        // Undo the last swap.
         swap = left;
         left = right;
         right = swap;
-        // Finish
+
+        // Final processing.
         outRight = right ^ subkeys[1];
         outLeft = left ^ subkeys[0];
     }
 
-    private uint FunctionF(uint val)
+    /// <summary>
+    /// Blowfish algorithm "F" function that is used in a Blowfish round.
+    /// </summary>
+    /// <param name="value">Input value.</param>
+    /// <returns>Output value.</returns>
+    private uint FunctionF(uint value)
     {
         var a = new uint[4];
+        // Split input 32-bit value into four 8-bit values used as indices for substitution boxes.
         for (int i = 0; i < 4; i++)
-            a[i] = substitutions[i, (val >> (24 - i * 8)) & 0xff];
+            a[i] = substitutions[i, (value >> (24 - i * 8)) & 0xff];
 
-        val = ((a[0] + a[1]) ^ a[2]) + a[3];
-        return val;
+        return ((a[0] + a[1]) ^ a[2]) + a[3];
     }
 
+    /// <summary>
+    /// Perform pre-processing key expansion.
+    /// </summary>
     private void KeyExpansion()
     {
         uint left = 0;

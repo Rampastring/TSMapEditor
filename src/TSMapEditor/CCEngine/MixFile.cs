@@ -1,5 +1,4 @@
-﻿using SharpDX.Direct3D11;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -108,7 +107,7 @@ namespace TSMapEditor.CCEngine
             stream.Read(buffer, 0, KeyDecryptor.SIZE_OF_ENCRYPTED_KEY);
             stream = new BlowfishStream(stream, KeyDecryptor.DecryptBlowfishKey(buffer));
 
-            stream.Read(buffer, 0, BlowfishStream.BLOCK_SIZE);
+            stream.Read(buffer, 0, BlowfishStream.SIZE_OF_BLOCK);
             MixFileHeader header = new MixFileHeader(buffer);
 
             // Consume header bytes here to simplify entry reading.
@@ -122,20 +121,28 @@ namespace TSMapEditor.CCEngine
             var dataOffset = 0;
             for (int i = 0; i < header.FileCount; i++)
             {
-                // Alternate reading by 16 and 8 bytes.
-                var remainingSize = 2 + (i & 1) * 4;
-                var sizeToRead = (2 - (i & 1)) * BlowfishStream.BLOCK_SIZE;
+                // We can't read by 12 bytes (entry size), because Blowfish decrypts data in
+                // 8 byte chunks. Because of this, we alternate reading by 16 (4 byte excess)
+                // and 8 bytes (4 byte shortage) - this is `sizeToRead`.
+                var sizeToRead = (2 - (i % 2)) * BlowfishStream.SIZE_OF_BLOCK;
+                // Sadly, we start with 2 bytes remaining after reading the header, so we alternate
+                // between 2 and 6 bytes left after entry read all the time - this is `remainingSize`.
+                var remainingSize = 2 + (i % 2) * 4;
 
                 if (stream.Position + sizeToRead >= stream.Length)
                     throw new MixParseException("Invalid MIX file.");
 
-                // Read to moving window buffer.
-                // If we're about to overflow the buffer, start from the beginning.
+                // To use the remaining bytes, we use a moving window inside the buffer.
+                // If we're about to overflow the buffer, pop old entries and start from the beginning
+                // with just the most recent remaining bytes.
                 if (dataOffset + sizeToRead >= buffer.Length)
                 {
                     buffer = buffer.Skip(dataOffset).Concat(new byte[dataOffset]).ToArray();
                     dataOffset = 0;
                 }
+
+                // Decrypt new bytes from stream and add them after remaining bytes, then construct
+                // an entry.
                 stream.Read(buffer, dataOffset + remainingSize, sizeToRead);
                 entries.Add(new MixFileEntry(buffer, dataOffset));
 
