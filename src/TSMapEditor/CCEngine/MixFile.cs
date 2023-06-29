@@ -1,6 +1,8 @@
-﻿using System;
+﻿using SharpDX.Direct3D11;
+using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text;
 
 namespace TSMapEditor.CCEngine
@@ -85,8 +87,69 @@ namespace TSMapEditor.CCEngine
             stream.Read(buffer, 0, 4);
             MixType mixType = (MixType)BitConverter.ToInt32(buffer, 0);
 
-            if (mixType != MixType.DEFAULT)
-                throw new NotImplementedException("Reading of checksummed or Blowfish-encrypted MIX files is not implemented.");
+            if ((mixType & MixType.ENCRYPTED) != 0)
+                ParseEncrypted(stream);
+            else
+                ParseUnencrypted(stream);
+
+            if (masterMix != null)
+                masterMix.CloseFile();
+        }
+
+        /// <summary>
+        /// Reads MIX file entry information from a Blowfish encrypted stream.
+        /// </summary>
+        /// <param name="stream"></param>
+        private void ParseEncrypted(Stream stream)
+        {
+            byte[] buffer = new byte[256];
+
+            // Read and decrypt the Blowfish associated with this MIX.
+            stream.Read(buffer, 0, KeyDecryptor.SIZE_OF_ENCRYPTED_KEY);
+            stream = new BlowfishStream(stream, KeyDecryptor.DecryptBlowfishKey(buffer));
+
+            stream.Read(buffer, 0, BlowfishStream.BLOCK_SIZE);
+            MixFileHeader header = new MixFileHeader(buffer);
+
+            // Consume header bytes here to simplify entry reading.
+            buffer = buffer.Skip(MixFileHeader.SIZE_OF_HEADER).Concat(new byte[MixFileHeader.SIZE_OF_HEADER]).ToArray();
+
+            // Calculate real body offset, accounting for Blowfish key and padding.
+            bodyOffset = INDEX_POSITION + KeyDecryptor.SIZE_OF_ENCRYPTED_KEY + MixFileEntry.SIZE_OF_FILE_ENTRY * header.FileCount;
+            bodyOffset += (header.FileCount % 2) == 0 ? 2 : 6;
+
+            // Read encrypted MIX entries.
+            var dataOffset = 0;
+            for (int i = 0; i < header.FileCount; i++)
+            {
+                // Alternate reading by 16 and 8 bytes.
+                var remainingSize = 2 + (i & 1) * 4;
+                var sizeToRead = (2 - (i & 1)) * BlowfishStream.BLOCK_SIZE;
+
+                if (stream.Position + sizeToRead >= stream.Length)
+                    throw new MixParseException("Invalid MIX file.");
+
+                // Read to moving window buffer.
+                // If we're about to overflow the buffer, start from the beginning.
+                if (dataOffset + sizeToRead >= buffer.Length)
+                {
+                    buffer = buffer.Skip(dataOffset).Concat(new byte[dataOffset]).ToArray();
+                    dataOffset = 0;
+                }
+                stream.Read(buffer, dataOffset + remainingSize, sizeToRead);
+                entries.Add(new MixFileEntry(buffer, dataOffset));
+
+                dataOffset += MixFileEntry.SIZE_OF_FILE_ENTRY;
+            }
+        }
+
+        /// <summary>
+        /// Reads MIX file entry information from an unencrypted stream.
+        /// </summary>
+        /// <param name="stream"></param>
+        private void ParseUnencrypted(Stream stream)
+        {
+            byte[] buffer = new byte[256];
 
             stream.Read(buffer, 0, MixFileHeader.SIZE_OF_HEADER);
 
@@ -102,9 +165,6 @@ namespace TSMapEditor.CCEngine
                 stream.Read(buffer, 0, MixFileEntry.SIZE_OF_FILE_ENTRY);
                 entries.Add(new MixFileEntry(buffer));
             }
-
-            if (masterMix != null)
-                masterMix.CloseFile();
         }
 
         /// <summary>
@@ -253,14 +313,14 @@ namespace TSMapEditor.CCEngine
     {
         public const int SIZE_OF_FILE_ENTRY = 12;
 
-        public MixFileEntry(byte[] buffer)
+        public MixFileEntry(byte[] buffer, int offset = 0)
         {
-            if (buffer.Length < SIZE_OF_FILE_ENTRY)
+            if (buffer.Length < offset + SIZE_OF_FILE_ENTRY)
                 throw new ArgumentException("buffer is not long enough");
 
-            Identifier = BitConverter.ToUInt32(buffer, 0);
-            Offset = BitConverter.ToInt32(buffer, 4);
-            Size = BitConverter.ToInt32(buffer, 8);
+            Identifier = BitConverter.ToUInt32(buffer, offset + 0);
+            Offset = BitConverter.ToInt32(buffer, offset + 4);
+            Size = BitConverter.ToInt32(buffer, offset + 8);
         }
 
         /// <summary>
