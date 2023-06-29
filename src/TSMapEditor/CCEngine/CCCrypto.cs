@@ -297,7 +297,7 @@ internal class BlowfishStream : Stream
     {
         // Check how much block aligned data we need to read.
         // There might be remaining decrypted bytes after the last read.
-        var sizeToRead = (((count - stagingRemainingBytes) / SIZE_OF_BLOCK) + 1) * SIZE_OF_BLOCK;
+        int sizeToRead = (((count - stagingRemainingBytes) / SIZE_OF_BLOCK) + 1) * SIZE_OF_BLOCK;
 
         // Staging buffer is cyclic, so we need to handle overflow.
         // Copy the last decrypted block (which might contain remaining bytes)
@@ -309,12 +309,12 @@ internal class BlowfishStream : Stream
         }
 
         // Read new encrypted data to staging buffer.
-        var read = stream.Read(stagingBuffer, stagingBufferOffset, sizeToRead);
+        int read = stream.Read(stagingBuffer, stagingBufferOffset, sizeToRead);
 
         if ((read & (SIZE_OF_BLOCK - 1)) != 0)
             throw new System.ArgumentException("Number of bytes read from encapsulated stream isn't a multiple of Blowfish block size");
 
-        var dataStart = stagingBufferOffset - stagingRemainingBytes;
+        int dataStart = stagingBufferOffset - stagingRemainingBytes;
 
         // Decrypt blocks in-place in staging buffer.
         for (int i = 0; i < read; i += SIZE_OF_BLOCK)

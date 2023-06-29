@@ -85,7 +85,7 @@ namespace TSMapEditor.CCEngine
             stream.Read(buffer, 0, 4);
             MixType mixType = (MixType)BitConverter.ToInt32(buffer, 0);
             
-            var isEncrypted = (mixType & MixType.ENCRYPTED) != 0;
+            bool isEncrypted = (mixType & MixType.ENCRYPTED) != 0;
 
             if (isEncrypted)
             {
