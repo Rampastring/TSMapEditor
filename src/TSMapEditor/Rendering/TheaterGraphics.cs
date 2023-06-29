@@ -422,6 +422,8 @@ namespace TSMapEditor.Rendering
 
             theaterPalette = GetPaletteOrFail(theater.TerrainPaletteName);
             unitPalette = GetPaletteOrFail(Theater.UnitPaletteName);
+            if (Theater.TiberiumPaletteName.Length > 0)
+                tiberiumPalette = GetPaletteOrFail(Theater.TiberiumPaletteName);
 
             var task1 = Task.Factory.StartNew(() => ReadTileTextures());
             var task2 = Task.Factory.StartNew(() => ReadTerrainObjectTextures(rules.TerrainTypes));
@@ -813,7 +815,12 @@ namespace TSMapEditor.Rendering
                     shpFile.ParseFromBuffer(shpData);
                     Palette palette = theaterPalette;
 
-                    if (overlayType.Wall || overlayType.IsVeins || (overlayType.Tiberium && !Constants.TheaterPaletteForTiberium))
+                    if (overlayType.Tiberium && Constants.TheaterPaletteForTiberium)
+                        palette = tiberiumPalette ?? theaterPalette;
+                    else if (overlayType.Tiberium)
+                        palette = unitPalette;
+
+                    if (overlayType.Wall || overlayType.IsVeins)
                         palette = unitPalette;
 
                     bool isRemapable = overlayType.Tiberium && !Constants.TheaterPaletteForTiberium;
@@ -852,6 +859,7 @@ namespace TSMapEditor.Rendering
 
         private readonly Palette theaterPalette;
         private readonly Palette unitPalette;
+        private readonly Palette tiberiumPalette;
 
         private List<TileImage[]> terrainGraphicsList = new List<TileImage[]>();
         private List<TileImage[]> mmTerrainGraphicsList = new List<TileImage[]>();

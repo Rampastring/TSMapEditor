@@ -1,4 +1,4 @@
-﻿using Rampastring.Tools;
+using Rampastring.Tools;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -53,14 +53,15 @@ namespace TSMapEditor.CCEngine
         }
 
         public Theater(string uiName, string configIniName, List<string> contentMixName,
-            string paletteName, string unitPaletteName, string fileExtension,
-            char newTheaterBuildingLetter)
+            string paletteName, string unitPaletteName, string tiberiumPaletteName,
+            string fileExtension, char newTheaterBuildingLetter)
         {
             UIName = uiName;
             ConfigINIPath = configIniName;
             ContentMIXName = contentMixName;
             TerrainPaletteName = paletteName;
             UnitPaletteName = unitPaletteName;
+            TiberiumPaletteName = tiberiumPaletteName;
             FileExtension = fileExtension;
             NewTheaterBuildingLetter = newTheaterBuildingLetter;
         }
@@ -70,6 +71,7 @@ namespace TSMapEditor.CCEngine
         public List<string> ContentMIXName { get; set; }
         public string TerrainPaletteName { get; set; }
         public string UnitPaletteName { get; set; }
+        public string TiberiumPaletteName { get; set; }
         public string FileExtension { get; set; }
         public char NewTheaterBuildingLetter { get; set; }
 
