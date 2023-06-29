@@ -85,84 +85,28 @@ namespace TSMapEditor.CCEngine
             byte[] buffer = new byte[256];
             stream.Read(buffer, 0, 4);
             MixType mixType = (MixType)BitConverter.ToInt32(buffer, 0);
+            
+            var isEncrypted = (mixType & MixType.ENCRYPTED) != 0;
 
-            if ((mixType & MixType.ENCRYPTED) != 0)
-                ParseEncrypted(stream);
-            else
-                ParseUnencrypted(stream);
-
-            if (masterMix != null)
-                masterMix.CloseFile();
-        }
-
-        /// <summary>
-        /// Reads MIX file entry information from a Blowfish encrypted stream.
-        /// </summary>
-        /// <param name="stream"></param>
-        private void ParseEncrypted(Stream stream)
-        {
-            byte[] buffer = new byte[256];
-
-            // Read and decrypt the Blowfish associated with this MIX.
-            stream.Read(buffer, 0, KeyDecryptor.SIZE_OF_ENCRYPTED_KEY);
-            stream = new BlowfishStream(stream, KeyDecryptor.DecryptBlowfishKey(buffer));
-
-            stream.Read(buffer, 0, BlowfishStream.SIZE_OF_BLOCK);
-            MixFileHeader header = new MixFileHeader(buffer);
-
-            // Consume header bytes here to simplify entry reading.
-            buffer = buffer.Skip(MixFileHeader.SIZE_OF_HEADER).Concat(new byte[MixFileHeader.SIZE_OF_HEADER]).ToArray();
-
-            // Calculate real body offset, accounting for Blowfish key and padding.
-            bodyOffset = INDEX_POSITION + KeyDecryptor.SIZE_OF_ENCRYPTED_KEY + MixFileEntry.SIZE_OF_FILE_ENTRY * header.FileCount;
-            bodyOffset += (header.FileCount % 2) == 0 ? 2 : 6;
-
-            // Read encrypted MIX entries.
-            var dataOffset = 0;
-            for (int i = 0; i < header.FileCount; i++)
+            if (isEncrypted)
             {
-                // We can't read by 12 bytes (entry size), because Blowfish decrypts data in
-                // 8 byte chunks. Because of this, we alternate reading by 16 (4 byte excess)
-                // and 8 bytes (4 byte shortage) - this is `sizeToRead`.
-                var sizeToRead = (2 - (i % 2)) * BlowfishStream.SIZE_OF_BLOCK;
-                // Sadly, we start with 2 bytes remaining after reading the header, so we alternate
-                // between 2 and 6 bytes left after entry read all the time - this is `remainingSize`.
-                var remainingSize = 2 + (i % 2) * 4;
-
-                if (stream.Position + sizeToRead >= stream.Length)
-                    throw new MixParseException("Invalid MIX file.");
-
-                // To use the remaining bytes, we use a moving window inside the buffer.
-                // If we're about to overflow the buffer, pop old entries and start from the beginning
-                // with just the most recent remaining bytes.
-                if (dataOffset + sizeToRead >= buffer.Length)
-                {
-                    buffer = buffer.Skip(dataOffset).Concat(new byte[dataOffset]).ToArray();
-                    dataOffset = 0;
-                }
-
-                // Decrypt new bytes from stream and add them after remaining bytes, then construct
-                // an entry.
-                stream.Read(buffer, dataOffset + remainingSize, sizeToRead);
-                entries.Add(new MixFileEntry(buffer, dataOffset));
-
-                dataOffset += MixFileEntry.SIZE_OF_FILE_ENTRY;
+                // Read and decrypt the Blowfish associated with this MIX.
+                stream.Read(buffer, 0, KeyDecryptor.SIZE_OF_ENCRYPTED_KEY);
+                stream = new BlowfishStream(stream, KeyDecryptor.DecryptBlowfishKey(buffer));
             }
-        }
-
-        /// <summary>
-        /// Reads MIX file entry information from an unencrypted stream.
-        /// </summary>
-        /// <param name="stream"></param>
-        private void ParseUnencrypted(Stream stream)
-        {
-            byte[] buffer = new byte[256];
 
             stream.Read(buffer, 0, MixFileHeader.SIZE_OF_HEADER);
 
             MixFileHeader header = new MixFileHeader(buffer);
 
             bodyOffset = INDEX_POSITION + MixFileEntry.SIZE_OF_FILE_ENTRY * header.FileCount;
+
+            if (isEncrypted)
+            {
+                // Account for Blowfish key and padding.
+                bodyOffset += KeyDecryptor.SIZE_OF_ENCRYPTED_KEY;
+                bodyOffset += (header.FileCount % 2) == 0 ? 2 : 6;
+            }
 
             for (int i = 0; i < header.FileCount; i++)
             {
@@ -172,6 +116,9 @@ namespace TSMapEditor.CCEngine
                 stream.Read(buffer, 0, MixFileEntry.SIZE_OF_FILE_ENTRY);
                 entries.Add(new MixFileEntry(buffer));
             }
+
+            if (masterMix != null)
+                masterMix.CloseFile();
         }
 
         /// <summary>
@@ -320,14 +267,14 @@ namespace TSMapEditor.CCEngine
     {
         public const int SIZE_OF_FILE_ENTRY = 12;
 
-        public MixFileEntry(byte[] buffer, int offset = 0)
+        public MixFileEntry(byte[] buffer)
         {
-            if (buffer.Length < offset + SIZE_OF_FILE_ENTRY)
+            if (buffer.Length < SIZE_OF_FILE_ENTRY)
                 throw new ArgumentException("buffer is not long enough");
 
-            Identifier = BitConverter.ToUInt32(buffer, offset + 0);
-            Offset = BitConverter.ToInt32(buffer, offset + 4);
-            Size = BitConverter.ToInt32(buffer, offset + 8);
+            Identifier = BitConverter.ToUInt32(buffer, 0);
+            Offset = BitConverter.ToInt32(buffer, 4);
+            Size = BitConverter.ToInt32(buffer, 8);
         }
 
         /// <summary>

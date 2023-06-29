@@ -89,6 +89,21 @@ internal class BlowfishStream : Stream
     /// </summary>
     private readonly uint[] key = new uint[14];
 
+    /// <summary>
+    /// Staging buffer for block decryption.
+    /// </summary>
+    private byte[] stagingBuffer = new byte[256];
+
+    /// <summary>
+    /// Current offset in staging buffer.
+    /// </summary>
+    private int stagingBufferOffset = 0;
+
+    /// <summary>
+    /// Number of decrypted bytes in the staging buffer that haven't been consumed yet.
+    /// </summary>
+    private int stagingRemainingBytes = 0;
+
     #region constants
     /// <summary>
     /// Array of Blowfish subkeys. Also referred to as P array.
@@ -271,7 +286,7 @@ internal class BlowfishStream : Stream
 
     public override long Length => stream.Length;
 
-    public override long Position { get => stream.Position; set => throw new System.NotSupportedException(); }
+    public override long Position { get => stream.Position - stagingRemainingBytes; set => throw new System.NotSupportedException(); }
 
     public override void Flush()
     {
@@ -280,18 +295,41 @@ internal class BlowfishStream : Stream
 
     public override int Read(byte[] buffer, int offset, int count)
     {
-        if ((count & (SIZE_OF_BLOCK - 1)) != 0)
-            throw new System.ArgumentException("Read length must be a multiple of Blowfish block size");
+        // Check how much block aligned data we need to read.
+        // There might be remaining decrypted bytes after the last read.
+        var sizeToRead = (((count - stagingRemainingBytes) / SIZE_OF_BLOCK) + 1) * SIZE_OF_BLOCK;
 
-        var read = stream.Read(buffer, offset, count);
+        // Staging buffer is cyclic, so we need to handle overflow.
+        // Copy the last decrypted block (which might contain remaining bytes)
+        // to the beginning and continue from there.
+        if (stagingBufferOffset + sizeToRead >= stagingBuffer.Length)
+        {
+            Buffer.BlockCopy(stagingBuffer, stagingBufferOffset - SIZE_OF_BLOCK, stagingBuffer, 0, SIZE_OF_BLOCK);
+            stagingBufferOffset = SIZE_OF_BLOCK;
+        }
+
+        // Read new encrypted data to staging buffer.
+        var read = stream.Read(stagingBuffer, stagingBufferOffset, sizeToRead);
 
         if ((read & (SIZE_OF_BLOCK - 1)) != 0)
             throw new System.ArgumentException("Number of bytes read from encapsulated stream isn't a multiple of Blowfish block size");
 
-        for (int i = 0; i < read; i += SIZE_OF_BLOCK)
-            DecryptBlock(buffer, buffer, offset + i);
+        var dataStart = stagingBufferOffset - stagingRemainingBytes;
 
-        return read;
+        // Decrypt blocks in-place in staging buffer.
+        for (int i = 0; i < read; i += SIZE_OF_BLOCK)
+        {
+            DecryptBlock();
+            stagingBufferOffset += SIZE_OF_BLOCK;
+        }
+
+        // Copy remaining bytes and newly decrypted bytes into output buffer.
+        Buffer.BlockCopy(stagingBuffer, dataStart, buffer, offset, count);
+
+        // Update the number of remaining bytes in staging buffer.
+        stagingRemainingBytes += sizeToRead - count;
+
+        return count;
     }
 
     public override long Seek(long offset, SeekOrigin origin)
@@ -310,17 +348,14 @@ internal class BlowfishStream : Stream
     }
 
     /// <summary>
-    /// Decrypt one Blowfish block from source buffer to destination buffer.
+    /// Decrypt one Blowfish block in staging buffer.
     /// </summary>
-    /// <param name="destination">Buffer to store the decrypted block.</param>
-    /// <param name="source">Buffer containing the encrypted block.</param>
-    /// <param name="offset">Offset to both buffers.</param>
-    private void DecryptBlock(byte[] destination, byte[] source, int offset)
+    private void DecryptBlock()
     {
         var temp = new uint[2];
 
         // 8-bit array to 32-bit pair.
-        Buffer.BlockCopy(source, offset, temp, 0, SIZE_OF_BLOCK);
+        Buffer.BlockCopy(stagingBuffer, stagingBufferOffset, temp, 0, SIZE_OF_BLOCK);
 
         // To big endian.
         temp[0] = BinaryPrimitives.ReverseEndianness(temp[0]);
@@ -333,7 +368,7 @@ internal class BlowfishStream : Stream
         temp[1] = BinaryPrimitives.ReverseEndianness(temp[1]);
 
         // 8-bit to 32-bit.
-        Buffer.BlockCopy(temp, 0, destination, offset, SIZE_OF_BLOCK);
+        Buffer.BlockCopy(temp, 0, stagingBuffer, stagingBufferOffset, SIZE_OF_BLOCK);
     }
 
     /// <summary>
