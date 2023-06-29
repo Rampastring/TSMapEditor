@@ -105,7 +105,7 @@ internal class BlowfishStream : Stream
     /// <summary>
     /// Array of Blowfish substitution boxes. Also referred to as S arrays.
     /// </summary>
-    private static readonly uint[,] substitutions = new uint[4, 256]
+    private uint[,] substitutions = new uint[4, 256]
     {
         {
             0xd1310ba6, 0x98dfb5ac, 0x2ffd72db, 0xd01adfb7, 0xb8e1afed, 0x6a267e96, 0xba7c9045, 0xf12c7f99,
