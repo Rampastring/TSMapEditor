@@ -1,6 +1,7 @@
 ﻿using System.IO;
 using System.Text;
 using Rampastring.Tools;
+using TSMapEditor.CCEngine;
 
 namespace TSMapEditor.Extensions;
 
@@ -37,6 +38,26 @@ public class IniFileEx: IniFile
     {
         Include();
         Inherit();
+    }
+
+    /// <summary>
+    /// Creates an INI file from a directory + path or from MIX file system.
+    /// </summary>
+    /// <param name="filePath">Path to file or file name inside MIX file system.</param>
+    /// <param name="gameDirectory">The path to the game directory.</param>
+    /// <param name="ccFileManager">File manager object holding MIXes.</param>
+    /// <returns>Constructed INI file or empty INI file on failure.</returns>
+    public static IniFileEx FromPathOrMix(string filePath, string gameDirectory, CCFileManager ccFileManager)
+    {
+        string rulesPath = Path.Combine(gameDirectory, filePath);
+        if (File.Exists(rulesPath))
+            return new(rulesPath);
+
+        var rulesBytes = ccFileManager.LoadFile(filePath);
+        if (rulesBytes != null)
+            return new(new MemoryStream(rulesBytes));
+
+        return new();
     }
 
     /// <summary>

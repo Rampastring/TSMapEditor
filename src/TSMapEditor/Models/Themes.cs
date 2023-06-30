@@ -1,6 +1,7 @@
 ﻿using Rampastring.Tools;
 using System.Collections.Generic;
 using System.IO;
+using TSMapEditor.CCEngine;
 using TSMapEditor.Extensions;
 
 namespace TSMapEditor.Models
@@ -34,9 +35,9 @@ namespace TSMapEditor.Models
 
     public class Themes
     {
-        public Themes(string gameDirectory)
+        public Themes(string gameDirectory, CCFileManager ccFileManager)
         {
-            Initialize(gameDirectory);
+            Initialize(gameDirectory, ccFileManager);
         }
 
         private List<Theme> themes;
@@ -45,11 +46,11 @@ namespace TSMapEditor.Models
 
         public Theme GetByIndex(int index) => (index < 0 || index >= themes.Count) ? null : themes[index];
 
-        private void Initialize(string gameDirectory)
+        private void Initialize(string gameDirectory, CCFileManager ccFileManager)
         {
             themes = new List<Theme>();
 
-            var themeIni = new IniFileEx(Path.Combine(gameDirectory, Constants.ThemeIniPath));
+            var themeIni = IniFileEx.FromPathOrMix(Constants.ThemeIniPath, gameDirectory, ccFileManager);
 
             const string definitionsSectionName = "Themes";
 

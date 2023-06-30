@@ -17,6 +17,7 @@ namespace TSMapEditor.UI.Windows.MainMenuWindows
     public static class MapSetup
     {
         private static Map LoadedMap;
+        private static CCFileManager ccFileManager = new();
 
         /// <summary>
         /// Tries to load a map. If successful, returns null. If loading the map
@@ -31,15 +32,18 @@ namespace TSMapEditor.UI.Windows.MainMenuWindows
         /// <returns>Null of loading the map was successful, otherwise an error message.</returns>
         public static string InitializeMap(string gameDirectory, bool createNew, string existingMapPath, string newMapTheater, Point2D newMapSize, WindowManager windowManager)
         {
-            IniFileEx rulesIni = new(Path.Combine(gameDirectory, Constants.RulesIniPath));
-            IniFileEx firestormIni = new(Path.Combine(gameDirectory, Constants.FirestormIniPath));
-            IniFileEx artIni = new(Path.Combine(gameDirectory, Constants.ArtIniPath));
-            IniFileEx artFSIni = new(Path.Combine(gameDirectory, Constants.FirestormArtIniPath));
+            ccFileManager.GameDirectory = gameDirectory;
+            ccFileManager.ReadConfig();
+
+            IniFileEx rulesIni = IniFileEx.FromPathOrMix(Constants.RulesIniPath, gameDirectory, ccFileManager);
+            IniFileEx firestormIni = IniFileEx.FromPathOrMix(Constants.FirestormIniPath, gameDirectory, ccFileManager);
+            IniFileEx artIni = IniFileEx.FromPathOrMix(Constants.ArtIniPath, gameDirectory, ccFileManager);
+            IniFileEx artFSIni = IniFileEx.FromPathOrMix(Constants.FirestormArtIniPath, gameDirectory, ccFileManager);
             IniFile artOverridesIni = new(Path.Combine(Environment.CurrentDirectory, "Config/ArtOverrides.ini"));
             IniFile.ConsolidateIniFiles(artFSIni, artOverridesIni);
 
             var tutorialLines = new TutorialLines(Path.Combine(gameDirectory, Constants.TutorialIniPath), a => windowManager.AddCallback(a, null));
-            var themes = new Themes(gameDirectory);
+            var themes = new Themes(gameDirectory, ccFileManager);
 
             Map map = new Map();
 
@@ -90,11 +94,8 @@ namespace TSMapEditor.UI.Windows.MainMenuWindows
             {
                 throw new InvalidOperationException("Theater of map not found: " + LoadedMap.TheaterName);
             }
-            theater.ReadConfigINI(gameDirectory);
+            theater.ReadConfigINI(gameDirectory, ccFileManager);
 
-            CCFileManager ccFileManager = new CCFileManager();
-            ccFileManager.GameDirectory = gameDirectory;
-            ccFileManager.ReadConfig();
             foreach (string theaterMIXName in theater.ContentMIXName)
                 ccFileManager.LoadPrimaryMixFile(theaterMIXName);
 

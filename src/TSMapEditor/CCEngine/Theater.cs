@@ -81,18 +81,19 @@ namespace TSMapEditor.CCEngine
         public List<LATGround> LATGrounds = new List<LATGround>();
         public TileSet RampTileSet { get; set; }
 
-        public void ReadConfigINI(string baseDirectoryPath)
+        private const string REQUIRED_SECTION = "General";
+
+        public void ReadConfigINI(string baseDirectoryPath, CCFileManager ccFileManager)
         {
             TileSets.Clear();
 
-            string iniPath = Path.Combine(baseDirectoryPath, ConfigINIPath);
+            IniFileEx theaterIni = IniFileEx.FromPathOrMix(ConfigINIPath, baseDirectoryPath, ccFileManager);
 
-            if (!File.Exists(iniPath))
+            if (!theaterIni.SectionExists(REQUIRED_SECTION))
             {
-                throw new FileNotFoundException("Theater config INI not found: " + ConfigINIPath);
+                throw new FileNotFoundException("Theater config INI not found or invalid: " + ConfigINIPath);
             }
 
-            var theaterIni = new IniFileEx(iniPath);
             int i;
 
             for (i = 0; i < 10000; i++)
