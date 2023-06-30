@@ -53,7 +53,7 @@ namespace TSMapEditor.Models
                     return true;
                 }
 
-                LoadedINI = new IniFileEx(LoadedINI.FileName);
+                LoadedINI = new IniFileEx(LoadedINI.FileName, ccFileManager);
 
                 ReloadSections();
 
@@ -151,12 +151,22 @@ namespace TSMapEditor.Models
 
         private readonly Initializer initializer;
 
+        public CCFileManager ccFileManager;
 
         public Map()
         {
             InitCells();
 
             initializer = new Initializer(this);
+        }
+
+        public Map(CCFileManager ccFileManager)
+        {
+            InitCells();
+
+            initializer = new Initializer(this);
+
+            this.ccFileManager = ccFileManager;
         }
 
         private void InitEditorConfig()
@@ -172,7 +182,7 @@ namespace TSMapEditor.Models
 
             Initialize(rulesIni, firestormIni, artIni, artFirestormIni);
             LoadedINI = new IniFileEx();
-            var baseMap = new IniFile(Environment.CurrentDirectory + "/Config/BaseMap.ini");
+            var baseMap = new IniFileEx(Environment.CurrentDirectory + "/Config/BaseMap.ini", ccFileManager);
             baseMap.FileName = string.Empty;
             baseMap.SetStringValue("Map", "Theater", theaterName);
             baseMap.SetStringValue("Map", "Size", $"0,0,{size.X},{size.Y}");

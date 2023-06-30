@@ -45,7 +45,7 @@ namespace TSMapEditor.UI.Windows.MainMenuWindows
             var tutorialLines = new TutorialLines(Path.Combine(gameDirectory, Constants.TutorialIniPath), a => windowManager.AddCallback(a, null));
             var themes = new Themes(IniFileEx.FromPathOrMix(Constants.ThemeIniPath, gameDirectory, ccFileManager));
 
-            Map map = new Map();
+            Map map = new Map(ccFileManager);
 
             if (createNew)
             {
@@ -55,7 +55,7 @@ namespace TSMapEditor.UI.Windows.MainMenuWindows
             {
                 try
                 {
-                    IniFile mapIni = new IniFile(Path.Combine(gameDirectory, existingMapPath));
+                    IniFileEx mapIni = new(Path.Combine(gameDirectory, existingMapPath), ccFileManager);
 
                     MapLoader.PreCheckMapIni(mapIni);
 

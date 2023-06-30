@@ -16,28 +16,30 @@ public class IniFileEx: IniFile
 
     public IniFileEx() : base() { }
 
-    public IniFileEx(string filePath) : base(filePath)
+    public IniFileEx(string fileName) : base(fileName) { }
+
+    public IniFileEx(string filePath, CCFileManager ccFileManager) : base(filePath)
     {
-        Include();
-        Inherit();
+        Include(ccFileManager);
+        Inherit(ccFileManager);
     }
 
-    public IniFileEx(string filePath, Encoding encoding) : base(filePath, encoding)
+    public IniFileEx(string filePath, Encoding encoding, CCFileManager ccFileManager) : base(filePath, encoding)
     {
-        Include();
-        Inherit();
+        Include(ccFileManager);
+        Inherit(ccFileManager);
     }
 
-    public IniFileEx(Stream stream) : base(stream)
+    public IniFileEx(Stream stream, CCFileManager ccFileManager) : base(stream)
     {
-        Include();
-        Inherit();
+        Include(ccFileManager);
+        Inherit(ccFileManager);
     }
 
-    public IniFileEx(Stream stream, Encoding encoding) : base(stream, encoding)
+    public IniFileEx(Stream stream, Encoding encoding, CCFileManager ccFileManager) : base(stream, encoding)
     {
-        Include();
-        Inherit();
+        Include(ccFileManager);
+        Inherit(ccFileManager);
     }
 
     /// <summary>
@@ -54,11 +56,11 @@ public class IniFileEx: IniFile
 
         string rulesPath = Path.Combine(gameDirectory, filePath);
         if (File.Exists(rulesPath))
-            return new(rulesPath);
+            return new(rulesPath, ccFileManager);
 
         var rulesBytes = ccFileManager.LoadFile(filePath);
         if (rulesBytes != null)
-            return new(new MemoryStream(rulesBytes));
+            return new(new MemoryStream(rulesBytes), ccFileManager);
 
         return new();
     }
@@ -66,7 +68,7 @@ public class IniFileEx: IniFile
     /// <summary>
     /// Includes all base INI files into this file.
     /// </summary>
-    public void Include()
+    public void Include(CCFileManager ccFileManager)
     {
         if (!Constants.EnableIniInclude)
             return;
@@ -81,8 +83,8 @@ public class IniFileEx: IniFile
 
         foreach (var pair in GetSection(sectionName).Keys)
         {
-            string path = SafePath.CombineFilePath(SafePath.GetFileDirectoryName(FileName), pair.Value);
-            IniFileEx includedIni = new(path);
+            string directory = FileName != null ? SafePath.CombineFilePath(SafePath.GetFileDirectoryName(FileName)) : "";
+            IniFileEx includedIni = FromPathOrMix(pair.Value, directory, ccFileManager);
             ConsolidateIniFiles(includedIni, this);
             Sections = includedIni.Sections;
         }
@@ -91,7 +93,7 @@ public class IniFileEx: IniFile
     /// <summary>
     /// For each section, inherits all missing keys from listed parents.
     /// </summary>
-    public void Inherit()
+    public void Inherit(CCFileManager ccFileManager)
     {
         if (!Constants.EnableIniInheritance)
             return;
