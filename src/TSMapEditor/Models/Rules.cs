@@ -129,7 +129,11 @@ namespace TSMapEditor.Models
 
         public List<House> GetStandardHouses(IniFile iniFile)
         {
-            return GetHousesFrom(iniFile, "Houses");
+            var houses = GetHousesFrom(iniFile, "Houses");
+            if (houses.Count > 0)
+                return houses;
+
+            return GetHousesFrom(iniFile, "Countries");
         }
 
         public List<House> GetHousesFrom(IniFile iniFile, string sectionName)
