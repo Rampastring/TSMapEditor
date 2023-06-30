@@ -52,7 +52,7 @@ namespace TSMapEditor.CCEngine
             UIName = name;
         }
 
-        public Theater(string uiName, string configIniName, string contentMixName,
+        public Theater(string uiName, string configIniName, List<string> contentMixName,
             string paletteName, string unitPaletteName, string fileExtension,
             char newTheaterBuildingLetter)
         {
@@ -67,7 +67,7 @@ namespace TSMapEditor.CCEngine
 
         public string UIName { get; }
         public string ConfigINIPath { get; set; }
-        public string ContentMIXName { get; set; }
+        public List<string> ContentMIXName { get; set; }
         public string TerrainPaletteName { get; set; }
         public string UnitPaletteName { get; set; }
         public string FileExtension { get; set; }

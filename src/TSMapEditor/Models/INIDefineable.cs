@@ -1,5 +1,6 @@
 ﻿using Rampastring.Tools;
 using System;
+using System.Collections.Generic;
 
 namespace TSMapEditor.Models
 {
@@ -71,6 +72,8 @@ namespace TSMapEditor.Models
                     setter.Invoke(this, new object[] { (byte)Math.Min(byte.MaxValue, iniSection.GetIntValue(property.Name, (byte)property.GetValue(this, null))) });
                 else if (propertyType.Equals(typeof(char)))
                     setter.Invoke(this, new object[] { iniSection.GetStringValue(property.Name, ((char)property.GetValue(this, null)).ToString())[0] });
+                else if (propertyType.Equals(typeof(List<string>)))
+                    setter.Invoke(this, new object[] { iniSection.GetListValue(property.Name, ',', (s) => s) });
             }
         }
 

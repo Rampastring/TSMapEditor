@@ -1,4 +1,4 @@
-﻿using Rampastring.Tools;
+using Rampastring.Tools;
 using Rampastring.XNAUI;
 using System;
 using System.IO;
@@ -95,7 +95,8 @@ namespace TSMapEditor.UI.Windows.MainMenuWindows
             CCFileManager ccFileManager = new CCFileManager();
             ccFileManager.GameDirectory = gameDirectory;
             ccFileManager.ReadConfig();
-            ccFileManager.LoadPrimaryMixFile(theater.ContentMIXName);
+            foreach (string theaterMIXName in theater.ContentMIXName)
+                ccFileManager.LoadPrimaryMixFile(theaterMIXName);
 
             TheaterGraphics theaterGraphics = new TheaterGraphics(windowManager.GraphicsDevice, theater, ccFileManager, LoadedMap.Rules);
             LoadedMap.TheaterInstance = theaterGraphics;
