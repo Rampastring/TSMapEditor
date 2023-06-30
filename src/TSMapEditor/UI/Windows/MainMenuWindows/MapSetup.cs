@@ -43,7 +43,7 @@ namespace TSMapEditor.UI.Windows.MainMenuWindows
             IniFile.ConsolidateIniFiles(artFSIni, artOverridesIni);
 
             var tutorialLines = new TutorialLines(Path.Combine(gameDirectory, Constants.TutorialIniPath), a => windowManager.AddCallback(a, null));
-            var themes = new Themes(gameDirectory, ccFileManager);
+            var themes = new Themes(IniFileEx.FromPathOrMix(Constants.ThemeIniPath, gameDirectory, ccFileManager));
 
             Map map = new Map();
 
