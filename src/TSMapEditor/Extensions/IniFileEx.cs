@@ -49,6 +49,9 @@ public class IniFileEx: IniFile
     /// <returns>Constructed INI file or empty INI file on failure.</returns>
     public static IniFileEx FromPathOrMix(string filePath, string gameDirectory, CCFileManager ccFileManager)
     {
+        if (filePath.Length == 0)
+            return new();
+
         string rulesPath = Path.Combine(gameDirectory, filePath);
         if (File.Exists(rulesPath))
             return new(rulesPath);
