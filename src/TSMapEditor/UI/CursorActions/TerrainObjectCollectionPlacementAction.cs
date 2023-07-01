@@ -3,43 +3,31 @@ using TSMapEditor.GameMath;
 using TSMapEditor.Models;
 using TSMapEditor.Mutations.Classes;
 using TSMapEditor.Rendering;
-using TSMapEditor.UI;
 
 namespace TSMapEditor.UI.CursorActions
 {
-    /// <summary>
-    /// A cursor action that allows placing down terrain objects.
-    /// </summary>
-    public class TerrainObjectPlacementAction : CursorAction
+    public class TerrainObjectCollectionPlacementAction : CursorAction
     {
-        public TerrainObjectPlacementAction(ICursorActionTarget cursorActionTarget) : base(cursorActionTarget)
+        public TerrainObjectCollectionPlacementAction(ICursorActionTarget cursorActionTarget) : base(cursorActionTarget)
         {
         }
 
-        public override string GetName() => "Place Terrain Object";
+        public override string GetName() => "Place TerrainObject Collection";
 
         private TerrainObject terrainObject;
-
-        private TerrainType _terrainType;
-
-        public TerrainType TerrainType
+        private TerrainObjectCollection _terrainObjectCollection;
+        public TerrainObjectCollection TerrainObjectCollection
         {
-            get => _terrainType;
+            get => _terrainObjectCollection;
             set
             {
-                if (_terrainType != value)
+                if (value.Entries.Length == 0)
                 {
-                    _terrainType = value;
-
-                    if (_terrainType == null)
-                    {
-                        terrainObject = null;
-                    }
-                    else
-                    {
-                        terrainObject = new TerrainObject(_terrainType);
-                    }
+                    throw new InvalidOperationException($"Terrain object collection {value.Name} has no terrain object entries!");
                 }
+
+                _terrainObjectCollection = value;
+                terrainObject = new TerrainObject(_terrainObjectCollection.Entries[0].TerrainType);
             }
         }
 
@@ -68,14 +56,11 @@ namespace TSMapEditor.UI.CursorActions
 
         public override void LeftDown(Point2D cellCoords)
         {
-            if (_terrainType == null)
-                throw new InvalidOperationException(nameof(TerrainType) + " cannot be null");
-
             var cell = CursorActionTarget.Map.GetTile(cellCoords);
             if (cell.TerrainObject != null)
                 return;
 
-            var mutation = new PlaceTerrainObjectMutation(CursorActionTarget.MutationTarget, TerrainType, cellCoords);
+            var mutation = new PlaceTerrainObjectCollectionMutation(CursorActionTarget.MutationTarget, TerrainObjectCollection, cellCoords);
             CursorActionTarget.MutationManager.PerformMutation(mutation);
         }
 

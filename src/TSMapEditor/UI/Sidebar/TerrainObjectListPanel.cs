@@ -33,6 +33,8 @@ namespace TSMapEditor.UI.Sidebar
 
         private TerrainObjectPlacementAction terrainObjectPlacementAction;
 
+        private TerrainObjectCollectionPlacementAction terrainObjectCollectionPlacementAction;
+
         public override void Initialize()
         {
             SearchBox = new XNASuggestionTextBox(WindowManager);
@@ -58,7 +60,10 @@ namespace TSMapEditor.UI.Sidebar
             base.Initialize();
 
             terrainObjectPlacementAction = new TerrainObjectPlacementAction(cursorActionTarget);
+            terrainObjectCollectionPlacementAction = new TerrainObjectCollectionPlacementAction(cursorActionTarget);
             ObjectTreeView.SelectedItemChanged += ObjectTreeView_SelectedItemChanged;
+            terrainObjectCollectionPlacementAction.ActionExited += (s, e) => ObjectTreeView.SelectedNode = null;
+            terrainObjectPlacementAction.ActionExited += (s, e) => ObjectTreeView.SelectedNode = null;
 
             InitTerrainObjects();
 
@@ -83,9 +88,20 @@ namespace TSMapEditor.UI.Sidebar
             if (ObjectTreeView.SelectedNode == null)
                 return;
 
-            var terrainType = (TerrainType)ObjectTreeView.SelectedNode.Tag;
-            terrainObjectPlacementAction.TerrainType = terrainType;
-            EditorState.CursorAction = terrainObjectPlacementAction;
+            var tag = ObjectTreeView.SelectedNode.Tag;
+            if (tag == null)
+                return;
+
+            if (tag is TerrainObjectCollection collection)
+            {
+                terrainObjectCollectionPlacementAction.TerrainObjectCollection = collection;
+                EditorState.CursorAction = terrainObjectCollectionPlacementAction;
+            }
+            else if (tag is TerrainType terrainType)
+            {
+                terrainObjectPlacementAction.TerrainType = terrainType;
+                EditorState.CursorAction = terrainObjectPlacementAction;
+            }
         }
 
         private void SearchBox_EnterPressed(object sender, EventArgs e)
@@ -104,6 +120,42 @@ namespace TSMapEditor.UI.Sidebar
         private void InitTerrainObjects()
         {
             var categories = new List<TreeViewCategory>();
+
+            if (Map.EditorConfig.TerrainObjectCollections.Count > 0)
+            {
+                var collectionsCategory = new TreeViewCategory() { Text = "Collections" };
+                categories.Add(collectionsCategory);
+
+                foreach (var collection in Map.EditorConfig.TerrainObjectCollections)
+                {
+                    if (collection.Entries.Length == 0)
+                        continue;
+
+                    Texture2D texture = null;
+                    var firstEntry = collection.Entries[0];
+                    var textures = TheaterGraphics.TerrainObjectTextures[firstEntry.TerrainType.Index];
+                    if (textures != null)
+                    {
+                        var frames = textures.Frames;
+                        int frameNumber = firstEntry.Frame;
+
+                        if (frames != null && frames.Length > frameNumber)
+                        {
+                            var frame = frames[frameNumber];
+                            if (frame != null)
+                                texture = frame.Texture;
+                        }
+                    }
+
+                    collectionsCategory.Nodes.Add(new TreeViewNode()
+                    {
+                        Text = collection.Name,
+                        Tag = collection,
+                        Texture = texture
+                    });
+                }
+            }
+
             for (int i = 0; i < Map.Rules.TerrainTypes.Count; i++)
             {
                 TreeViewCategory category = null;

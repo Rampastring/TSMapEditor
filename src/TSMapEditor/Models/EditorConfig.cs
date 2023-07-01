@@ -18,6 +18,7 @@ namespace TSMapEditor.Models
         
         public IniFile EditorRulesIni { get; }
         public List<OverlayCollection> OverlayCollections { get; } = new List<OverlayCollection>();
+        public List<TerrainObjectCollection> TerrainObjectCollections { get; } = new List<TerrainObjectCollection>();
         public List<BrushSize> BrushSizes { get; } = new List<BrushSize>() { new BrushSize(1, 1) };
         public List<ScriptAction> ScriptActions { get; } = new List<ScriptAction>();
         public List<TriggerEventType> TriggerEventTypes { get; } = new List<TriggerEventType>();
@@ -28,6 +29,7 @@ namespace TSMapEditor.Models
         {
             ReadTheaters();
             ReadOverlayCollections(rules);
+            ReadTerrainObjectCollections(rules);
             ReadBrushSizes();
             ReadScriptActions();
             ReadTriggerEventTypes();
@@ -73,6 +75,28 @@ namespace TSMapEditor.Models
 
                 var overlayCollection = OverlayCollection.InitFromIniSection(collectionSection, rules.OverlayTypes);
                 OverlayCollections.Add(overlayCollection);
+            }
+        }
+
+        private void ReadTerrainObjectCollections(Rules rules)
+        {
+            TerrainObjectCollections.Clear();
+
+            var iniFile = new IniFile(Environment.CurrentDirectory + "/Config/TerrainObjectCollections.ini");
+
+            var keys = iniFile.GetSectionKeys("TerrainObjectCollections");
+            if (keys == null)
+                return;
+
+            foreach (var key in keys)
+            {
+                var value = iniFile.GetStringValue("TerrainObjectCollections", key, string.Empty);
+                var collectionSection = iniFile.GetSection(value);
+                if (collectionSection == null)
+                    continue;
+
+                var terrainObjectCollection = TerrainObjectCollection.InitFromIniSection(collectionSection, rules.TerrainTypes);
+                TerrainObjectCollections.Add(terrainObjectCollection);
             }
         }
 
