@@ -134,6 +134,9 @@ namespace TSMapEditor.UI.Sidebar
             {
                 var objectType = objectTypeList[i];
 
+                if (!objectType.EditorVisible)
+                    continue;
+
                 if (objectType.WhatAmI() == RTTIType.BuildingType)
                 {
                     var buildingType = (BuildingType)(TechnoType)objectType;

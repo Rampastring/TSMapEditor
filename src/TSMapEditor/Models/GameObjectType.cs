@@ -16,6 +16,7 @@
         public string Name { get; set; }
         public string FSName { get; set; }
         public string EditorCategory { get; set; }
+        public bool EditorVisible { get; set; } = true;
 
         public string GetEditorDisplayName()
         {
