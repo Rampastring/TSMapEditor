@@ -20,8 +20,6 @@ namespace TSMapEditor.UI.Sidebar
             Map = map;
             TheaterGraphics = theaterGraphics;
             this.cursorActionTarget = cursorActionTarget;
-            smudgePlacementAction = new PlaceSmudgeCursorAction(cursorActionTarget);
-            smudgePlacementAction.ActionExited += SmudgePlacementAction_ActionExited;
         }
 
         protected EditorState EditorState { get; }
@@ -32,7 +30,8 @@ namespace TSMapEditor.UI.Sidebar
         public TreeView ObjectTreeView { get; private set; }
 
         private readonly ICursorActionTarget cursorActionTarget;
-        private readonly PlaceSmudgeCursorAction smudgePlacementAction;
+        private PlaceSmudgeCursorAction smudgePlacementAction;
+        private PlaceSmudgeCollectionCursorAction smudgeCollectionPlacementAction;
 
 
         public override void Initialize()
@@ -60,7 +59,10 @@ namespace TSMapEditor.UI.Sidebar
             base.Initialize();
 
             ObjectTreeView.SelectedItemChanged += ObjectTreeView_SelectedItemChanged;
-            // overlayPlacementAction.ActionExited += (s, e) => ObjectTreeView.SelectedNode = null;
+            smudgePlacementAction = new PlaceSmudgeCursorAction(cursorActionTarget);
+            smudgeCollectionPlacementAction = new PlaceSmudgeCollectionCursorAction(cursorActionTarget);
+            smudgeCollectionPlacementAction.ActionExited += (s, e) => ObjectTreeView.SelectedNode = null;
+            smudgePlacementAction.ActionExited += (s, e) => ObjectTreeView.SelectedNode = null;
 
             InitSmudges();
 
@@ -74,13 +76,19 @@ namespace TSMapEditor.UI.Sidebar
                 return;
 
             var tag = ObjectTreeView.SelectedNode.Tag;
-            smudgePlacementAction.SmudgeType = tag as SmudgeType;
-            EditorState.CursorAction = smudgePlacementAction;
-        }
+            if (tag == null)
+                return;
 
-        private void SmudgePlacementAction_ActionExited(object sender, EventArgs e)
-        {
-            ObjectTreeView.SelectedNode = null;
+            if (tag is SmudgeCollection collection)
+            {
+                smudgeCollectionPlacementAction.SmudgeCollection = collection;
+                EditorState.CursorAction = smudgeCollectionPlacementAction;
+            }
+            else if (tag is SmudgeType smudgeType)
+            {
+                smudgePlacementAction.SmudgeType = smudgeType;
+                EditorState.CursorAction = smudgePlacementAction;
+            }
         }
 
         private void NextSidebarNode_Triggered(object sender, EventArgs e)
@@ -117,6 +125,41 @@ namespace TSMapEditor.UI.Sidebar
                 Text = "Erase Smudges",
                 Tag = new object()
             });
+
+            if (Map.EditorConfig.SmudgeCollections.Count > 0)
+            {
+                var collectionsCategory = new TreeViewCategory() { Text = "Collections" };
+                categories.Add(collectionsCategory);
+
+                foreach (var collection in Map.EditorConfig.SmudgeCollections)
+                {
+                    if (collection.Entries.Length == 0)
+                        continue;
+
+                    Texture2D texture = null;
+                    var firstEntry = collection.Entries[0];
+                    var textures = TheaterGraphics.SmudgeTextures[firstEntry.SmudgeType.Index];
+                    if (textures != null)
+                    {
+                        var frames = textures.Frames;
+                        int frameNumber = firstEntry.Frame;
+
+                        if (frames != null && frames.Length > frameNumber)
+                        {
+                            var frame = frames[frameNumber];
+                            if (frame != null)
+                                texture = frame.Texture;
+                        }
+                    }
+
+                    collectionsCategory.Nodes.Add(new TreeViewNode()
+                    {
+                        Text = collection.Name,
+                        Tag = collection,
+                        Texture = texture
+                    });
+                }
+            }
 
             for (int i = 0; i < Map.Rules.SmudgeTypes.Count; i++)
             {

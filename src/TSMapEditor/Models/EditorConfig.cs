@@ -1,4 +1,4 @@
-﻿using Rampastring.Tools;
+using Rampastring.Tools;
 using System;
 using System.Collections.Generic;
 using TSMapEditor.CCEngine;
@@ -19,6 +19,7 @@ namespace TSMapEditor.Models
         public IniFile EditorRulesIni { get; }
         public List<OverlayCollection> OverlayCollections { get; } = new List<OverlayCollection>();
         public List<TerrainObjectCollection> TerrainObjectCollections { get; } = new List<TerrainObjectCollection>();
+        public List<SmudgeCollection> SmudgeCollections { get; } = new List<SmudgeCollection>();
         public List<BrushSize> BrushSizes { get; } = new List<BrushSize>() { new BrushSize(1, 1) };
         public List<ScriptAction> ScriptActions { get; } = new List<ScriptAction>();
         public List<TriggerEventType> TriggerEventTypes { get; } = new List<TriggerEventType>();
@@ -30,6 +31,7 @@ namespace TSMapEditor.Models
             ReadTheaters();
             ReadOverlayCollections(rules);
             ReadTerrainObjectCollections(rules);
+            ReadSmudgeCollections(rules);
             ReadBrushSizes();
             ReadScriptActions();
             ReadTriggerEventTypes();
@@ -97,6 +99,28 @@ namespace TSMapEditor.Models
 
                 var terrainObjectCollection = TerrainObjectCollection.InitFromIniSection(collectionSection, rules.TerrainTypes);
                 TerrainObjectCollections.Add(terrainObjectCollection);
+            }
+        }
+
+        private void ReadSmudgeCollections(Rules rules)
+        {
+            SmudgeCollections.Clear();
+
+            var iniFile = new IniFile(Environment.CurrentDirectory + "/Config/SmudgeCollections.ini");
+
+            var keys = iniFile.GetSectionKeys("SmudgeCollections");
+            if (keys == null)
+                return;
+
+            foreach (var key in keys)
+            {
+                var value = iniFile.GetStringValue("SmudgeCollections", key, string.Empty);
+                var collectionSection = iniFile.GetSection(value);
+                if (collectionSection == null)
+                    continue;
+
+                var smudgeCollection = SmudgeCollection.InitFromIniSection(collectionSection, rules.SmudgeTypes);
+                SmudgeCollections.Add(smudgeCollection);
             }
         }
 

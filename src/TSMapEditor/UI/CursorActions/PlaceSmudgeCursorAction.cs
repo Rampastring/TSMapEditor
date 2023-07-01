@@ -79,9 +79,6 @@ namespace TSMapEditor.UI.CursorActions
             CursorActionTarget.MutationManager.PerformMutation(new PlaceSmudgeMutation(CursorActionTarget.MutationTarget, SmudgeType, cellCoords));
         }
 
-        public override void LeftDown(Point2D cellCoords)
-        {
-            LeftClick(cellCoords);
-        }
+        public override void LeftDown(Point2D cellCoords) => LeftClick(cellCoords);
     }
 }

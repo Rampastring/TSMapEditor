@@ -43,7 +43,8 @@ namespace TSMapEditor.UI
                 NavalMenu,
                 InfantryMenu,
                 TerrainObjectMenu,
-                OverlayMenu
+                OverlayMenu,
+                SmudgeMenu
             };
         }
 
