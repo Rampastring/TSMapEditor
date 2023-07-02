@@ -151,7 +151,7 @@ namespace TSMapEditor.Models
 
         private readonly Initializer initializer;
 
-        public CCFileManager ccFileManager;
+        private readonly CCFileManager ccFileManager;
 
         public Map()
         {
