@@ -13,12 +13,10 @@ namespace TSMapEditor.UI
         public struct TerrainObjectCollectionEntry
         {
             public TerrainType TerrainType;
-            public int Frame;
 
-            public TerrainObjectCollectionEntry(TerrainType terrainType, int frame)
+            public TerrainObjectCollectionEntry(TerrainType terrainType)
             {
                 TerrainType = terrainType;
-                Frame = frame;
             }
         }
 
@@ -35,22 +33,9 @@ namespace TSMapEditor.UI
             int i = 0;
             while (true)
             {
-                string value = iniSection.GetStringValue("TerrainObjectType" + i, null);
-                if (string.IsNullOrWhiteSpace(value))
+                string terrainTypeName = iniSection.GetStringValue("TerrainObjectType" + i, null);
+                if (string.IsNullOrWhiteSpace(terrainTypeName))
                     break;
-
-                string[] parts = value.Split(new char[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
-                string terrainTypeName;
-                int frame = 0;
-                if (parts.Length == 1)
-                {
-                    terrainTypeName = value;
-                }
-                else
-                {
-                    terrainTypeName = parts[0];
-                    frame = Conversions.IntFromString(parts[1], -1);
-                }
 
                 var terrainType = terrainTypes.Find(o => o.ININame == terrainTypeName);
                 if (terrainType == null)
@@ -58,12 +43,7 @@ namespace TSMapEditor.UI
                     throw new INIConfigException($"Terrain object type \"{terrainTypeName}\" not found while initializing terrain object collection \"{terrainObjectCollection.Name}\"!");
                 }
 
-                if (frame < 0)
-                {
-                    throw new INIConfigException($"Frame below zero defined in entry #{i} in terrain object collection \"{terrainObjectCollection.Name}\"!");
-                }
-
-                entryList.Add(new TerrainObjectCollectionEntry(terrainType, frame));
+                entryList.Add(new TerrainObjectCollectionEntry(terrainType));
 
                 i++;
             }
