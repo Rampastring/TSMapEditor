@@ -142,7 +142,7 @@ namespace TSMapEditor.UI.Sidebar
                     if (textures != null)
                     {
                         var frames = textures.Frames;
-                        int frameNumber = firstEntry.Frame;
+                        const int frameNumber = 0;
 
                         if (frames != null && frames.Length > frameNumber)
                         {
