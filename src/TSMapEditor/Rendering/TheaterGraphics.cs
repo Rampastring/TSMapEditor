@@ -422,7 +422,7 @@ namespace TSMapEditor.Rendering
 
             theaterPalette = GetPaletteOrFail(theater.TerrainPaletteName);
             unitPalette = GetPaletteOrFail(Theater.UnitPaletteName);
-            if (Theater.TiberiumPaletteName.Length > 0)
+            if (!string.IsNullOrEmpty(Theater.TiberiumPaletteName))
                 tiberiumPalette = GetPaletteOrFail(Theater.TiberiumPaletteName);
 
             var task1 = Task.Factory.StartNew(() => ReadTileTextures());
@@ -815,10 +815,13 @@ namespace TSMapEditor.Rendering
                     shpFile.ParseFromBuffer(shpData);
                     Palette palette = theaterPalette;
 
-                    if (overlayType.Tiberium && Constants.TheaterPaletteForTiberium)
-                        palette = tiberiumPalette ?? theaterPalette;
-                    else if (overlayType.Tiberium)
+                    if (overlayType.Tiberium)
+                    {
                         palette = unitPalette;
+
+                        if (Constants.TheaterPaletteForTiberium)
+                            palette = tiberiumPalette ?? theaterPalette;
+                    }
 
                     if (overlayType.Wall || overlayType.IsVeins)
                         palette = unitPalette;
