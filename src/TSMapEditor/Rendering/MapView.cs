@@ -43,6 +43,7 @@ namespace TSMapEditor.Rendering
         Map Map { get; }
         TheaterGraphics TheaterGraphics { get; }
         WindowManager WindowManager { get; }
+        EditorGraphics EditorGraphics { get; }
         void AddRefreshPoint(Point2D point, int size = 10);
         void InvalidateMap();
         MutationManager MutationManager { get; }
@@ -62,12 +63,13 @@ namespace TSMapEditor.Rendering
     {
         private const float RightClickScrollRateDivisor = 64f;
 
-        public MapView(WindowManager windowManager, Map map, TheaterGraphics theaterGraphics, EditorState editorState,
-            MutationManager mutationManager, WindowController windowController) : base(windowManager)
+        public MapView(WindowManager windowManager, Map map, TheaterGraphics theaterGraphics, EditorGraphics editorGraphics,
+            EditorState editorState, MutationManager mutationManager, WindowController windowController) : base(windowManager)
         {
             EditorState = editorState;
             Map = map;
             TheaterGraphics = theaterGraphics;
+            EditorGraphics = editorGraphics;
             MutationManager = mutationManager;
             this.windowController = windowController;
 
@@ -78,6 +80,7 @@ namespace TSMapEditor.Rendering
         public EditorState EditorState { get; private set; }
         public Map Map { get; private set; }
         public TheaterGraphics TheaterGraphics { get; private set; }
+        public EditorGraphics EditorGraphics { get; private set; }
         public MutationManager MutationManager { get; private set; }
         private WindowController windowController;
 
@@ -103,10 +106,6 @@ namespace TSMapEditor.Rendering
             get => EditorState.CursorAction;
             set => EditorState.CursorAction = value;
         }
-
-        private Texture2D impassableCellHighlightTexture;
-        private Texture2D iceGrowthHighlightTexture;
-        private Texture2D rangeIndicatorTexture;
 
         private RenderTarget2D mapRenderTarget;
         private RenderTarget2D depthRenderTarget;
@@ -175,10 +174,6 @@ namespace TSMapEditor.Rendering
             base.Initialize();
 
             LoadShaders();
-
-            impassableCellHighlightTexture = AssetLoader.LoadTexture("impassablehighlight.png");
-            iceGrowthHighlightTexture = AssetLoader.LoadTexture("icehighlight.png");
-            rangeIndicatorTexture = AssetLoader.LoadTexture("rangeindicator.png");
 
             mapWideOverlay = new MapWideOverlay();
             EditorState.MapWideOverlayExists = mapWideOverlay.HasTexture;
@@ -923,7 +918,7 @@ namespace TSMapEditor.Rendering
             endX = Camera.ScaleIntWithZoom(endX - Camera.TopLeftPoint.X);
             endY = Camera.ScaleIntWithZoom(endY - Camera.TopLeftPoint.Y);
 
-            DrawTexture(rangeIndicatorTexture,
+            DrawTexture(EditorGraphics.RangeIndicatorTexture,
                 new Rectangle(startX, startY, endX - startX, endY - startY), color);
         }
 
@@ -1300,7 +1295,7 @@ namespace TSMapEditor.Rendering
 
             Point2D cellTopLeftPoint = CellMath.CellTopLeftPointFromCellCoords_3D(cell.CoordsToPoint(), Map);
 
-            DrawTexture(impassableCellHighlightTexture, cellTopLeftPoint.ToXNAPoint(), Color.White);
+            DrawTexture(EditorGraphics.ImpassableCellHighlightTexture, cellTopLeftPoint.ToXNAPoint(), Color.White);
         }
 
         private void DrawIceGrowthHighlight(MapTile cell)
@@ -1310,7 +1305,7 @@ namespace TSMapEditor.Rendering
 
             Point2D cellTopLeftPoint = CellMath.CellTopLeftPointFromCellCoords(cell.CoordsToPoint(), Map);
 
-            DrawTexture(iceGrowthHighlightTexture, cellTopLeftPoint.ToXNAPoint(), Color.White);
+            DrawTexture(EditorGraphics.IceGrowthHighlightTexture, cellTopLeftPoint.ToXNAPoint(), Color.White);
         }
 
         public void DeleteObjectFromCell(Point2D cellCoords)

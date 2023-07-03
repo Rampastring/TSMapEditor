@@ -1,6 +1,6 @@
-﻿using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
-using Rampastring.XNAUI;
+using Rampastring.Tools;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -423,8 +423,6 @@ namespace TSMapEditor.Rendering
 
             theaterPalette = GetPaletteOrFail(theater.TerrainPaletteName);
             unitPalette = GetPaletteOrFail(Theater.UnitPaletteName);
-
-            GenericTileTexture = AssetLoader.LoadTexture("generictile.png");
 
             var task1 = Task.Factory.StartNew(() => ReadTileTextures());
             var task2 = Task.Factory.StartNew(() => ReadTerrainObjectTextures(rules.TerrainTypes));
@@ -859,8 +857,6 @@ namespace TSMapEditor.Rendering
         private List<TileImage[]> terrainGraphicsList = new List<TileImage[]>();
         private List<TileImage[]> mmTerrainGraphicsList = new List<TileImage[]>();
 
-        public Texture2D GenericTileTexture { get; }
-
         public int TileCount => terrainGraphicsList.Count;
 
         public TileImage GetTileGraphics(int id) => terrainGraphicsList[id][random.Next(terrainGraphicsList[id].Length)];
@@ -914,8 +910,6 @@ namespace TSMapEditor.Rendering
             var task7 = Task.Factory.StartNew(() => { terrainGraphicsList.ForEach(tileImageArray => Array.ForEach(tileImageArray, tileImage => tileImage.Dispose())); terrainGraphicsList.Clear(); });
             var task8 = Task.Factory.StartNew(() => { mmTerrainGraphicsList.ForEach(tileImageArray => Array.ForEach(tileImageArray, tileImage => tileImage.Dispose())); mmTerrainGraphicsList.Clear(); });
             Task.WaitAll(task1, task2, task3, task4, task5, task6, task7, task8);
-
-            GenericTileTexture.Dispose();
 
             TerrainObjectTextures = null;
             BuildingTextures = null;

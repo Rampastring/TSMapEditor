@@ -102,7 +102,9 @@ namespace TSMapEditor.UI.Windows.MainMenuWindows
             LoadedMap.TheaterInstance = theaterGraphics;
             MapLoader.PostCheckMap(LoadedMap, theaterGraphics);
 
-            var uiManager = new UIManager(windowManager, LoadedMap, theaterGraphics);
+            EditorGraphics editorGraphics = new EditorGraphics();
+
+            var uiManager = new UIManager(windowManager, LoadedMap, theaterGraphics, editorGraphics);
             windowManager.AddAndInitializeControl(uiManager);
 
             const int margin = 60;

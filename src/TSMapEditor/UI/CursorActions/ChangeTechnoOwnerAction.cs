@@ -28,7 +28,7 @@ namespace TSMapEditor.UI.CursorActions
             cellTopLeftPoint = cellTopLeftPoint.ScaleBy(CursorActionTarget.Camera.ZoomLevel);
 
             Renderer.DrawTexture(
-                CursorActionTarget.TheaterGraphics.GenericTileTexture,
+                CursorActionTarget.EditorGraphics.GenericTileTexture,
                 new Rectangle(cellTopLeftPoint.X, cellTopLeftPoint.Y, Constants.CellSizeX, Constants.CellSizeY),
                 newOwner.XNAColor * 0.5f);
 

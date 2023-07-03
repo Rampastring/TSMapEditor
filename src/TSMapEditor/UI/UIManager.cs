@@ -30,15 +30,18 @@ namespace TSMapEditor.UI
 
     class UIManager : XNAControl, IWindowParentControl
     {
-        public UIManager(WindowManager windowManager, Map map, TheaterGraphics theaterGraphics) : base(windowManager)
+        public UIManager(WindowManager windowManager, Map map, TheaterGraphics theaterGraphics,
+            EditorGraphics editorGraphics) : base(windowManager)
         {
             DrawMode = ControlDrawMode.UNIQUE_RENDER_TARGET;
             this.map = map;
             this.theaterGraphics = theaterGraphics;
+            this.editorGraphics = editorGraphics;
         }
 
         private Map map;
         private TheaterGraphics theaterGraphics;
+        private EditorGraphics editorGraphics;
 
         private MapView mapView;
         private TileSelector tileSelector;
@@ -240,7 +243,7 @@ namespace TSMapEditor.UI
 
         private void InitMapView()
         {
-            mapView = new MapView(WindowManager, map, theaterGraphics, editorState, mutationManager, windowController);
+            mapView = new MapView(WindowManager, map, theaterGraphics, editorGraphics, editorState, mutationManager, windowController);
             mapView.Width = WindowManager.RenderResolutionX;
             mapView.Height = WindowManager.RenderResolutionY;
             AddChild(mapView);
@@ -396,6 +399,9 @@ namespace TSMapEditor.UI
 
             theaterGraphics.DisposeAll();
             theaterGraphics = null;
+
+            editorGraphics.DisposeAll();
+            editorGraphics = null;
 
             mapView.Clear();
 
