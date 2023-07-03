@@ -17,7 +17,7 @@ namespace TSMapEditor.UI.Windows.MainMenuWindows
     public static class MapSetup
     {
         private static Map LoadedMap;
-        private static CCFileManager ccFileManager = new();
+        private static CCFileManager ccFileManager;
 
         /// <summary>
         /// Tries to load a map. If successful, returns null. If loading the map
@@ -32,7 +32,7 @@ namespace TSMapEditor.UI.Windows.MainMenuWindows
         /// <returns>Null of loading the map was successful, otherwise an error message.</returns>
         public static string InitializeMap(string gameDirectory, bool createNew, string existingMapPath, string newMapTheater, Point2D newMapSize, WindowManager windowManager)
         {
-            ccFileManager.GameDirectory = gameDirectory;
+            ccFileManager = new() { GameDirectory = gameDirectory };
             ccFileManager.ReadConfig();
 
             IniFileEx rulesIni = IniFileEx.FromPathOrMix(Constants.RulesIniPath, gameDirectory, ccFileManager);
