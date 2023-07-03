@@ -19,32 +19,30 @@ namespace TSMapEditor.Rendering.ObjectRenderers
 
             Color foundationLineColor = gameObject.Owner.XNAColor;
 
-            if (foundationX > 0 && foundationY > 0)
+            if (foundationX == 0 || foundationY == 0)
+                return;
+
+            var map = RenderDependencies.Map;
+
+            int heightOffset = 0;
+
+            var cell = map.GetTile(gameObject.Position);
+            if (cell != null)
+                heightOffset = cell.Level * Constants.CellHeight;
+
+            SetEffectParams(0.0f, 0.0f, Vector2.Zero, Vector2.Zero);
+
+            foreach (var edge in gameObject.ObjectType.ArtConfig.Foundation.Edges)
             {
-                var map = RenderDependencies.Map;
-
-                int heightOffset = 0;
-
-                var cell = map.GetTile(gameObject.Position);
-                if (cell != null)
-                    heightOffset = cell.Level * Constants.CellHeight;
-
-                Point2D p1 = CellMath.CellTopLeftPointFromCellCoords(gameObject.Position, map) + new Point2D(Constants.CellSizeX / 2, 0);
-                Point2D p2 = CellMath.CellTopLeftPointFromCellCoords(new Point2D(gameObject.Position.X + foundationX, gameObject.Position.Y), map) + new Point2D(Constants.CellSizeX / 2, 0);
-                Point2D p3 = CellMath.CellTopLeftPointFromCellCoords(new Point2D(gameObject.Position.X, gameObject.Position.Y + foundationY), map) + new Point2D(Constants.CellSizeX / 2, 0);
-                Point2D p4 = CellMath.CellTopLeftPointFromCellCoords(new Point2D(gameObject.Position.X + foundationX, gameObject.Position.Y + foundationY), map) + new Point2D(Constants.CellSizeX / 2, 0);
-
-                p1 -= new Point2D(0, heightOffset);
-                p2 -= new Point2D(0, heightOffset);
-                p3 -= new Point2D(0, heightOffset);
-                p4 -= new Point2D(0, heightOffset);
-
-                SetEffectParams(0.0f, 0.0f, Vector2.Zero, Vector2.Zero);
-
-                DrawLine(p1.ToXNAVector(), p2.ToXNAVector(), foundationLineColor, 1);
-                DrawLine(p1.ToXNAVector(), p3.ToXNAVector(), foundationLineColor, 1);
-                DrawLine(p2.ToXNAVector(), p4.ToXNAVector(), foundationLineColor, 1);
-                DrawLine(p3.ToXNAVector(), p4.ToXNAVector(), foundationLineColor, 1);
+                // Translate edge vertices from cell coordinate space to world coordinate space.
+                var start = CellMath.CellTopLeftPointFromCellCoords(gameObject.Position + edge[0], map);
+                var end = CellMath.CellTopLeftPointFromCellCoords(gameObject.Position + edge[1], map);
+                // Height is an illusion, just move everything up or down.
+                // Also offset X to match the top corner of an iso tile.
+                start += new Point2D(Constants.CellSizeX / 2, -heightOffset);
+                end += new Point2D(Constants.CellSizeX / 2, -heightOffset);
+                // Draw edge.
+                DrawLine(start.ToXNAVector(), end.ToXNAVector(), foundationLineColor, 1);
             }
         }
 
