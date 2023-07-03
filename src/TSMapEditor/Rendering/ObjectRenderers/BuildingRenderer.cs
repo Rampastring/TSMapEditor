@@ -14,8 +14,8 @@ namespace TSMapEditor.Rendering.ObjectRenderers
 
         private void DrawFoundationLines(Structure gameObject)
         {
-            int foundationX = gameObject.ObjectType.ArtConfig.FoundationX;
-            int foundationY = gameObject.ObjectType.ArtConfig.FoundationY;
+            int foundationX = gameObject.ObjectType.ArtConfig.Foundation.Width;
+            int foundationY = gameObject.ObjectType.ArtConfig.Foundation.Height;
 
             Color foundationLineColor = gameObject.Owner.XNAColor;
 

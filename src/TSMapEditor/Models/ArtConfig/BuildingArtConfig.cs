@@ -21,11 +21,66 @@ namespace TSMapEditor.Models.ArtConfig
         /// </summary>
         public Point2D[][] Edges { get; set; } = new Point2D[][] { Array.Empty<Point2D>() };
 
+        public int Width { get; set; }
+        public int Height { get; set; }
+
         public void ReadFromIniSection(IniSection iniSection)
         {
-            if (iniSection == null)
+            string foundationString = iniSection.GetStringValue("Foundation", string.Empty);
+            if (string.IsNullOrWhiteSpace(foundationString))
                 return;
 
+            if (foundationString == "Custom")
+            {
+                Width = iniSection.GetIntValue("Foundation.X", -1);
+                Height = iniSection.GetIntValue("Foundation.Y", -1);
+
+                if (Width < 0 || Height < 0)
+                    throw new InvalidOperationException("Invalid custom Foundation specified in Art.ini section " + iniSection.SectionName);
+
+                CellsFromINI(iniSection);
+                CreateCustomEdges(Width, Height);
+            }
+            else
+            {
+                string[] foundationParts = foundationString.ToLower().Split('x');
+                if (foundationParts.Length != 2)
+                    throw new InvalidOperationException("Invalid Foundation= specified in Art.ini section " + iniSection.SectionName);
+
+                Width = Conversions.IntFromString(foundationParts[0], 0);
+                Height = Conversions.IntFromString(foundationParts[1], 0);
+
+                if (Width != 0 && Height != 0)
+                {
+                    CellsFromXY(Width, Height);
+                    CreateRectangleEdges(Width, Height);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Populates foundation cells for a typical scenario - foundation is a rectangle.
+        /// </summary>
+        public void CellsFromXY(int width, int height)
+        {
+            var foundationCells = new List<Point2D>();
+
+            for (int y = 0; y < height; y++)
+            {
+                for (int x = 0; x < width; x++)
+                {
+                    foundationCells.Add(new Point2D(x, y));
+                }
+            }
+
+            FoundationCells = foundationCells.ToArray();
+        }
+
+        /// <summary>
+        /// Reads foundation cells from an INI section.
+        /// </summary>
+        public void CellsFromINI(IniSection iniSection)
+        {
             var foundationCells = new List<Point2D>();
 
             int i = 0;
@@ -42,24 +97,6 @@ namespace TSMapEditor.Models.ArtConfig
 
                 foundationCells.Add(new Point2D(Conversions.IntFromString(parts[0], -1), Conversions.IntFromString(parts[1], -1)));
                 i++;
-            }
-
-            FoundationCells = foundationCells.ToArray();
-        }
-
-        /// <summary>
-        /// Populates foundation cells for a typical scenario - foundation is a rectangle.
-        /// </summary>
-        public void FromXY(int width, int height)
-        {
-            var foundationCells = new List<Point2D>();
-
-            for (int y = 0; y < height; y++)
-            {
-                for (int x = 0; x < width; x++)
-                {
-                    foundationCells.Add(new Point2D(x, y));
-                }
             }
 
             FoundationCells = foundationCells.ToArray();
@@ -148,8 +185,6 @@ namespace TSMapEditor.Models.ArtConfig
         /// <summary>
         /// Generates outline edges for a typical rectangle foundation.
         /// </summary>
-        /// <param name="width"></param>
-        /// <param name="height"></param>
         public void CreateRectangleEdges(int width, int height)
         {
             Edges = new Point2D[][] {
@@ -165,8 +200,6 @@ namespace TSMapEditor.Models.ArtConfig
     {
         public BuildingArtConfig() { }
 
-        public int FoundationX { get; set; }
-        public int FoundationY { get; set; }
         public Foundation Foundation { get; set; }
         public int Height { get; set; }
         public bool Remapable { get; set; }
@@ -186,44 +219,8 @@ namespace TSMapEditor.Models.ArtConfig
             if (iniSection == null)
                 return;
 
-            string foundationString = iniSection.GetStringValue("Foundation", string.Empty);
-            if (!string.IsNullOrWhiteSpace(foundationString))
-            {
-                if (foundationString == "Custom")
-                {
-                    FoundationX = iniSection.GetIntValue("Foundation.X", -1);
-                    FoundationY = iniSection.GetIntValue("Foundation.Y", -1);
-
-                    if (FoundationX < 0 || FoundationY < 0)
-                    {
-                        throw new InvalidOperationException("Invalid custom Foundation specified in Art.ini section " + iniSection.SectionName);
-                    }
-
-                    Foundation = new();
-                    Foundation.ReadFromIniSection(iniSection);
-                    Foundation.CreateCustomEdges(FoundationX, FoundationY);
-                }
-                else
-                {
-
-                    string[] foundationParts = foundationString.ToLower().Split('x');
-                    if (foundationParts.Length != 2)
-                    {
-                        throw new InvalidOperationException("Invalid Foundation= specified in Art.ini section " + iniSection.SectionName);
-                    }
-
-                    FoundationX = Conversions.IntFromString(foundationParts[0], 0);
-                    FoundationY = Conversions.IntFromString(foundationParts[1], 0);
-
-                    Foundation = new();
-                    if (FoundationX != 0 && FoundationY != 0)
-                    {
-                        Foundation.FromXY(FoundationX, FoundationY);
-                        Foundation.CreateRectangleEdges(FoundationX, FoundationY);
-                    }
-                }
-            }
-
+            Foundation = new();
+            Foundation.ReadFromIniSection(iniSection);
             Height = iniSection.GetIntValue(nameof(Height), Height);
             Remapable = iniSection.GetBooleanValue(nameof(Remapable), Remapable);
             NewTheater = iniSection.GetBooleanValue(nameof(NewTheater), NewTheater);
@@ -242,7 +239,7 @@ namespace TSMapEditor.Models.ArtConfig
 
         public void DoForFoundationCoordsOrOrigin(Action<Point2D> action)
         {
-            if (FoundationY == 0 || FoundationX == 0)
+            if (Foundation.Width == 0 || Foundation.Height == 0)
                 action(new Point2D(0, 0));
             else
                 DoForFoundationCoords(action);

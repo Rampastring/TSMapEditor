@@ -749,7 +749,7 @@ namespace TSMapEditor.Models
                 cell.Structure = structure;
             });
 
-            if (structure.ObjectType.ArtConfig.FoundationX == 0 && structure.ObjectType.ArtConfig.FoundationY == 0)
+            if (structure.ObjectType.ArtConfig.Foundation.Width == 0 && structure.ObjectType.ArtConfig.Foundation.Height == 0)
             {
                 GetTile(structure.Position).Structure = structure;
             }
@@ -777,7 +777,7 @@ namespace TSMapEditor.Models
                     cell.Structure = null;
             });
 
-            if (structure.ObjectType.ArtConfig.FoundationX == 0 && structure.ObjectType.ArtConfig.FoundationY == 0)
+            if (structure.ObjectType.ArtConfig.Foundation.Width == 0 && structure.ObjectType.ArtConfig.Foundation.Height == 0)
             {
                 GetTile(structure.Position).Structure = null;
             }

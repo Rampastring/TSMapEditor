@@ -73,12 +73,12 @@ namespace TSMapEditor.UI.CursorActions
 
             var structureType = mapCell.Structure.ObjectType;
             var cellCoordsToCheck = new List<Point2D>();
-            if (structureType.ArtConfig.FoundationX == 0 || structureType.ArtConfig.FoundationY == 0)
+            if (structureType.ArtConfig.Foundation.Width == 0 || structureType.ArtConfig.Foundation.Height == 0)
                 cellCoordsToCheck.Add(cellCoords);
 
-            for (int y = 0; y < structureType.ArtConfig.FoundationY; y++)
+            for (int y = 0; y < structureType.ArtConfig.Foundation.Height; y++)
             {
-                for (int x = 0; x < structureType.ArtConfig.FoundationX; x++)
+                for (int x = 0; x < structureType.ArtConfig.Foundation.Width; x++)
                 {
                     cellCoordsToCheck.Add(mapCell.Structure.Position + new Point2D(x, y));
                 }
@@ -150,7 +150,7 @@ namespace TSMapEditor.UI.CursorActions
                     if (structureType == null)
                         return false;
 
-                    if (structureType.ArtConfig.FoundationX == 0 || structureType.ArtConfig.FoundationY == 0)
+                    if (structureType.ArtConfig.Foundation.Width == 0 || structureType.ArtConfig.Foundation.Height == 0)
                         return baseNode.Position == cellCoords;
 
                     bool clickedOnFoundation = false;

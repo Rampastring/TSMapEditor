@@ -57,12 +57,12 @@
 
         public override int GetXPositionForDrawOrder()
         {
-            return Position.X + ObjectType.ArtConfig.FoundationX / 2;
+            return Position.X + ObjectType.ArtConfig.Foundation.Width / 2;
         }
 
         public override int GetYPositionForDrawOrder()
         {
-            return Position.Y + ObjectType.ArtConfig.FoundationY / 2;
+            return Position.Y + ObjectType.ArtConfig.Foundation.Height / 2;
         }
 
         public override bool Remapable() => ObjectType.ArtConfig.Remapable;
