@@ -24,9 +24,12 @@ namespace TSMapEditor.UI.CursorActions
 
             MapTile tile = CursorActionTarget.Map.GetTile(cellCoords);
             Point2D cellTopLeftPoint = CellMath.CellTopLeftPointFromCellCoords(cellCoords, CursorActionTarget.Map) - cameraTopLeftPoint;
+            cellTopLeftPoint.Y -= tile.Level * Constants.CellHeight;
             cellTopLeftPoint = cellTopLeftPoint.ScaleBy(CursorActionTarget.Camera.ZoomLevel);
 
-            Renderer.FillRectangle(new Rectangle(cellTopLeftPoint.X, cellTopLeftPoint.Y, Constants.CellSizeX, Constants.CellSizeY),
+            Renderer.DrawTexture(
+                AssetLoader.LoadTexture("generictile.png"),
+                new Rectangle(cellTopLeftPoint.X, cellTopLeftPoint.Y, Constants.CellSizeX, Constants.CellSizeY),
                 newOwner.XNAColor * 0.5f);
 
             if (tile.HasTechnoThatPassesCheck(techno => techno.Owner != newOwner))
