@@ -62,6 +62,8 @@ namespace TSMapEditor.UI
 
         private int viewY = 0;
 
+        private bool isMarbleMadness = false;
+
         public override void Initialize()
         {
             base.Initialize();
@@ -71,6 +73,7 @@ namespace TSMapEditor.UI
 
             KeyboardCommands.Instance.NextTile.Action = NextTile;
             KeyboardCommands.Instance.PreviousTile.Action = PreviousTile;
+            KeyboardCommands.Instance.FrameworkMode.Triggered += OnMarbleMadnessChanged;
         }
 
         /// <summary>
@@ -171,7 +174,11 @@ namespace TSMapEditor.UI
                 if (tileIndex > theaterGraphics.TileCount)
                     break;
 
-                TileImage tileImage = theaterGraphics.GetTileGraphics(tileIndex);
+                TileImage tileImage;
+                if (isMarbleMadness)
+                    tileImage = theaterGraphics.GetMarbleMadnessTileGraphics(tileIndex);
+                else
+                    tileImage = theaterGraphics.GetTileGraphics(tileIndex);
                 if (tileImage == null)
                     break;
 
@@ -282,6 +289,19 @@ namespace TSMapEditor.UI
 
             DrawChildren(gameTime);
             DrawPanelBorders();
+        }
+
+        public void OnMarbleMadnessChanged(object sender, EventArgs e)
+        {
+            isMarbleMadness = !isMarbleMadness;
+            RefreshGraphics();
+        }
+
+        public override void Kill()
+        {
+            KeyboardCommands.Instance.FrameworkMode.Triggered -= OnMarbleMadnessChanged;
+
+            base.Kill();
         }
     }
 }
