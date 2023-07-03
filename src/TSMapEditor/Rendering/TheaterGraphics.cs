@@ -792,7 +792,6 @@ namespace TSMapEditor.Rendering
                 else if (overlayType.Image != null)
                     imageName = overlayType.Image;
 
-                string fileExtension = overlayType.ArtConfig.Theater ? Theater.FileExtension : SHP_FILE_EXTENSION;
                 string pngFileName = imageName + PNG_FILE_EXTENSION;
 
                 byte[] pngData = fileManager.LoadFile(pngFileName);
@@ -807,7 +806,25 @@ namespace TSMapEditor.Rendering
                 {
                     // Load graphics as SHP
 
-                    byte[] shpData = fileManager.LoadFile(imageName + fileExtension);
+                    byte[] shpData;
+
+                    if (overlayType.ArtConfig.NewTheater)
+                    {
+                        string shpFileName = imageName + SHP_FILE_EXTENSION;
+                        string newTheaterImageName = shpFileName.Substring(0, 1) + Theater.NewTheaterBuildingLetter + shpFileName.Substring(2);
+                        shpData = fileManager.LoadFile(newTheaterImageName);
+
+                        if (shpData == null)
+                        {
+                            newTheaterImageName = shpFileName.Substring(0, 1) + Constants.NewTheaterGenericLetter + shpFileName.Substring(2);
+                            shpData = fileManager.LoadFile(newTheaterImageName);
+                        }
+                    }
+                    else
+                    {
+                        string fileExtension = overlayType.ArtConfig.Theater ? Theater.FileExtension : SHP_FILE_EXTENSION;
+                        shpData = fileManager.LoadFile(imageName + fileExtension);
+                    }
 
                     if (shpData == null)
                         continue;
