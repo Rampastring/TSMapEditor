@@ -29,7 +29,7 @@ namespace TSMapEditor.Models
             HP = Constants.ObjectHealthMax;
         }
 
-        public House Owner { get; set; }
+        public virtual House Owner { get; set; }
         public int HP { get; set; }
         public byte Facing { get; set; }
         public Tag AttachedTag { get; set; }

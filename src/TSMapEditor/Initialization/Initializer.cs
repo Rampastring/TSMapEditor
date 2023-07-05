@@ -32,7 +32,8 @@ namespace TSMapEditor.Initialization
                 { typeof(AircraftType), InitAircraftType },
                 { typeof(OverlayType), InitOverlayType },
                 { typeof(TerrainType), InitTerrainType },
-                { typeof(SmudgeType), InitSmudgeType }
+                { typeof(SmudgeType), InitSmudgeType },
+                { typeof(AnimType), InitAnimType }
             };
         }
 
@@ -48,7 +49,8 @@ namespace TSMapEditor.Initialization
                 { typeof(BuildingType), InitArtConfigGeneric },
                 { typeof(OverlayType), InitArtConfigGeneric },
                 { typeof(UnitType), InitArtConfigGeneric },
-                { typeof(InfantryType), InitInfantryArtConfig }
+                { typeof(InfantryType), InitInfantryArtConfig },
+                { typeof(AnimType), InitArtConfigGeneric }
             };
 
         public void ReadObjectTypePropertiesFromINI<T>(T obj, IniFile iniFile) where T : INIDefineable, INIDefined
@@ -195,6 +197,10 @@ namespace TSMapEditor.Initialization
         {
             var smudgeType = (SmudgeType)obj;
             smudgeType.Theater = artSection.GetBooleanValue("Theater", smudgeType.Theater);
+        }
+
+        private static void InitAnimType(INIDefineable obj, IniFile rulesIni, IniSection section)
+        {
         }
     }
 }

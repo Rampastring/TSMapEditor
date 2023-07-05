@@ -1,9 +1,19 @@
-﻿namespace TSMapEditor.Models
+﻿using Rampastring.Tools;
+using TSMapEditor.Models.ArtConfig;
+
+namespace TSMapEditor.Models
 {
-    public class AnimType : GameObjectType
+    public class AnimType : GameObjectType, IArtConfigContainer
     {
         public AnimType(string iniName) : base(iniName) { }
 
         public override RTTIType WhatAmI() => RTTIType.AnimType;
+
+        public AnimArtConfig ArtConfig { get; set; } = new AnimArtConfig();
+        public IArtConfig GetArtConfig() => ArtConfig;
+
+        public void ReadFromIniSection(IniSection iniSection)
+        {
+        }
     }
 }

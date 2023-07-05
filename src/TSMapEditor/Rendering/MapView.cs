@@ -1,4 +1,4 @@
-﻿using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Rampastring.XNAUI;
 using Rampastring.XNAUI.XNAControls;
@@ -168,6 +168,7 @@ namespace TSMapEditor.Rendering
         private bool debugRenderDepthBuffer = false;
 
         private AircraftRenderer aircraftRenderer;
+        private AnimRenderer animRenderer;
         private BuildingRenderer buildingRenderer;
         private InfantryRenderer infantryRenderer;
         private OverlayRenderer overlayRenderer;
@@ -329,6 +330,7 @@ namespace TSMapEditor.Rendering
             compositeRenderTarget = CreateFullMapRenderTarget(SurfaceFormat.Color);
 
             aircraftRenderer?.UpdateDepthRenderTarget(depthRenderTarget);
+            animRenderer?.UpdateDepthRenderTarget(depthRenderTarget);
             buildingRenderer?.UpdateDepthRenderTarget(depthRenderTarget);
             infantryRenderer?.UpdateDepthRenderTarget(depthRenderTarget);
             overlayRenderer?.UpdateDepthRenderTarget(depthRenderTarget);
@@ -345,6 +347,7 @@ namespace TSMapEditor.Rendering
         private void InitRenderers()
         {
             aircraftRenderer = new AircraftRenderer(CreateRenderDependencies());
+            animRenderer = new AnimRenderer(CreateRenderDependencies());
             buildingRenderer = new BuildingRenderer(CreateRenderDependencies());
             infantryRenderer = new InfantryRenderer(CreateRenderDependencies());
             overlayRenderer = new OverlayRenderer(CreateRenderDependencies());
@@ -575,6 +578,8 @@ namespace TSMapEditor.Rendering
             {
                 if (structure.Position == tile.CoordsToPoint())
                     gameObjectsToRender.Add(structure);
+                foreach (var anim in tile.Structure.Anims)
+                    gameObjectsToRender.Add(anim);
             });
 
             tile.DoForAllInfantry(inf => gameObjectsToRender.Add(inf));
@@ -779,6 +784,9 @@ namespace TSMapEditor.Rendering
             {
                 case RTTIType.Aircraft:
                     aircraftRenderer.Draw(gameObject as Aircraft);
+                    return;
+                case RTTIType.Anim:
+                    animRenderer.Draw(gameObject as Animation);
                     return;
                 case RTTIType.Building:
                     buildingRenderer.Draw(gameObject as Structure);

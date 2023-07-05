@@ -1,4 +1,7 @@
-﻿namespace TSMapEditor.Models
+﻿using TSMapEditor.GameMath;
+using System.Collections.Generic;
+
+namespace TSMapEditor.Models
 {
     public class Structure : Techno<BuildingType>
     {
@@ -9,9 +12,39 @@
 
         public Structure(BuildingType objectType) : base(objectType)
         {
+            var anims = new List<Animation>();
+            foreach (var animType in objectType.ArtConfig.Anims)
+                anims.Add(new Animation(animType));
+            Anims = anims.ToArray();
         }
 
         public override RTTIType WhatAmI() => RTTIType.Building;
+
+        private Point2D _position;
+        public override Point2D Position
+        {
+            get => _position;
+            set
+            {
+                _position = value;
+                foreach (var anim in Anims)
+                    anim.Position = value;
+            }
+        }
+
+        private House _owner;
+        public override House Owner
+        {
+            get => _owner;
+            set
+            {
+                _owner = value;
+                foreach (var anim in Anims)
+                {
+                    anim.Owner = value;
+                }
+            }
+        }
 
         public bool AISellable { get; set; }
 
@@ -41,6 +74,7 @@
 
         public bool AIRepairable { get; set; }
         public bool Nominal { get; set; }
+        public Animation[] Anims { get; set; }
 
         public override int GetYDrawOffset()
         {

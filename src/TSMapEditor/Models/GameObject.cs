@@ -16,11 +16,16 @@ namespace TSMapEditor.Models
     /// </summary>
     public abstract class GameObject : AbstractObject, IMovable
     {
-        public Point2D Position { get; set; }
+        public virtual Point2D Position { get; set; }
 
         public ulong LastRefreshIndex;
 
         public virtual int GetYDrawOffset()
+        {
+            return 0;
+        }
+
+        public virtual int GetXDrawOffset()
         {
             return 0;
         }

@@ -14,7 +14,7 @@ namespace TSMapEditor.Models.ArtConfig
         /// <summary>
         /// Ares Foundation.N entries, list of cell grid coordinates starting at 0,0 (top left).
         /// </summary>
-        public Point2D[] FoundationCells { get; set; }
+        public Point2D[] FoundationCells { get; set; } = Array.Empty<Point2D>();
 
         /// <summary>
         /// Generated list of edges defining foundation outline.
@@ -208,6 +208,8 @@ namespace TSMapEditor.Models.ArtConfig
         public bool Theater { get; set; }
         public string Image { get; set; }
         public string BibShape { get; set; }
+        public string[] AnimNames { get; set; } = Array.Empty<string>();
+        public AnimType[] Anims { get; set; } = Array.Empty<AnimType>();
 
         /// <summary>
         /// Palette override introduced in Red Alert 2.
@@ -228,6 +230,17 @@ namespace TSMapEditor.Models.ArtConfig
             Image = iniSection.GetStringValue(nameof(Image), Image);
             BibShape = iniSection.GetStringValue(nameof(BibShape), BibShape);
             Palette = iniSection.GetStringValue(nameof(Palette), Palette);
+
+            var animNames = new List<string>();
+            foreach (var i in new string[] { "", "Two", "Three", "Four" })
+            {
+                string animTypeName = iniSection.GetStringValue("ActiveAnim" + i, null);
+                if (string.IsNullOrEmpty(animTypeName))
+                    break;
+
+                animNames.Add(animTypeName);
+            }
+            AnimNames = animNames.ToArray();
         }
 
         public void DoForFoundationCoords(Action<Point2D> action)
