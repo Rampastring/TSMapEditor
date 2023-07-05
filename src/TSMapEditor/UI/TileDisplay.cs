@@ -31,11 +31,13 @@ namespace TSMapEditor.UI
         private const int TILE_PADDING = 3;
         private const int SCROLL_RATE = 10;
 
-        public TileDisplay(WindowManager windowManager, TheaterGraphics theaterGraphics, PlaceTerrainCursorAction placeTerrainCursorAction) : base(windowManager)
+        public TileDisplay(WindowManager windowManager, TheaterGraphics theaterGraphics,
+            PlaceTerrainCursorAction placeTerrainCursorAction, EditorState editorState) : base(windowManager)
         {
             this.theaterGraphics = theaterGraphics;
             DrawMode = ControlDrawMode.UNIQUE_RENDER_TARGET;
             placeTerrainCursorAction.ActionExited += (s, e) => _selectedTile = null;
+            this.editorState = editorState;
         }
 
         public event EventHandler SelectedTileChanged;
@@ -62,7 +64,7 @@ namespace TSMapEditor.UI
 
         private int viewY = 0;
 
-        private bool isMarbleMadness = false;
+        private readonly EditorState editorState;
 
         public override void Initialize()
         {
@@ -73,7 +75,7 @@ namespace TSMapEditor.UI
 
             KeyboardCommands.Instance.NextTile.Action = NextTile;
             KeyboardCommands.Instance.PreviousTile.Action = PreviousTile;
-            KeyboardCommands.Instance.FrameworkMode.Triggered += OnMarbleMadnessChanged;
+            editorState.MarbleMadnessChanged += OnMarbleMadnessChanged;
         }
 
         /// <summary>
@@ -175,7 +177,7 @@ namespace TSMapEditor.UI
                     break;
 
                 TileImage tileImage;
-                if (isMarbleMadness)
+                if (editorState.IsMarbleMadness)
                     tileImage = theaterGraphics.GetMarbleMadnessTileGraphics(tileIndex);
                 else
                     tileImage = theaterGraphics.GetTileGraphics(tileIndex);
@@ -291,15 +293,11 @@ namespace TSMapEditor.UI
             DrawPanelBorders();
         }
 
-        public void OnMarbleMadnessChanged(object sender, EventArgs e)
-        {
-            isMarbleMadness = !isMarbleMadness;
-            RefreshGraphics();
-        }
+        public void OnMarbleMadnessChanged(object sender, EventArgs e) => RefreshGraphics();
 
         public override void Kill()
         {
-            KeyboardCommands.Instance.FrameworkMode.Triggered -= OnMarbleMadnessChanged;
+            editorState.MarbleMadnessChanged -= OnMarbleMadnessChanged;
 
             base.Kill();
         }

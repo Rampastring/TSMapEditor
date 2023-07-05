@@ -19,8 +19,7 @@ namespace TSMapEditor.Rendering
         public event EventHandler HighlightImpassableCellsChanged;
         public event EventHandler HighlightIceGrowthChanged;
         public event EventHandler BrushSizeChanged;
-
-        public bool IsMarbleMadness { get; set; } = false;
+        public event EventHandler MarbleMadnessChanged;
 
         private CursorAction _cursorAction;
         public CursorAction CursorAction
@@ -151,6 +150,19 @@ namespace TSMapEditor.Rendering
                 {
                     _highlightIceGrowth = value;
                     HighlightIceGrowthChanged?.Invoke(this, EventArgs.Empty);
+                }
+            }
+        }
+
+        private bool _isMarbleMadness = false;
+        public bool IsMarbleMadness {
+            get => _isMarbleMadness;
+            set
+            {
+                if (value != _isMarbleMadness)
+                {
+                    _isMarbleMadness = value;
+                    MarbleMadnessChanged?.Invoke(this, EventArgs.Empty);
                 }
             }
         }

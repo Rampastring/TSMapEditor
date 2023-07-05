@@ -15,10 +15,12 @@ namespace TSMapEditor.UI
         private const int TileSetListWidth = 180;
         private const int ResizeDragThreshold = 30;
 
-        public TileSelector(WindowManager windowManager, TheaterGraphics theaterGraphics, PlaceTerrainCursorAction placeTerrainCursorAction) : base(windowManager)
+        public TileSelector(WindowManager windowManager, TheaterGraphics theaterGraphics,
+            PlaceTerrainCursorAction placeTerrainCursorAction, EditorState editorState) : base(windowManager)
         {
             this.theaterGraphics = theaterGraphics;
             this.placeTerrainCursorAction = placeTerrainCursorAction;
+            this.editorState = editorState;
         }
 
         protected override void OnClientRectangleUpdated()
@@ -36,6 +38,7 @@ namespace TSMapEditor.UI
 
         private readonly TheaterGraphics theaterGraphics;
         private readonly PlaceTerrainCursorAction placeTerrainCursorAction;
+        private readonly EditorState editorState;
 
         public TileDisplay TileDisplay { get; private set; }
 
@@ -66,7 +69,7 @@ namespace TSMapEditor.UI
             lbTileSetList.SelectedIndexChanged += LbTileSetList_SelectedIndexChanged;
             AddChild(lbTileSetList);
 
-            TileDisplay = new TileDisplay(WindowManager, theaterGraphics, placeTerrainCursorAction);
+            TileDisplay = new TileDisplay(WindowManager, theaterGraphics, placeTerrainCursorAction, editorState);
             TileDisplay.Name = nameof(TileDisplay);
             TileDisplay.Height = Height;
             TileDisplay.Width = Width - TileSetListWidth;
