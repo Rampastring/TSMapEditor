@@ -210,6 +210,7 @@ namespace TSMapEditor.Models.ArtConfig
         public string BibShape { get; set; }
         public string[] AnimNames { get; set; } = Array.Empty<string>();
         public AnimType[] Anims { get; set; } = Array.Empty<AnimType>();
+        public AnimType TurretAnim { get; set; }
 
         /// <summary>
         /// Palette override introduced in Red Alert 2.

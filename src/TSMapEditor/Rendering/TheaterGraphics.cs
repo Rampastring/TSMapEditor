@@ -748,6 +748,8 @@ namespace TSMapEditor.Rendering
                 }
 
                 // Palette override in RA2/YR
+                // NOTE: Until we use indexed color rendering, we have to assume that a building
+                // anim will only be used as a building anim (because it forces unit palette).
                 Palette palette = animType.ArtConfig.IsBuildingAnim || animType.ArtConfig.AltPalette ? unitPalette : animPalette;
                 if (!string.IsNullOrWhiteSpace(animType.ArtConfig.CustomPalette))
                 {

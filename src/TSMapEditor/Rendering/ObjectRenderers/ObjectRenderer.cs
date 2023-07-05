@@ -208,7 +208,7 @@ namespace TSMapEditor.Rendering.ObjectRenderers
             }
         }
 
-        protected void DrawShadow(T gameObject, CommonDrawParams drawParams, Point2D drawPoint, int initialYDrawPointWithoutCellHeight)
+        protected virtual void DrawShadow(T gameObject, CommonDrawParams drawParams, Point2D drawPoint, int initialYDrawPointWithoutCellHeight)
         {
             int shadowFrameIndex = gameObject.GetShadowFrameIndex(drawParams.Graphics.Frames.Length);
             if (shadowFrameIndex > 0 && shadowFrameIndex < drawParams.Graphics.Frames.Length)

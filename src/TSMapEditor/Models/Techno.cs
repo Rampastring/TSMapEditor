@@ -31,7 +31,7 @@ namespace TSMapEditor.Models
 
         public virtual House Owner { get; set; }
         public int HP { get; set; }
-        public byte Facing { get; set; }
+        public virtual byte Facing { get; set; }
         public Tag AttachedTag { get; set; }
 
         public abstract double GetWeaponRange();

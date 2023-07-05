@@ -1,4 +1,4 @@
-﻿using Rampastring.Tools;
+using Rampastring.Tools;
 
 namespace TSMapEditor.Models.ArtConfig
 {
@@ -18,7 +18,8 @@ namespace TSMapEditor.Models.ArtConfig
         public int Start { get; set; } = 0;
 
         /// <summary>
-        /// Not an INI entry.
+        /// Not an INI entry. Temporarily set per-type instead of per instance until
+        /// we have indexed color rendering.
         /// </summary>
         public bool IsBuildingAnim { get; set; }
 

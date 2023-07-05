@@ -2,6 +2,7 @@
 using Rampastring.Tools;
 using System;
 using System.Collections.Generic;
+using TSMapEditor.GameMath;
 using TSMapEditor.Initialization;
 using TSMapEditor.Models.ArtConfig;
 
@@ -273,8 +274,14 @@ namespace TSMapEditor.Models
                     anims.Add(anim);
                 }
             }
-
             type.ArtConfig.Anims = anims.ToArray();
+
+            if (type.Turret && !type.TurretAnimIsVoxel)
+            {
+                AnimType turretAnim = AnimTypes.Find(at => at.ININame == type.TurretAnim);
+                turretAnim.ArtConfig.IsBuildingAnim = true;
+                type.ArtConfig.TurretAnim = turretAnim;
+            }
         }
     }
 }

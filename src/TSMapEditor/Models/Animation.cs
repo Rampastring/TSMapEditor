@@ -19,18 +19,23 @@ namespace TSMapEditor.Models
 
         public AnimType AnimType { get; private set; }
         public House Owner { get; set; }
+        public byte Facing { get; set; }
+
+        public Point2D ExtraDrawOffset { get; set; } = new();
+        public bool IsBuildingAnim { get; set; }
+        public bool IsTurretAnim { get; set; }
 
         public override int GetYDrawOffset()
         {
-            return Constants.CellSizeY / -2 + AnimType.ArtConfig.YDrawOffset;
+            return Constants.CellSizeY / -2 + AnimType.ArtConfig.YDrawOffset + ExtraDrawOffset.X;
         }
 
         public override int GetXDrawOffset()
         {
-            return AnimType.ArtConfig.XDrawOffset;
+            return AnimType.ArtConfig.XDrawOffset + ExtraDrawOffset.Y;
         }
 
-        public override bool Remapable() => AnimType.ArtConfig.IsBuildingAnim;
+        public override bool Remapable() => IsBuildingAnim;
         public override Color GetRemapColor() => Remapable() ? Owner.XNAColor : Color.White;
     }
 }

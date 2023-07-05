@@ -14,8 +14,19 @@ namespace TSMapEditor.Models
         {
             var anims = new List<Animation>();
             foreach (var animType in objectType.ArtConfig.Anims)
-                anims.Add(new Animation(animType));
-            Anims = anims.ToArray();
+            {
+                var anim = new Animation(animType);
+                anim.IsBuildingAnim = true;
+                anims.Add(anim);
+            }
+            ActiveAnims = anims.ToArray();
+
+            if (objectType.Turret && !objectType.TurretAnimIsVoxel)
+            {
+                TurretAnim = new Animation(objectType.ArtConfig.TurretAnim);
+                TurretAnim.IsTurretAnim = TurretAnim.IsBuildingAnim = true;
+                TurretAnim.ExtraDrawOffset = new Point2D(objectType.TurretAnimX, objectType.TurretAnimY);
+            }
         }
 
         public override RTTIType WhatAmI() => RTTIType.Building;
@@ -27,8 +38,10 @@ namespace TSMapEditor.Models
             set
             {
                 _position = value;
-                foreach (var anim in Anims)
+                foreach (var anim in ActiveAnims)
                     anim.Position = value;
+                if (TurretAnim != null)
+                    TurretAnim.Position = value;
             }
         }
 
@@ -39,10 +52,24 @@ namespace TSMapEditor.Models
             set
             {
                 _owner = value;
-                foreach (var anim in Anims)
+                foreach (var anim in ActiveAnims)
                 {
                     anim.Owner = value;
                 }
+                if (TurretAnim != null)
+                    TurretAnim.Owner = value;
+            }
+        }
+
+        private byte _facing;
+        public override byte Facing
+        {
+            get => _facing;
+            set
+            {
+                _facing = value;
+                if (TurretAnim != null)
+                    TurretAnim.Facing = value;
             }
         }
 
@@ -74,7 +101,8 @@ namespace TSMapEditor.Models
 
         public bool AIRepairable { get; set; }
         public bool Nominal { get; set; }
-        public Animation[] Anims { get; set; }
+        public Animation[] ActiveAnims { get; set; }
+        public Animation TurretAnim { get; set; }
 
         public override int GetYDrawOffset()
         {
