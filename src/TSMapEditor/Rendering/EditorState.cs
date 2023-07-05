@@ -155,7 +155,8 @@ namespace TSMapEditor.Rendering
         }
 
         private bool _isMarbleMadness = false;
-        public bool IsMarbleMadness {
+        public bool IsMarbleMadness
+        {
             get => _isMarbleMadness;
             set
             {
