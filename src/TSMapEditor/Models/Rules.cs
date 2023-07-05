@@ -128,8 +128,7 @@ namespace TSMapEditor.Models
             OverlayTypes.ForEach(ot => initializer.ReadObjectTypeArtPropertiesFromINI(ot, iniFile,
                 string.IsNullOrWhiteSpace(ot.Image) ? ot.ININame : ot.Image));
 
-            AnimTypes.ForEach(a => initializer.ReadObjectTypeArtPropertiesFromINI(a, iniFile,
-                string.IsNullOrWhiteSpace(a.ArtConfig.Image) ? a.ININame : a.ArtConfig.Image));
+            AnimTypes.ForEach(a => initializer.ReadObjectTypeArtPropertiesFromINI(a, iniFile, a.ININame));
         }
 
         public List<House> GetStandardHouses(IniFile iniFile)

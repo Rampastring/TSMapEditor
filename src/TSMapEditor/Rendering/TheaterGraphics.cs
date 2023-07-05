@@ -687,6 +687,13 @@ namespace TSMapEditor.Rendering
                         loadedShpName = newTheaterBibShpName;
                     }
 
+                    if (Constants.NewTheaterGenericBuilding && shpData == null)
+                    {
+                        string newTheaterBibShpName = bibShpFileName.Substring(0, 1) + Constants.NewTheaterGenericLetter + bibShpFileName.Substring(2);
+
+                        shpData = fileManager.LoadFile(newTheaterBibShpName);
+                    }
+
                     if (shpData == null)
                     {
                         shpData = fileManager.LoadFile(bibShpFileName);

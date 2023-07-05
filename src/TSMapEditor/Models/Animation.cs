@@ -35,6 +35,11 @@ namespace TSMapEditor.Models
             return AnimType.ArtConfig.XDrawOffset + ExtraDrawOffset.Y;
         }
 
+        public override int GetYPositionForDrawOrder()
+        {
+            return IsBuildingAnim ? Position.Y + 10 : Position.Y;
+        }
+
         public override bool Remapable() => IsBuildingAnim;
         public override Color GetRemapColor() => Remapable() ? Owner.XNAColor : Color.White;
     }
