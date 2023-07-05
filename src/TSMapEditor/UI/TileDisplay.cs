@@ -176,11 +176,8 @@ namespace TSMapEditor.UI
                 if (tileIndex > theaterGraphics.TileCount)
                     break;
 
-                TileImage tileImage;
-                if (editorState.IsMarbleMadness)
-                    tileImage = theaterGraphics.GetMarbleMadnessTileGraphics(tileIndex);
-                else
-                    tileImage = theaterGraphics.GetTileGraphics(tileIndex);
+                TileImage tileImage = editorState.IsMarbleMadness ? theaterGraphics.GetMarbleMadnessTileGraphics(tileIndex) : theaterGraphics.GetTileGraphics(tileIndex);
+
                 if (tileImage == null)
                     break;
 
