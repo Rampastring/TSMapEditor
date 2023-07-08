@@ -1061,6 +1061,15 @@ namespace TSMapEditor.Rendering
             return new Palette(paletteData);
         }
 
+        private Palette GetPaletteOrDefault(string paletteFileName, Palette palette)
+        {
+
+            byte[] paletteData = fileManager.LoadFile(paletteFileName);
+            if (paletteData == null)
+                return palette;
+            return new Palette(paletteData);
+        }
+
         private PositionedTexture PositionedTextureFromBytes(byte[] data)
         {
             using (var memstream = new MemoryStream(data))
