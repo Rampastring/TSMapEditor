@@ -13,6 +13,7 @@ namespace TSMapEditor.UI
             {
                 Undo,
                 Redo,
+                Save,
                 ConfigureCopiedObjects,
                 Copy,
                 Paste,
@@ -79,6 +80,7 @@ namespace TSMapEditor.UI
 
         public KeyboardCommand Undo { get; } = new KeyboardCommand("Undo", "Undo", new KeyboardCommandInput(Keys.Z, KeyboardModifiers.Ctrl));
         public KeyboardCommand Redo { get; } = new KeyboardCommand("Redo", "Redo", new KeyboardCommandInput(Keys.Y, KeyboardModifiers.Ctrl));
+        public KeyboardCommand Save { get; } = new KeyboardCommand("Save", "Save Map", new KeyboardCommandInput(Keys.S, KeyboardModifiers.Ctrl));
         public KeyboardCommand ConfigureCopiedObjects { get; } = new KeyboardCommand("ConfigureCopiedObjects", "Configure Copied Objects", new KeyboardCommandInput(Keys.None, KeyboardModifiers.None), false);
         public KeyboardCommand Copy { get; } = new KeyboardCommand("Copy", "Copy", new KeyboardCommandInput(Keys.C, KeyboardModifiers.Ctrl));
         public KeyboardCommand Paste { get; } = new KeyboardCommand("Paste", "Paste", new KeyboardCommandInput(Keys.V, KeyboardModifiers.Ctrl));
