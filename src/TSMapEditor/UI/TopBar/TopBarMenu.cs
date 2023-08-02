@@ -55,7 +55,7 @@ namespace TSMapEditor.UI.TopBar
             fileContextMenu.AddItem("New", () => windowController.CreateNewMapWindow.Open(), null, null, null);
             fileContextMenu.AddItem("Open", () => windowController.OpenMapWindow.Open(), null, null, null);
 
-            fileContextMenu.AddItem("Save", () => { SaveMap(); });
+            fileContextMenu.AddItem("Save", () => SaveMap());
             fileContextMenu.AddItem("Save As", () => SaveAs(), null, null, null);
             fileContextMenu.AddItem(" ", null, () => false, null, null);
             fileContextMenu.AddItem("Reload Input File",
@@ -157,7 +157,7 @@ namespace TSMapEditor.UI.TopBar
             KeyboardCommands.Instance.GenerateTerrain.Triggered += (s, e) => EnterTerrainGenerator();
             KeyboardCommands.Instance.ConfigureTerrainGenerator.Triggered += (s, e) => windowController.TerrainGeneratorConfigWindow.Open();
             KeyboardCommands.Instance.PlaceTunnel.Triggered += (s, e) => mapView.EditorState.CursorAction = placeTubeCursorAction;
-            KeyboardCommands.Instance.Save.Triggered += (s, e) => { SaveMap(); };
+            KeyboardCommands.Instance.Save.Triggered += (s, e) => SaveMap(); 
         }
 
         private void SaveMap()
