@@ -1,5 +1,6 @@
 ﻿using TSMapEditor.GameMath;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace TSMapEditor.Models
 {
@@ -21,7 +22,7 @@ namespace TSMapEditor.Models
             }
             ActiveAnims = anims.ToArray();
 
-            if (objectType.Turret && !objectType.TurretAnimIsVoxel)
+            if (objectType.Turret && !objectType.TurretAnimIsVoxel && objectType.ArtConfig.TurretAnim != null)
             {
                 TurretAnim = new Animation(objectType.ArtConfig.TurretAnim);
                 TurretAnim.IsTurretAnim = TurretAnim.IsBuildingAnim = true;
@@ -131,5 +132,17 @@ namespace TSMapEditor.Models
         }
 
         public override bool Remapable() => ObjectType.ArtConfig.Remapable;
+
+        public override Structure Clone()
+        {
+            var clone = MemberwiseClone() as Structure;
+
+            clone.ActiveAnims = ActiveAnims.Select(anim => anim.Clone() as Animation).ToArray();
+
+            if (TurretAnim != null)
+                clone.TurretAnim = TurretAnim.Clone() as Animation;
+
+            return clone;
+        }
     }
 }
