@@ -37,7 +37,7 @@ namespace TSMapEditor.Models
 
         public override int GetYPositionForDrawOrder()
         {
-            return IsBuildingAnim ? Position.Y + 10 : Position.Y;
+            return IsBuildingAnim ? Position.Y + 2 : Position.Y;
         }
 
         public override bool Remapable() => IsBuildingAnim;

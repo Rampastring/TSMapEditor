@@ -277,9 +277,12 @@ namespace TSMapEditor.Models
 
             if (type.Turret && !type.TurretAnimIsVoxel)
             {
-                AnimType turretAnim = AnimTypes.Find(at => at.ININame == type.TurretAnim);
-                turretAnim.ArtConfig.IsBuildingAnim = true;
-                type.ArtConfig.TurretAnim = turretAnim;
+                var turretAnim = AnimTypes.Find(at => at.ININame == type.TurretAnim);
+                if (turretAnim != null)
+                {
+                    turretAnim.ArtConfig.IsBuildingAnim = true;
+                    type.ArtConfig.TurretAnim = turretAnim;
+                }
             }
         }
     }
