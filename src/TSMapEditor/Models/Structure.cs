@@ -38,8 +38,10 @@ namespace TSMapEditor.Models
             set
             {
                 _position = value;
+
                 foreach (var anim in ActiveAnims)
                     anim.Position = value;
+
                 if (TurretAnim != null)
                     TurretAnim.Position = value;
             }
@@ -52,10 +54,10 @@ namespace TSMapEditor.Models
             set
             {
                 _owner = value;
+
                 foreach (var anim in ActiveAnims)
-                {
                     anim.Owner = value;
-                }
+
                 if (TurretAnim != null)
                     TurretAnim.Owner = value;
             }
@@ -68,6 +70,7 @@ namespace TSMapEditor.Models
             set
             {
                 _facing = value;
+
                 if (TurretAnim != null)
                     TurretAnim.Facing = value;
             }

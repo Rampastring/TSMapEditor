@@ -2,7 +2,7 @@ using Rampastring.Tools;
 
 namespace TSMapEditor.Models.ArtConfig
 {
-    public class AnimArtConfig: IArtConfig
+    public class AnimArtConfig : IArtConfig
     {
         public AnimArtConfig() { }
 

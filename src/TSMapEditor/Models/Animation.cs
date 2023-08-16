@@ -3,7 +3,7 @@ using Microsoft.Xna.Framework;
 
 namespace TSMapEditor.Models
 {
-    public class Animation: GameObject
+    public class Animation : GameObject
     {
         public Animation(AnimType animType)
         {

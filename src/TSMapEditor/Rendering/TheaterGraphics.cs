@@ -1063,7 +1063,6 @@ namespace TSMapEditor.Rendering
 
         private Palette GetPaletteOrDefault(string paletteFileName, Palette palette)
         {
-
             byte[] paletteData = fileManager.LoadFile(paletteFileName);
             if (paletteData == null)
                 return palette;
