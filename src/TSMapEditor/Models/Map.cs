@@ -937,6 +937,9 @@ namespace TSMapEditor.Models
         /// <returns>True if the object can be moved, otherwise false.</returns>
         public bool CanPlaceObjectAt(IMovable movable, Point2D newCoords, bool blocksSelf, bool overlapObjects)
         {
+            if (movable.WhatAmI() == RTTIType.Waypoint)
+                return true;
+
             if (movable.WhatAmI() == RTTIType.Building)
             {
                 bool canPlace = true;

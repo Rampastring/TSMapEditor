@@ -225,8 +225,6 @@ namespace TSMapEditor.Models
                     return GetFreeSubCellSpot() != SubCell.None;
                 case RTTIType.Terrain:
                     return TerrainObject == null;
-                case RTTIType.Waypoint:
-                    return true;
             }
 
             return false;
