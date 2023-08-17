@@ -1,7 +1,9 @@
 ﻿using System.IO;
 using System.Text;
+using System.Collections.Generic;
 using Rampastring.Tools;
 using TSMapEditor.CCEngine;
+using System.Linq;
 
 namespace TSMapEditor.Extensions;
 
@@ -13,6 +15,8 @@ public class IniFileEx: IniFile
     private static readonly string AresIncludeSection = "#include";
     private static readonly string PhobosIncludeSection = "$Include";
     private static readonly string PhobosInheritsSection = "$Inherits";
+
+    private List<IniSectionEx> ExSections = new();
 
     public IniFileEx() : base() { }
 
@@ -98,23 +102,40 @@ public class IniFileEx: IniFile
         if (!Constants.EnableIniInheritance)
             return;
 
-        foreach (var section in Sections)
+        ExSections = Sections.Select(s => new IniSectionEx(s)).ToList();
+
+        foreach (var section in ExSections)
+            InheritFromParent(section);
+
+        Sections = ExSections.Cast<IniSection>().ToList();
+        ExSections.Clear();
+    }
+
+    private void InheritFromParent(IniSectionEx section)
+    {
+        if (section.AlreadyInherited)
+            return;
+
+        if (!section.KeyExists(PhobosInheritsSection))
         {
-            if (!section.KeyExists(PhobosInheritsSection))
+            section.AlreadyInherited = true;
+            return;
+        }
+
+        foreach (var parentName in section.GetListValue<string>(PhobosInheritsSection, ',', x => x))
+        {
+            var parent = ExSections.Find(s => s.SectionName == parentName);
+            if (parent == null)
                 continue;
 
-            foreach (var parentName in section.GetListValue<string>(PhobosInheritsSection, ',', x => x))
-            {
-                var parent = Sections.Find(s => s.SectionName == parentName);
-                if (parent == null)
-                    continue;
+            InheritFromParent(parent);
 
-                foreach (var pair in parent.Keys)
-                {
-                    if (!section.KeyExists(pair.Key))
-                        section.AddKey(pair.Key, pair.Value);
-                }
+            foreach (var pair in parent.Keys)
+            {
+                if (!section.KeyExists(pair.Key))
+                    section.AddKey(pair.Key, pair.Value);
             }
         }
+        section.AlreadyInherited = true;
     }
 }
