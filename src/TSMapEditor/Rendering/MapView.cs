@@ -579,7 +579,7 @@ namespace TSMapEditor.Rendering
                 if (structure.Position == tile.CoordsToPoint())
                     gameObjectsToRender.Add(structure);
 
-                foreach (var anim in structure.Anims)
+                foreach (var anim in structure.ActiveAnims)
                     gameObjectsToRender.Add(anim);
 
                 if (structure.TurretAnim != null)
