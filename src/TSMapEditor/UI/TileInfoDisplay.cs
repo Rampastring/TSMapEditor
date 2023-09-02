@@ -144,10 +144,10 @@ namespace TSMapEditor.UI
                     if (usageFound)
                         break;
 
-                    if (action.ActionIndex < 0 || action.ActionIndex >= map.EditorConfig.TriggerActionTypes.Count)
-                        continue;
+                    var triggerActionType = map.EditorConfig.TriggerActionTypes.GetValueOrDefault(action.ActionIndex);
 
-                    var triggerActionType = map.EditorConfig.TriggerActionTypes[action.ActionIndex];
+                    if (triggerActionType == null)
+                        continue;
 
                     for (int i = 0; i < triggerActionType.Parameters.Length; i++)
                     {
@@ -172,10 +172,10 @@ namespace TSMapEditor.UI
                     if (usageFound)
                         break;
 
-                    if (condition.ConditionIndex < 0 || condition.ConditionIndex >= map.EditorConfig.TriggerEventTypes.Count)
-                        continue;
+                    var triggerEventType = map.EditorConfig.TriggerEventTypes.GetValueOrDefault(condition.ConditionIndex);
 
-                    var triggerEventType = map.EditorConfig.TriggerEventTypes[condition.ConditionIndex];
+                    if (triggerEventType == null)
+                        continue;
 
                     if ((triggerEventType.P1Type == TriggerParamType.Waypoint && condition.Parameter1 == waypoint.Identifier) ||
                         (triggerEventType.P2Type == TriggerParamType.Waypoint && condition.Parameter2 == waypoint.Identifier))
@@ -202,10 +202,13 @@ namespace TSMapEditor.UI
             {
                 foreach (var actionEntry in script.Actions)
                 {
-                    if (actionEntry.Action < 0 || actionEntry.Action >= map.EditorConfig.ScriptActions.Count)
-                        continue;
+                    var scriptAction = map.EditorConfig.ScriptActions.GetValueOrDefault(actionEntry.Action);
 
-                    var scriptAction = map.EditorConfig.ScriptActions[actionEntry.Action];
+                    if (scriptAction == null)
+                    {
+                        continue;
+                    }
+
                     if (scriptAction.ParamType == TriggerParamType.Waypoint && actionEntry.Argument == waypoint.Identifier)
                     {
                         usages.Add("script '" + script.Name + "', ");

@@ -65,7 +65,7 @@ namespace TSMapEditor.UI.Windows
             {
                 foreach (var action in trigger.Actions)
                 {
-                    var actionType = map.EditorConfig.TriggerActionTypes.GetElementIfInRange(action.ActionIndex);
+                    var actionType = map.EditorConfig.TriggerActionTypes.GetValueOrDefault(action.ActionIndex);
                     if (actionType == null)
                         continue;
 
@@ -85,7 +85,7 @@ namespace TSMapEditor.UI.Windows
 
                 foreach (var triggerEvent in trigger.Conditions)
                 {
-                    var eventType = map.EditorConfig.TriggerEventTypes.GetElementIfInRange(triggerEvent.ConditionIndex);
+                    var eventType = map.EditorConfig.TriggerEventTypes.GetValueOrDefault(triggerEvent.ConditionIndex);
                     if (eventType == null)
                         continue;
 
@@ -111,7 +111,7 @@ namespace TSMapEditor.UI.Windows
             {
                 foreach (var scriptAction in script.Actions)
                 {
-                    var scriptActionType = map.EditorConfig.ScriptActions.GetElementIfInRange(scriptAction.Action);
+                    var scriptActionType = map.EditorConfig.ScriptActions.GetValueOrDefault(scriptAction.Action);
 
                     if (scriptActionType == null)
                         continue;

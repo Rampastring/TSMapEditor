@@ -21,9 +21,9 @@ namespace TSMapEditor.Models
         public List<TerrainObjectCollection> TerrainObjectCollections { get; } = new List<TerrainObjectCollection>();
         public List<SmudgeCollection> SmudgeCollections { get; } = new List<SmudgeCollection>();
         public List<BrushSize> BrushSizes { get; } = new List<BrushSize>() { new BrushSize(1, 1) };
-        public List<ScriptAction> ScriptActions { get; } = new List<ScriptAction>();
-        public List<TriggerEventType> TriggerEventTypes { get; } = new List<TriggerEventType>();
-        public List<TriggerActionType> TriggerActionTypes { get; } = new List<TriggerActionType>();
+        public Dictionary<int, ScriptAction> ScriptActions { get; } = new Dictionary<int, ScriptAction>();
+        public Dictionary<int, TriggerEventType> TriggerEventTypes { get; } = new Dictionary<int, TriggerEventType>();
+        public Dictionary<int, TriggerActionType> TriggerActionTypes { get; } = new Dictionary<int, TriggerActionType>();
         public List<Theater> Theaters { get; } = new List<Theater>();
 
         public void Init(Rules rules)
@@ -158,7 +158,7 @@ namespace TSMapEditor.Models
                 var scriptSection = iniFile.GetSection(sections[i]);
                 scriptAction.ReadIniSection(scriptSection);
 
-                ScriptActions.Add(scriptAction);
+                ScriptActions.Add(scriptAction.Index, scriptAction);
             }
         }
 
@@ -173,7 +173,7 @@ namespace TSMapEditor.Models
                 var section = iniFile.GetSection(sections[i]);
                 triggerEventType.ReadPropertiesFromIniSection(section);
 
-                TriggerEventTypes.Add(triggerEventType);
+                TriggerEventTypes.Add(triggerEventType.ID, triggerEventType);
             }
         }
 
@@ -188,7 +188,7 @@ namespace TSMapEditor.Models
                 var section = iniFile.GetSection(sections[i]);
                 triggerActionType.ReadPropertiesFromIniSection(section);
 
-                TriggerActionTypes.Add(triggerActionType);
+                TriggerActionTypes.Add(triggerActionType.ID, triggerActionType);
             }
         }
     }

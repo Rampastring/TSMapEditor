@@ -29,7 +29,7 @@ namespace TSMapEditor.CCEngine
             Index = index;
         }
 
-        public int Index { get; }
+        public int Index { get; set; }
         public string Name { get; set; } = "Unknown action";
         public string Description { get; set; } = "No description";
         public string ParamDescription { get; set; } = "Use 0";

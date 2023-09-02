@@ -36,7 +36,7 @@ namespace TSMapEditor.UI.Windows
         {
             lbObjectList.Clear();
 
-            foreach (ScriptAction scriptAction in editorConfig.ScriptActions)
+            foreach (ScriptAction scriptAction in editorConfig.ScriptActions.Values)
             {
                 lbObjectList.AddItem(new XNAListBoxItem() { Text = $"{scriptAction.Index} {scriptAction.Name}", Tag = scriptAction });
                 if (scriptAction == SelectedObject)

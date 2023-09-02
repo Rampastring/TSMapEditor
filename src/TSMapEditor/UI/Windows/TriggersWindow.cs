@@ -1205,9 +1205,7 @@ namespace TSMapEditor.UI.Windows
             }
 
             var triggerAction = (TriggerAction)lbActions.SelectedItem.Tag;
-            TriggerActionType triggerActionType = null;
-            if (triggerAction.ActionIndex < map.EditorConfig.TriggerActionTypes.Count)
-                triggerActionType = map.EditorConfig.TriggerActionTypes[triggerAction.ActionIndex];
+            TriggerActionType triggerActionType = map.EditorConfig.TriggerActionTypes.GetValueOrDefault(triggerAction.ActionIndex);
 
             selActionType.Text = triggerAction.ActionIndex + " " + (triggerActionType == null ? "Unknown" : triggerActionType.Name);
             panelActionDescription.Text = triggerActionType == null ? "Unknown action. It has most likely been added with another editor." : triggerActionType.Description;
@@ -1304,13 +1302,15 @@ namespace TSMapEditor.UI.Windows
 
         private void AddAction(TriggerAction action)
         {
-            if (action.ActionIndex >= map.EditorConfig.TriggerActionTypes.Count)
+            var triggerActionType = map.EditorConfig.TriggerActionTypes.GetValueOrDefault(action.ActionIndex);
+
+            if (triggerActionType == null)
             {
                 lbActions.AddItem(new XNAListBoxItem() { Text = action.ActionIndex + " Unknown", Tag = action });
                 return;
             }
 
-            lbActions.AddItem(new XNAListBoxItem() { Text = action.ActionIndex + " " + map.EditorConfig.TriggerActionTypes[action.ActionIndex].Name, Tag = action });
+            lbActions.AddItem(new XNAListBoxItem() { Text = action.ActionIndex + " " + triggerActionType.Name, Tag = action });
         }
 
         private void LbEvents_SelectedIndexChanged(object sender, EventArgs e)
@@ -1328,9 +1328,7 @@ namespace TSMapEditor.UI.Windows
             }
 
             var triggerCondition = (TriggerCondition)lbEvents.SelectedItem.Tag;
-            TriggerEventType triggerEventType = null;
-            if (triggerCondition.ConditionIndex < map.EditorConfig.TriggerEventTypes.Count)
-                triggerEventType = map.EditorConfig.TriggerEventTypes[triggerCondition.ConditionIndex];
+            TriggerEventType triggerEventType = map.EditorConfig.TriggerEventTypes.GetValueOrDefault(triggerCondition.ConditionIndex);
 
             selEventType.Text = triggerCondition.ConditionIndex + " " + (triggerEventType == null ? "Unknown" : triggerEventType.Name);
             panelEventDescription.Text = triggerEventType == null ? "Unknown event. It has most likely been added with another editor." : triggerEventType.Description;
@@ -1421,29 +1419,25 @@ namespace TSMapEditor.UI.Windows
 
         private void AddEvent(TriggerCondition condition)
         {
-            if (condition.ConditionIndex >= map.EditorConfig.TriggerEventTypes.Count)
+            var triggerEventType = map.EditorConfig.TriggerEventTypes.GetValueOrDefault(condition.ConditionIndex);
+
+            if (triggerEventType == null)
             {
                 lbEvents.AddItem(new XNAListBoxItem() { Text = condition.ConditionIndex + " Unknown", Tag = condition });
                 return;
             }
 
-            lbEvents.AddItem(new XNAListBoxItem() { Text = condition.ConditionIndex + " " + map.EditorConfig.TriggerEventTypes[condition.ConditionIndex].Name, Tag = condition });
+            lbEvents.AddItem(new XNAListBoxItem() { Text = condition.ConditionIndex + " " + triggerEventType.Name, Tag = condition });
         }
 
         private TriggerEventType GetTriggerEventType(int index)
         {
-            if (index >= map.EditorConfig.TriggerEventTypes.Count)
-                return null;
-
-            return map.EditorConfig.TriggerEventTypes[index];
+            return map.EditorConfig.TriggerEventTypes.GetValueOrDefault(index);
         }
 
         private TriggerActionType GetTriggerActionType(int index)
         {
-            if (index >= map.EditorConfig.TriggerActionTypes.Count)
-                return null;
-
-            return map.EditorConfig.TriggerActionTypes[index];
+            return map.EditorConfig.TriggerActionTypes.GetValueOrDefault(index);
         }
 
         private Color GetParamValueColor(string paramValue, TriggerParamType paramType)

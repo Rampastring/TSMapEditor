@@ -1,6 +1,7 @@
 ﻿using Rampastring.XNAUI;
 using Rampastring.XNAUI.XNAControls;
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using TSMapEditor.CCEngine;
 using TSMapEditor.Misc;
@@ -165,7 +166,7 @@ namespace TSMapEditor.UI.Windows
                 return;
 
             ScriptActionEntry entry = editedScript.Actions[lbActions.SelectedIndex];
-            ScriptAction action = entry.Action >= map.EditorConfig.ScriptActions.Count ? null : map.EditorConfig.ScriptActions[entry.Action];
+            ScriptAction action = map.EditorConfig.ScriptActions.GetValueOrDefault(entry.Action);
 
             if (action == null)
                 return;
@@ -268,9 +269,7 @@ namespace TSMapEditor.UI.Windows
 
             ScriptActionEntry entry = editedScript.Actions[lbActions.SelectedIndex];
 
-            ScriptAction scriptAction = null;
-            if (entry.Action > -1 && entry.Action < map.EditorConfig.ScriptActions.Count)
-                scriptAction = map.EditorConfig.ScriptActions[entry.Action];
+            ScriptAction scriptAction = map.EditorConfig.ScriptActions.GetValueOrDefault(entry.Action);
 
             selectScriptActionWindow.Open(scriptAction);
         }
@@ -304,7 +303,7 @@ namespace TSMapEditor.UI.Windows
             }
 
             ScriptActionEntry entry = editedScript.Actions[lbActions.SelectedIndex];
-            ScriptAction action = entry.Action >= map.EditorConfig.ScriptActions.Count ? null : map.EditorConfig.ScriptActions[entry.Action];
+            ScriptAction action = map.EditorConfig.ScriptActions.GetValueOrDefault(entry.Action);
 
             selTypeOfAction.Text = GetActionNameFromIndex(entry.Action);
 
@@ -445,10 +444,7 @@ namespace TSMapEditor.UI.Windows
 
         private ScriptAction GetScriptAction(int index)
         {
-            if (index >= map.EditorConfig.ScriptActions.Count)
-                return null;
-
-            return map.EditorConfig.ScriptActions[index];
+            return map.EditorConfig.ScriptActions.GetValueOrDefault(index);
         }
     }
 }

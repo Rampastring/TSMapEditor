@@ -36,7 +36,7 @@ namespace TSMapEditor.UI.Windows
         {
             lbObjectList.Clear();
 
-            foreach (TriggerActionType triggerActionType in map.EditorConfig.TriggerActionTypes)
+            foreach (TriggerActionType triggerActionType in map.EditorConfig.TriggerActionTypes.Values)
             {
                 lbObjectList.AddItem(new XNAListBoxItem() { Text = $"{triggerActionType.ID} {triggerActionType.Name}", Tag = triggerActionType });
                 if (triggerActionType == SelectedObject)

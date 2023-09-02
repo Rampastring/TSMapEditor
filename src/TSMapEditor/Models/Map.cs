@@ -1541,7 +1541,9 @@ namespace TSMapEditor.Models
             foreach (var trigger in Triggers)
             {
                 int usedEventIndex = objectSpecificEventIndexes.Find(eventIndex => trigger.Conditions.Exists(c => c.ConditionIndex == eventIndex));
-                if (usedEventIndex <= 0 || usedEventIndex >= EditorConfig.TriggerEventTypes.Count)
+                var triggerEventType = EditorConfig.TriggerEventTypes.GetValueOrDefault(usedEventIndex);
+
+                if (triggerEventType == null)
                     continue;
 
                 var tag = Tags.Find(t => t.Trigger == trigger);
@@ -1555,7 +1557,7 @@ namespace TSMapEditor.Models
                     !TeamTypes.Exists(tt => tt.Tag == tag) &&
                     !Triggers.Exists(otherTrigger => otherTrigger.LinkedTrigger == trigger))
                 {
-                    string eventName = EditorConfig.TriggerEventTypes[usedEventIndex].Name;
+                    string eventName = triggerEventType.Name;
 
                     issueList.Add($"Trigger '{trigger.Name}' is using the {eventName} event without being attached to any object or team. Did you forget to attach it?");
                 }
