@@ -9,6 +9,6 @@
 
         public int Index { get; }
         public string Name { get; set; }
-        public bool InitialState { get; set; }
+        public int InitialState { get; set; }
     }
 }

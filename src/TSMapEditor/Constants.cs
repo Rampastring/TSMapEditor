@@ -24,6 +24,8 @@ namespace TSMapEditor
         public static bool EnableIniInclude = false;
         public static bool EnableIniInheritance = false;
 
+        public static bool IntegerVariables = false;
+
         public static string RulesIniPath;
         public static string FirestormIniPath;
         public static string ArtIniPath;
@@ -107,6 +109,8 @@ namespace TSMapEditor
 
             EnableIniInclude = constantsIni.GetBooleanValue(ConstantsSectionName, nameof(EnableIniInclude), EnableIniInclude);
             EnableIniInheritance = constantsIni.GetBooleanValue(ConstantsSectionName, nameof(EnableIniInheritance), EnableIniInheritance);
+
+            IntegerVariables = constantsIni.GetBooleanValue(ConstantsSectionName, nameof(IntegerVariables), IntegerVariables);
 
             MaxWaypoint = constantsIni.GetIntValue(ConstantsSectionName, nameof(MaxWaypoint), MaxWaypoint);
 

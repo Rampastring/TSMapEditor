@@ -24,6 +24,8 @@ namespace TSMapEditor.UI.Windows
         private EditorListBox lbLocalVariables;
         private EditorTextBox tbName;
         private XNACheckBox chkInitialState;
+        private XNALabel lblInitialState;
+        private EditorNumberTextBox tbInitialState;
 
         private LocalVariable editedLocalVariable;
 
@@ -35,6 +37,18 @@ namespace TSMapEditor.UI.Windows
             lbLocalVariables = FindChild<EditorListBox>(nameof(lbLocalVariables));
             tbName = FindChild<EditorTextBox>(nameof(tbName));
             chkInitialState = FindChild<XNACheckBox>(nameof(chkInitialState));
+            lblInitialState = FindChild<XNALabel>(nameof(lblInitialState));
+            tbInitialState = FindChild<EditorNumberTextBox>(nameof(tbInitialState));
+
+            if (Constants.IntegerVariables)
+            {
+                chkInitialState.Disable();
+            }
+            else
+            {
+                tbInitialState.Disable();
+                lblInitialState.Disable();
+            }
 
             FindChild<EditorButton>("btnNewLocalVariable").LeftClick += BtnNewLocalVariable_LeftClick;
             FindChild<EditorButton>("btnViewVariableUsages").LeftClick += BtnViewVariableUsages_LeftClick;
@@ -144,6 +158,7 @@ namespace TSMapEditor.UI.Windows
         {
             tbName.TextChanged -= TbName_TextChanged;
             chkInitialState.CheckedChanged -= ChkInitialState_CheckedChanged;
+            tbInitialState.TextChanged -= TbInitialState_TextChanged;
 
             if (lbLocalVariables.SelectedItem == null)
             {
@@ -154,15 +169,22 @@ namespace TSMapEditor.UI.Windows
 
             editedLocalVariable = (LocalVariable)lbLocalVariables.SelectedItem.Tag;
             tbName.Text = editedLocalVariable.Name;
-            chkInitialState.Checked = editedLocalVariable.InitialState;
+            chkInitialState.Checked = editedLocalVariable.InitialState == 1;
+            tbInitialState.Value = editedLocalVariable.InitialState;
 
             tbName.TextChanged += TbName_TextChanged;
             chkInitialState.CheckedChanged += ChkInitialState_CheckedChanged;
+            tbInitialState.TextChanged += TbInitialState_TextChanged;
         }
 
         private void ChkInitialState_CheckedChanged(object sender, EventArgs e)
         {
-            editedLocalVariable.InitialState = chkInitialState.Checked;
+            editedLocalVariable.InitialState = chkInitialState.Checked ? 1 : 0;
+        }
+
+        private void TbInitialState_TextChanged(object sender, EventArgs e)
+        {
+            editedLocalVariable.InitialState = tbInitialState.Value;
         }
 
         private void TbName_TextChanged(object sender, EventArgs e)

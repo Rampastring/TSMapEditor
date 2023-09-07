@@ -988,7 +988,7 @@ namespace TSMapEditor.Initialization
 
                 var localVariable = new LocalVariable(map.LocalVariables.Count);
                 localVariable.Name = parts[0];
-                localVariable.InitialState = parts[1] == "1" ? true : false;
+                localVariable.InitialState = int.Parse(parts[1]);
 
                 map.LocalVariables.Add(localVariable);
             }

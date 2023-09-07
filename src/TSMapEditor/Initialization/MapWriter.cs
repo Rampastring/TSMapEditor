@@ -580,7 +580,7 @@ namespace TSMapEditor.Initialization
             {
                 var localVariable = map.LocalVariables[i];
 
-                section.SetStringValue(i.ToString(), localVariable.Name + "," + (localVariable.InitialState ? "1" : "0"));
+                section.SetStringValue(i.ToString(), localVariable.Name + "," + localVariable.InitialState.ToString());
             }
         }
 
