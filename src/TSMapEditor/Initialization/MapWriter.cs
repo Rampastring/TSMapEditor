@@ -580,7 +580,7 @@ namespace TSMapEditor.Initialization
             {
                 var localVariable = map.LocalVariables[i];
 
-                section.SetStringValue(i.ToString(), localVariable.Name + "," + localVariable.InitialState.ToString());
+                section.SetStringValue(i.ToString(), localVariable.Name + "," + localVariable.InitialState.ToString(CultureInfo.InvariantCulture));
             }
         }
 

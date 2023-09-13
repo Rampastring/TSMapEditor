@@ -169,7 +169,7 @@ namespace TSMapEditor.UI.Windows
 
             editedLocalVariable = (LocalVariable)lbLocalVariables.SelectedItem.Tag;
             tbName.Text = editedLocalVariable.Name;
-            chkInitialState.Checked = editedLocalVariable.InitialState == 1;
+            chkInitialState.Checked = editedLocalVariable.InitialState > 0;
             tbInitialState.Value = editedLocalVariable.InitialState;
 
             tbName.TextChanged += TbName_TextChanged;
