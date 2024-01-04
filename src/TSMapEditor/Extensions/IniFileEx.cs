@@ -3,7 +3,6 @@ using System.Text;
 using System.Collections.Generic;
 using Rampastring.Tools;
 using TSMapEditor.CCEngine;
-using System.Linq;
 
 namespace TSMapEditor.Extensions;
 
@@ -16,7 +15,7 @@ public class IniFileEx: IniFile
     private static readonly string PhobosIncludeSection = "$Include";
     private static readonly string PhobosInheritsSection = "$Inherits";
 
-    private List<IniSectionEx> ExSections = new();
+    private readonly HashSet<IniSection> alreadyInheritedSections = new();
 
     public IniFileEx() : base() { }
 
@@ -25,25 +24,25 @@ public class IniFileEx: IniFile
     public IniFileEx(string filePath, CCFileManager ccFileManager) : base(filePath)
     {
         Include(ccFileManager);
-        Inherit(ccFileManager);
+        Inherit();
     }
 
     public IniFileEx(string filePath, Encoding encoding, CCFileManager ccFileManager) : base(filePath, encoding)
     {
         Include(ccFileManager);
-        Inherit(ccFileManager);
+        Inherit();
     }
 
     public IniFileEx(Stream stream, CCFileManager ccFileManager) : base(stream)
     {
         Include(ccFileManager);
-        Inherit(ccFileManager);
+        Inherit();
     }
 
     public IniFileEx(Stream stream, Encoding encoding, CCFileManager ccFileManager) : base(stream, encoding)
     {
         Include(ccFileManager);
-        Inherit(ccFileManager);
+        Inherit();
     }
 
     /// <summary>
@@ -97,34 +96,34 @@ public class IniFileEx: IniFile
     /// <summary>
     /// For each section, inherits all missing keys from listed parents.
     /// </summary>
-    public void Inherit(CCFileManager ccFileManager)
+    public void Inherit()
     {
         if (!Constants.EnableIniInheritance)
             return;
 
-        ExSections = Sections.Select(s => new IniSectionEx(s)).ToList();
-
-        foreach (var section in ExSections)
+        foreach (var section in Sections)
             InheritFromParent(section);
 
-        Sections = ExSections.Cast<IniSection>().ToList();
-        ExSections.Clear();
+        alreadyInheritedSections.Clear();
     }
 
-    private void InheritFromParent(IniSectionEx section)
+    private void InheritFromParent(IniSection section)
     {
-        if (section.AlreadyInherited)
+        // If this section has already been processed, exit.
+        if (alreadyInheritedSections.Contains(section))
             return;
 
+        // If this section has no parents, mark as processed and exit.
         if (!section.KeyExists(PhobosInheritsSection))
         {
-            section.AlreadyInherited = true;
+            alreadyInheritedSections.Add(section);
             return;
         }
 
+        // Run recursively.
         foreach (var parentName in section.GetListValue<string>(PhobosInheritsSection, ',', x => x))
         {
-            var parent = ExSections.Find(s => s.SectionName == parentName);
+            var parent = Sections.Find(s => s.SectionName == parentName);
             if (parent == null)
                 continue;
 
@@ -136,6 +135,6 @@ public class IniFileEx: IniFile
                     section.AddKey(pair.Key, pair.Value);
             }
         }
-        section.AlreadyInherited = true;
+        alreadyInheritedSections.Add(section);
     }
 }
