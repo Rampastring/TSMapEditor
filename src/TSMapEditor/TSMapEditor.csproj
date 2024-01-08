@@ -26,13 +26,9 @@
     <ApplicationIcon>editoricon.ico</ApplicationIcon>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Remove="Config\Scripts\Apply Animated Water.cs" />
     <Compile Remove="Config\Scripts\Make Civilian Vehicles Sleep.cs" />
     <Compile Remove="Config\Scripts\Remove All Terrain Objects.cs" />
-    <Compile Remove="Config\Scripts\Replace Autumn Grass With Tall Grass.cs" />
-    <Compile Remove="Config\Scripts\Replace Autumn Jungle Grass With Summer Grass.cs" />
-    <Compile Remove="Config\Scripts\Replace Autumn Trees With Summer Trees.cs" />
-    <Compile Remove="Config\Scripts\Replace Frost With Clear.cs" />
+    <Compile Remove="Config\Scripts\Smoothen Water.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Update="Config\Actions.ini">
@@ -440,6 +436,9 @@
     <None Update="MapEditorSettings.ini">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <None Update="marble.mix">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.CSharp" Version="4.7.0" />
@@ -454,7 +453,7 @@
     <Folder Include="Content\ToolIcons\" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="Config\Scripts\Apply Animated Water.cs">
+    <None Include="Config\Scripts\Smoothen Water.cs">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Include="Config\Scripts\Count Credits On Map.cs">
@@ -464,18 +463,6 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Include="Config\Scripts\Remove All Terrain Objects.cs">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="Config\Scripts\Replace Autumn Trees With Summer Trees.cs">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="Config\Scripts\Replace Autumn Grass With Tall Grass.cs">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="Config\Scripts\Replace Autumn Jungle Grass With Summer Grass.cs">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="Config\Scripts\Replace Frost With Clear.cs">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>
