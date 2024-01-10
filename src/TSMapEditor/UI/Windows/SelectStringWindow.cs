@@ -47,8 +47,10 @@ namespace TSMapEditor.UI.Windows
 
             foreach (CsfString csf in map.Stringtable.Values)
             {
-                const int maxLength = 56;
                 string preview;
+
+                // Add ellipsis ("...") to string content preview if it's too long.
+                const int maxLength = 56;
                 if (csf.ID.Length > maxLength)
                     preview = csf.ID[..maxLength];
                 else

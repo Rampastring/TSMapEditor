@@ -29,18 +29,18 @@ namespace TSMapEditor.CCEngine
         Spanish = 4,
         Italian = 5,
         Japanese = 6,
-        Jabberwockie = 7,
+        Jabberwockie = 7,  // According to ModEnc.
         Korean = 8,
         Chinese = 9,
     }
 
     /// <summary>
-    /// Represents a CSF file header. Most of the informations here are not useful.
+    /// Represents a CSF file header. Most of the information here is not useful.
     /// </summary>
     struct CsfFileHeader
     {
         public const int SizeOf = 24;
-        private const uint CsfPrefix = 0x43534620;  // " FSC" as an uint32
+        private const uint CsfPrefix = 0x43534620;  // " FSC" as a LE-uint32
 
         public CsfFileHeader(byte[] buffer)
         {
@@ -69,9 +69,9 @@ namespace TSMapEditor.CCEngine
     /// </summary>
     public class CsfFile
     {
-        private const uint LblPrefix = 0x4C424C20;  // " LBL" as an uint32
-        private const uint StrPrefix = 0x53545220;  // " RTS" as an uint32
-        private const uint StrwPrefix = 0x53545257;  // "WRTS" as an uint32
+        private const uint LblPrefix = 0x4C424C20;  // " LBL" as a LE-uint32
+        private const uint StrPrefix = 0x53545220;  // " RTS" as a LE-uint32
+        private const uint StrwPrefix = 0x53545257;  // "WRTS" as a LE-uint32
 
         public CsfFile() { }
 
@@ -102,6 +102,7 @@ namespace TSMapEditor.CCEngine
             {
                 var file = new CsfFile(path);
                 file.ParseFromFile(path);
+
                 return file;
             }
 
@@ -187,7 +188,7 @@ namespace TSMapEditor.CCEngine
         /// </summary>
         /// <param name="memoryStream">Input stream.</param>
         /// <param name="buffer">4 byte long temporary buffer.</param>
-        /// <param name="skip">Only advance stream and return null.</param>
+        /// <param name="skip">Only advance the stream and return null.</param>
         /// <returns>Read string or null if `skip` was true.</returns>
         /// <exception cref="CsfLoadException"></exception>
         public string ParseString(MemoryStream memoryStream, byte[] buffer, bool skip = false)
