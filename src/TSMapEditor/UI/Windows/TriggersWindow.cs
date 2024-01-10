@@ -863,7 +863,7 @@ namespace TSMapEditor.UI.Windows
                     ctxActionParameterPresetValues.Open(GetCursorPoint());
                     return;
                 case TriggerParamType.StringTableEntry:
-                    if (!map.Stringtable.TryGetValue(triggerAction.Parameters[paramIndex], out var existingString))
+                    if (!map.StringTable.TryGetValue(triggerAction.Parameters[paramIndex], out var existingString))
                         existingString = new CsfString(triggerAction.Parameters[paramIndex], "");
                     selectStringWindow.IsForEvent = false;
                     selectStringWindow.Open(existingString);

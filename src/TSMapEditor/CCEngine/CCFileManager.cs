@@ -35,7 +35,7 @@ namespace TSMapEditor.CCEngine
             iniFile.DoForEveryValueInSection("SearchDirectories", v => AddSearchDirectory(Path.Combine(GameDirectory, v)));
             iniFile.DoForEveryValueInSection("PrimaryMIXFiles", v => LoadPrimaryMixFile(v));
             iniFile.DoForEveryValueInSection("SecondaryMIXFiles", v => LoadSecondaryMixFile(v));
-            iniFile.DoForEveryValueInSection("Stringtables", v => LoadStringtable(v));
+            iniFile.DoForEveryValueInSection("StringTables", v => LoadStringTable(v));
         }
 
         /// <summary>
@@ -154,7 +154,7 @@ namespace TSMapEditor.CCEngine
         /// Throws a FileNotFoundException if the CSF file isn't found.
         /// </summary>
         /// <param name="name">The name of the CSf file.</param>
-        public void LoadStringtable(string name)
+        public void LoadStringTable(string name)
         {
             var data = LoadFile(name);
             if (data == null)
@@ -167,7 +167,7 @@ namespace TSMapEditor.CCEngine
         /// <summary>
         /// Drain loaded stringtable list and return it.
         /// </summary>
-        public List<CsfFile> DrainStringtables()
+        public List<CsfFile> DrainStringTables()
         {
             var list = csfFiles;
             csfFiles = new();
