@@ -19,6 +19,11 @@ namespace TSMapEditor.CCEngine
         /// </summary>
         private List<MixFile> mixFiles = new List<MixFile>();
 
+        /// <summary>
+        /// List of all CSF files that have been registered to the file manager.
+        /// </summary>
+        private List<CsfFile> csfFiles = new List<CsfFile>();
+
         private List<string> searchDirectories = new List<string>();
 
 
@@ -30,6 +35,7 @@ namespace TSMapEditor.CCEngine
             iniFile.DoForEveryValueInSection("SearchDirectories", v => AddSearchDirectory(Path.Combine(GameDirectory, v)));
             iniFile.DoForEveryValueInSection("PrimaryMIXFiles", v => LoadPrimaryMixFile(v));
             iniFile.DoForEveryValueInSection("SecondaryMIXFiles", v => LoadSecondaryMixFile(v));
+            iniFile.DoForEveryValueInSection("Stringtables", v => LoadStringtable(v));
         }
 
         /// <summary>
@@ -121,7 +127,7 @@ namespace TSMapEditor.CCEngine
         /// Loads a required MIX file.
         /// Throws a FileNotFoundException if the MIX file isn't found.
         /// </summary>
-        /// <param name="path">The name of the MIX file.</param>
+        /// <param name="name">The name of the MIX file.</param>
         public void LoadPrimaryMixFile(string name)
         {
             if (!LoadMIXFile(name))
@@ -141,6 +147,33 @@ namespace TSMapEditor.CCEngine
             {
                 Logger.Log("Secondary MIX file not found: " + name);
             }
+        }
+
+        /// <summary>
+        /// Loads a required CSF file.
+        /// Throws a FileNotFoundException if the CSF file isn't found.
+        /// </summary>
+        /// <param name="name">The name of the CSf file.</param>
+        public void LoadStringtable(string name)
+        {
+            var data = LoadFile(name);
+            if (data == null)
+            {
+                throw new FileNotFoundException("CSF file not found: " + name);
+            }
+            var file = new CsfFile(name);
+            file.ParseFromBuffer(data);
+            csfFiles.Add(file);
+        }
+
+        /// <summary>
+        /// Drain loaded stringtable list and return it.
+        /// </summary>
+        public List<CsfFile> DrainStringtables()
+        {
+            var list = csfFiles;
+            csfFiles = new();
+            return list;
         }
 
         public byte[] LoadFile(string name)

@@ -36,6 +36,7 @@
         Weapon,
         SpotlightBehaviour,
         RadarEvent,
-        VoxelAnim
+        VoxelAnim,
+        StringTableEntry
     }
 }

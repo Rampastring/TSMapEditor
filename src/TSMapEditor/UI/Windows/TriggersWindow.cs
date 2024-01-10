@@ -85,6 +85,7 @@ namespace TSMapEditor.UI.Windows
         private SelectThemeWindow selectThemeWindow;
         private SelectTechnoTypeWindow selectTechnoTypeWindow;
         private SelectTagWindow selectTagWindow;
+        private SelectStringWindow selectStringWindow;
 
         private XNAContextMenu actionContextMenu;
         private XNAContextMenu eventContextMenu;
@@ -246,6 +247,10 @@ namespace TSMapEditor.UI.Windows
             selectTagWindow = new SelectTagWindow(WindowManager, map);
             var tagDarkeningPanel = DarkeningPanel.InitializeAndAddToParentControlWithChild(WindowManager, Parent, selectTagWindow);
             tagDarkeningPanel.Hidden += TagDarkeningPanel_Hidden;
+
+            selectStringWindow = new SelectStringWindow(WindowManager, map);
+            var stringDarkeningPanel = DarkeningPanel.InitializeAndAddToParentControlWithChild(WindowManager, Parent, selectStringWindow);
+            stringDarkeningPanel.Hidden += StringDarkeningPanel_Hidden;
 
             eventContextMenu = new XNAContextMenu(WindowManager);
             eventContextMenu.Name = nameof(eventContextMenu);
@@ -752,7 +757,7 @@ namespace TSMapEditor.UI.Windows
                     ctxEventParameterPresetValues.Width = 100;
                     map.Waypoints.ForEach(wp => ctxEventParameterPresetValues.AddItem(wp.Identifier.ToString(CultureInfo.InvariantCulture)));
                     ctxEventParameterPresetValues.Open(GetCursorPoint());
-                    return;
+                    break;
                 default:
                     break;
             }
@@ -857,6 +862,12 @@ namespace TSMapEditor.UI.Windows
                     map.Waypoints.ForEach(wp => ctxActionParameterPresetValues.AddItem(wp.Identifier.ToString(CultureInfo.InvariantCulture)));
                     ctxActionParameterPresetValues.Open(GetCursorPoint());
                     return;
+                case TriggerParamType.StringTableEntry:
+                    if (!map.Stringtable.TryGetValue(triggerAction.Parameters[paramIndex], out var existingString))
+                        existingString = new CsfString(triggerAction.Parameters[paramIndex], "");
+                    selectStringWindow.IsForEvent = false;
+                    selectStringWindow.Open(existingString);
+                    break;
                 default:
                     break;
             }
@@ -944,6 +955,14 @@ namespace TSMapEditor.UI.Windows
 
             int globalVariableIndex = selectGlobalVariableWindow.SelectedObject.Index;
             AssignParamValue(selectGlobalVariableWindow.IsForEvent, globalVariableIndex);
+        }
+
+        private void StringDarkeningPanel_Hidden(object sender, EventArgs e)
+        {
+            if (selectStringWindow.SelectedObject == null)
+                return;
+
+            AssignParamValue(selectStringWindow.IsForEvent, selectStringWindow.SelectedObject.ID);
         }
 
         private void AssignParamValue(bool isForEvent, int paramValue)
