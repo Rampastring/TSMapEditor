@@ -202,16 +202,18 @@ namespace TSMapEditor.UI.Sidebar
                 {
                     if (textures[i] != null)
                     {
-                        var frames = textures[i].Frames;
-                        if (frames.Length > 0)
+                        int frameCount = textures[i].GetFrameCount();
+
+                        // Find the first valid frame and use that as our texture
+                        for (int frameIndex = 0; frameIndex < frameCount; frameIndex++)
                         {
-                            // Find the first valid frame and use that as our texture
-                            int firstNotNullIndex = Array.FindIndex(frames, f => f != null);
-                            if (firstNotNullIndex > -1)
+                            var frame = textures[i].GetFrame(frameIndex);
+                            if (frame != null)
                             {
-                                texture = frames[firstNotNullIndex].Texture;
-                                if (Constants.HQRemap && objectType.GetArtConfig().Remapable && textures[i].RemapFrames != null)
-                                    remapTexture = textures[i].RemapFrames[firstNotNullIndex].Texture;
+                                texture = frame.Texture;
+                                if (Constants.HQRemap && objectType.GetArtConfig().Remapable && textures[i].HasRemapFrames())
+                                    remapTexture = textures[i].GetRemapFrame(frameIndex).Texture;
+                                break;
                             }
                         }
                     }

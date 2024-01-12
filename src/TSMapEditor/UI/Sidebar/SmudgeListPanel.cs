@@ -2,6 +2,7 @@
 using Microsoft.Xna.Framework.Graphics;
 using Rampastring.XNAUI;
 using Rampastring.XNAUI.XNAControls;
+using SharpDX.Direct3D9;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -156,12 +157,12 @@ namespace TSMapEditor.UI.Sidebar
                     var textures = TheaterGraphics.SmudgeTextures[firstEntry.SmudgeType.Index];
                     if (textures != null)
                     {
-                        var frames = textures.Frames;
+                        int frameCount = textures.GetFrameCount();
                         const int frameNumber = 0;
 
-                        if (frames != null && frames.Length > frameNumber)
+                        if (frameCount > frameNumber)
                         {
-                            var frame = frames[frameNumber];
+                            var frame = textures.GetFrame(frameNumber);
                             if (frame != null)
                                 texture = frame.Texture;
                         }
@@ -194,16 +195,19 @@ namespace TSMapEditor.UI.Sidebar
                 }
 
                 Texture2D texture = null;
-                if (TheaterGraphics.SmudgeTextures[i] != null)
+                var smudgeGraphics = TheaterGraphics.SmudgeTextures[i];
+                if (smudgeGraphics != null)
                 {
-                    var frames = TheaterGraphics.SmudgeTextures[i].Frames;
-                    if (frames.Length > 0)
+                    int frameCount = smudgeGraphics.GetFrameCount();
+
+                    // Find the first valid frame and use that as our texture
+                    for (int frameIndex = 0; frameIndex < frameCount; frameIndex++)
                     {
-                        // Find the first valid frame and use that as our texture
-                        int firstNotNullIndex = Array.FindIndex(frames, f => f != null);
-                        if (firstNotNullIndex > -1)
+                        var frame = smudgeGraphics.GetFrame(frameIndex);
+                        if (frame != null)
                         {
-                            texture = frames[firstNotNullIndex].Texture;
+                            texture = frame.Texture;
+                            break;
                         }
                     }
                 }

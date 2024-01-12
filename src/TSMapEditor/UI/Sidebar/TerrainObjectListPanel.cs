@@ -145,12 +145,12 @@ namespace TSMapEditor.UI.Sidebar
                     var textures = TheaterGraphics.TerrainObjectTextures[firstEntry.TerrainType.Index];
                     if (textures != null)
                     {
-                        var frames = textures.Frames;
+                        int frameCount = textures.GetFrameCount();
                         const int frameNumber = 0;
 
-                        if (frames != null && frames.Length > frameNumber)
+                        if (frameCount > frameNumber)
                         {
-                            var frame = frames[frameNumber];
+                            var frame = textures.GetFrame(frameNumber);
                             if (frame != null)
                                 texture = frame.Texture;
                         }
@@ -183,16 +183,19 @@ namespace TSMapEditor.UI.Sidebar
                 }
 
                 Texture2D texture = null;
-                if (TheaterGraphics.TerrainObjectTextures[i] != null)
+                var terrainObjectGraphics = TheaterGraphics.TerrainObjectTextures[i];
+                if (terrainObjectGraphics != null)
                 {
-                    var frames = TheaterGraphics.TerrainObjectTextures[i].Frames;
-                    if (frames.Length > 0)
+                    int frameCount = terrainObjectGraphics.GetFrameCount();
+
+                    // Find the first valid frame and use that as our texture
+                    for (int frameIndex = 0; frameIndex < frameCount; frameIndex++)
                     {
-                        // Find the first valid frame and use that as our texture
-                        int firstNotNullIndex = Array.FindIndex(frames, f => f != null);
-                        if (firstNotNullIndex > -1)
+                        var frame = terrainObjectGraphics.GetFrame(frameIndex);
+                        if (frame != null)
                         {
-                            texture = frames[firstNotNullIndex].Texture;
+                            texture = frame.Texture;
+                            break;
                         }
                     }
                 }

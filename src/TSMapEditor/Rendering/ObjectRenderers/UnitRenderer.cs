@@ -45,15 +45,16 @@ namespace TSMapEditor.Rendering.ObjectRenderers
                 DrawShadow(gameObject, drawParams, drawPoint, yDrawPointWithoutCellHeight);
 
             DrawShapeImage(gameObject, drawParams, drawParams.Graphics, 
-                gameObject.GetFrameIndex(drawParams.Graphics.Frames.Length),
+                gameObject.GetFrameIndex(drawParams.Graphics.GetFrameCount()),
                 Color.White, true, gameObject.GetRemapColor(), drawPoint, yDrawPointWithoutCellHeight);
 
             if (gameObject.UnitType.Turret)
             {
                 int turretFrameIndex = gameObject.GetTurretFrameIndex();
-                if (turretFrameIndex > -1 && turretFrameIndex < drawParams.Graphics.Frames.Length)
+
+                if (turretFrameIndex > -1 && turretFrameIndex < drawParams.Graphics.GetFrameCount())
                 {
-                    PositionedTexture frame = drawParams.Graphics.Frames[turretFrameIndex];
+                    PositionedTexture frame = drawParams.Graphics.GetFrame(turretFrameIndex);
 
                     if (frame == null)
                         return;

@@ -924,7 +924,7 @@ namespace TSMapEditor.Rendering
             int yDrawOffset = Constants.CellSizeY / -2;
             int frameIndex = 0;
 
-            if ((graphics == null || graphics.Frames.Length == 0 || graphics.Frames[frameIndex] == null) && bibGraphics == null)
+            if ((graphics == null || graphics.GetFrame(frameIndex) == null) && bibGraphics == null)
             {
                 DrawStringWithShadow(iniName, 1, drawPoint.ToXNAVector(), replacementColor, 1.0f);
                 return;
@@ -934,7 +934,7 @@ namespace TSMapEditor.Rendering
 
             if (bibGraphics != null)
             {
-                PositionedTexture bibFrame = bibGraphics.Frames[0];
+                PositionedTexture bibFrame = bibGraphics.GetFrame(0);
                 texture = bibFrame.Texture;
 
                 int bibFinalDrawPointX = drawPoint.X - bibFrame.ShapeWidth / 2 + bibFrame.OffsetX + Constants.CellSizeX / 2;
@@ -946,9 +946,9 @@ namespace TSMapEditor.Rendering
                     null, Constants.HQRemap ? nonRemapBaseNodeShade : remapColor,
                     0f, Vector2.Zero, SpriteEffects.None, 0f);
 
-                if (Constants.HQRemap && bibGraphics.RemapFrames != null)
+                if (Constants.HQRemap && bibGraphics.HasRemapFrames())
                 {
-                    DrawTexture(bibGraphics.RemapFrames[0].Texture,
+                    DrawTexture(bibGraphics.GetRemapFrame(0).Texture,
                         new Rectangle(bibFinalDrawPointX, bibFinalDrawPointY, texture.Width, texture.Height),
                         null,
                         remapColor,
@@ -959,7 +959,7 @@ namespace TSMapEditor.Rendering
                 }
             }
 
-            var frame = graphics.Frames[frameIndex];
+            var frame = graphics.GetFrame(frameIndex);
             if (frame == null)
                 return;
 
@@ -973,9 +973,9 @@ namespace TSMapEditor.Rendering
 
             DrawTexture(texture, drawRectangle, Constants.HQRemap ? nonRemapBaseNodeShade : remapColor);
 
-            if (Constants.HQRemap && graphics.RemapFrames != null)
+            if (Constants.HQRemap && graphics.HasRemapFrames())
             {
-                DrawTexture(graphics.RemapFrames[frameIndex].Texture, drawRectangle, remapColor);
+                DrawTexture(graphics.GetRemapFrame(frameIndex).Texture, drawRectangle, remapColor);
             }
         }
 

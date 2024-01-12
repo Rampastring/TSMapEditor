@@ -33,7 +33,7 @@ namespace TSMapEditor.Rendering.ObjectRenderers
             {
                 // Turret anims have their facing frames reversed
                 byte facing = (byte)(255 - gameObject.Facing - 31);
-                frameIndex = facing / (512 / shapeDrawParams.Graphics.Frames.Length);
+                frameIndex = facing / (512 / shapeDrawParams.Graphics.GetFrameCount());
             }
 
             float alpha = 1.0f;
@@ -69,15 +69,16 @@ namespace TSMapEditor.Rendering.ObjectRenderers
             if (drawParams is not ShapeDrawParams shapeDrawParams)
                 return;
 
-            int shadowFrameIndex = gameObject.GetShadowFrameIndex(shapeDrawParams.Graphics.Frames.Length);
+            int shadowFrameIndex = gameObject.GetShadowFrameIndex(shapeDrawParams.Graphics.GetFrameCount());
+
             if (gameObject.IsTurretAnim)
             {
                 // Turret anims have their facing frames reversed
                 byte facing = (byte)(255 - gameObject.Facing - 31);
-                shadowFrameIndex += facing / (512 / shapeDrawParams.Graphics.Frames.Length);
+                shadowFrameIndex += facing / (512 / shapeDrawParams.Graphics.GetFrameCount());
             }
 
-            if (shadowFrameIndex > 0 && shadowFrameIndex < shapeDrawParams.Graphics.Frames.Length)
+            if (shadowFrameIndex > 0 && shadowFrameIndex < shapeDrawParams.Graphics.GetFrameCount())
             {
                 DrawShapeImage(gameObject, drawParams, shapeDrawParams.Graphics, shadowFrameIndex,
                     new Color(0, 0, 0, 128), false, Color.White, drawPoint, initialYDrawPointWithoutCellHeight);

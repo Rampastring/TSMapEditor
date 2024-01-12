@@ -153,12 +153,12 @@ namespace TSMapEditor.Rendering.ObjectRenderers
         {
             if (drawParams is ShapeDrawParams shapeDrawParams)
             {
-                if (shapeDrawParams.Graphics?.Frames != null && shapeDrawParams.Graphics.Frames.Length > 0)
+                if (shapeDrawParams.Graphics != null && shapeDrawParams.Graphics.GetFrameCount() > 0)
                 {
-                    int frameIndex = gameObject.GetFrameIndex(shapeDrawParams.Graphics.Frames.Length);
+                    int frameIndex = gameObject.GetFrameIndex(shapeDrawParams.Graphics.GetFrameCount());
 
-                    if (frameIndex > -1 && frameIndex < shapeDrawParams.Graphics.Frames.Length)
-                        return shapeDrawParams.Graphics.Frames[frameIndex];
+                    if (frameIndex > -1 && frameIndex < shapeDrawParams.Graphics.GetFrameCount())
+                        return shapeDrawParams.Graphics.GetFrame(frameIndex);
                 }
             }
             else if (drawParams is VoxelDrawParams voxelDrawParams)
@@ -228,8 +228,8 @@ namespace TSMapEditor.Rendering.ObjectRenderers
             if (drawParams is not ShapeDrawParams shapeDrawParams || shapeDrawParams.Graphics == null)
                 return;
 
-            int shadowFrameIndex = gameObject.GetShadowFrameIndex(shapeDrawParams.Graphics.Frames.Length);
-            if (shadowFrameIndex > 0 && shadowFrameIndex < shapeDrawParams.Graphics.Frames.Length)
+            int shadowFrameIndex = gameObject.GetShadowFrameIndex(shapeDrawParams.Graphics.GetFrameCount());
+            if (shadowFrameIndex > 0 && shadowFrameIndex < shapeDrawParams.Graphics.GetFrameCount())
             {
                 DrawShapeImage(gameObject, shapeDrawParams, shapeDrawParams.Graphics, shadowFrameIndex,
                     new Color(0, 0, 0, 128), false, Color.White, drawPoint, initialYDrawPointWithoutCellHeight);
@@ -239,13 +239,13 @@ namespace TSMapEditor.Rendering.ObjectRenderers
         protected void DrawShapeImage(T gameObject, ICommonDrawParams drawParams, ShapeImage image,
             int frameIndex, Color color, bool drawRemap, Color remapColor, Point2D drawPoint, int initialYDrawPointWithoutCellHeight)
         {
-            PositionedTexture frame = image.Frames[frameIndex];
+            PositionedTexture frame = image.GetFrame(frameIndex);
             if (frame == null || frame.Texture == null)
                 return;
 
             PositionedTexture remapFrame = null;
-            if (drawRemap && Constants.HQRemap && image.RemapFrames != null)
-                remapFrame = image.RemapFrames[frameIndex];
+            if (drawRemap && Constants.HQRemap && image.HasRemapFrames())
+                remapFrame = image.GetRemapFrame(frameIndex);
 
             GetTextureDrawCoords(gameObject, frame, drawPoint, initialYDrawPointWithoutCellHeight, 
                 out int finalDrawPointX, out _, out int finalDrawPointY, out _, out int finalYDrawPointWithoutCellHeight);

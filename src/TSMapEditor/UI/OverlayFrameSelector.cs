@@ -190,7 +190,7 @@ namespace TSMapEditor.UI
                 return;
 
             var textures = theaterGraphics.OverlayTextures[overlayType.Index];
-            if (textures == null || textures.Frames == null)
+            if (textures == null)
                 return;
 
             var tilesOnCurrentLine = new List<OverlayFrameSelectorFrame>();
@@ -203,7 +203,7 @@ namespace TSMapEditor.UI
 
             for (int i = 0; i < overlayFrameCount; i++)
             {
-                var frame = textures.Frames[i];
+                var frame = textures.GetFrame(i);
 
                 if (frame == null)
                     break;

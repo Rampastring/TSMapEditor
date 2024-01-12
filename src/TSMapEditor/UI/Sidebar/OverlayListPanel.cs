@@ -166,14 +166,14 @@ namespace TSMapEditor.UI.Sidebar
                     var textures = TheaterGraphics.OverlayTextures[firstEntry.OverlayType.Index];
                     if (textures != null)
                     {
-                        var frames = textures.Frames;
+                        int frameCount = textures.GetFrameCount();
                         int frameNumber = firstEntry.Frame;
                         if (firstEntry.OverlayType.Tiberium)
-                            frameNumber = (frames.Length / 2) - 1;
+                            frameNumber = (frameCount / 2) - 1;
 
-                        if (frames != null && frames.Length > frameNumber)
+                        if (frameCount > frameNumber)
                         {
-                            var frame = frames[frameNumber];
+                            var frame = textures.GetFrame(frameNumber);
                             if (frame != null)
                                 texture = frame.Texture;
                         }
@@ -203,12 +203,12 @@ namespace TSMapEditor.UI.Sidebar
                     var textures = TheaterGraphics.OverlayTextures[firstEntry.OverlayType.Index];
                     if (textures != null)
                     {
-                        var frames = textures.Frames;
+                        int frameCount = textures.GetFrameCount();
                         int frameNumber = firstEntry.FrameIndex;
 
-                        if (frames != null && frames.Length > frameNumber)
+                        if (frameCount > frameNumber)
                         {
-                            var frame = frames[frameNumber];
+                            var frame = textures.GetFrame(frameNumber);
                             if (frame != null)
                                 texture = frame.Texture;
                         }
@@ -241,16 +241,18 @@ namespace TSMapEditor.UI.Sidebar
                 }
 
                 Texture2D texture = null;
-                if (TheaterGraphics.OverlayTextures[i] != null)
+                var overlayImage = TheaterGraphics.OverlayTextures[i];
+                if (overlayImage != null)
                 {
-                    var frames = TheaterGraphics.OverlayTextures[i].Frames;
-                    if (frames.Length > 0)
+                    int frameCount = overlayImage.GetFrameCount();
+                    // Find the first valid frame and use that as our texture
+                    for (int frameIndex = 0; frameIndex < frameCount; frameIndex++)
                     {
-                        // Find the first valid frame and use that as our texture
-                        int firstNotNullIndex = Array.FindIndex(frames, f => f != null);
-                        if (firstNotNullIndex > -1)
+                        var frame = overlayImage.GetFrame(frameIndex);
+                        if (frame != null)
                         {
-                            texture = frames[firstNotNullIndex].Texture;
+                            texture = frame.Texture;
+                            break;
                         }
                     }
                 }
