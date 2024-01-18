@@ -213,7 +213,8 @@ namespace TSMapEditor.CCEngine
                     stringBuffer[i] = (byte)~stringBuffer[i];
 
                 csfString = System.Text.Encoding.Unicode.GetString(stringBuffer);
-            } else
+            }
+            else
             {
                 memoryStream.Position += stringLength;
             }

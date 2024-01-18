@@ -22,7 +22,7 @@ namespace TSMapEditor.CCEngine
         /// <summary>
         /// List of all CSF files that have been registered to the file manager.
         /// </summary>
-        private List<CsfFile> csfFiles = new();
+        public List<CsfFile> CsfFiles { get; } = new();
 
         private List<string> searchDirectories = new List<string>();
 
@@ -161,17 +161,7 @@ namespace TSMapEditor.CCEngine
                 throw new FileNotFoundException("CSF file not found: " + name);
             var file = new CsfFile(name);
             file.ParseFromBuffer(data);
-            csfFiles.Add(file);
-        }
-
-        /// <summary>
-        /// Drain loaded stringtable list and return it.
-        /// </summary>
-        public List<CsfFile> DrainStringTables()
-        {
-            var list = csfFiles;
-            csfFiles = new();
-            return list;
+            CsfFiles.Add(file);
         }
 
         public byte[] LoadFile(string name)

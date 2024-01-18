@@ -171,7 +171,7 @@ namespace TSMapEditor.Models
         public ITheater TheaterInstance { get; set; }
         public string LoadedTheaterName => TheaterInstance.Theater.UIName;
 
-        public Dictionary<string, CsfString> StringTable { get; private set; } = new();
+        public StringTable StringTable { get; private set; }
 
         private readonly Initializer initializer;
 
@@ -259,7 +259,7 @@ namespace TSMapEditor.Models
 
             Lighting.ReadFromIniFile(mapIni);
 
-            ReadStringTables();
+            StringTable = new(ccFileManager.CsfFiles);
         }
 
         private void CreateGraphicalNodesFromBaseNodes()
@@ -299,15 +299,6 @@ namespace TSMapEditor.Models
                         GraphicalBaseNodes.Add(graphicalBaseNode);
                     }
                 }
-            }
-        }
-
-        private void ReadStringTables()
-        {
-            foreach (var csf in ccFileManager.DrainStringTables())
-            {
-                foreach (var csfString in csf.Strings)
-                    StringTable[csfString.ID] = csfString;
             }
         }
 

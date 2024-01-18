@@ -45,7 +45,7 @@ namespace TSMapEditor.UI.Windows
 
             lbObjectList.AddItem(new XNAListBoxItem() { Text = "None" });
 
-            foreach (CsfString csf in map.StringTable.Values)
+            foreach (CsfString csf in map.StringTable.GetStringEnumerator())
             {
                 string preview;
 
