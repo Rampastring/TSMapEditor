@@ -74,9 +74,9 @@ namespace TSMapEditor.UI.CursorActions
         {
             int tiberiumValue = 0;
 
-            for (int y = startY; y < endY; y++)
+            for (int y = startY; y <= endY; y++)
             {
-                for (int x = startX; x < endX; x++)
+                for (int x = startX; x <= endX; x++)
                 {
                     if (!Map.IsCoordWithinMap(x, y))
                         continue;
