@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Globalization;
 using Rampastring.XNAUI;
+using Rampastring.XNAUI.XNAControls;
 using TSMapEditor.GameMath;
 using TSMapEditor.Models;
 using TSMapEditor.Mutations;
@@ -24,6 +25,7 @@ namespace TSMapEditor.UI.Windows
         private readonly IMutationTarget mutationTarget;
 
         private EditorNumberTextBox tbWaypointNumber;
+        private XNADropDown ddWaypointColor;
 
         private Point2D cellCoords;
 
@@ -36,6 +38,11 @@ namespace TSMapEditor.UI.Windows
             tbWaypointNumber.MaximumTextLength = (Constants.MaxWaypoint - 1).ToString(CultureInfo.InvariantCulture).Length;
 
             FindChild<EditorButton>("btnPlace").LeftClick += BtnPlace_LeftClick;
+
+            // Init color dropdown options
+            ddWaypointColor = FindChild<XNADropDown>(nameof(ddWaypointColor));
+            ddWaypointColor.AddItem("None");
+            Array.ForEach(Trigger.SupportedColors, sc => ddWaypointColor.AddItem(sc.Name, sc.Value));
         }
 
         private void BtnPlace_LeftClick(object sender, EventArgs e)
@@ -60,7 +67,9 @@ namespace TSMapEditor.UI.Windows
                 return;
             }
 
-            mutationManager.PerformMutation(new PlaceWaypointMutation(mutationTarget, cellCoords, tbWaypointNumber.Value));
+            string waypointColor = ddWaypointColor.SelectedIndex >= 1 ? ddWaypointColor.SelectedItem.Text : null;
+
+            mutationManager.PerformMutation(new PlaceWaypointMutation(mutationTarget, cellCoords, tbWaypointNumber.Value, waypointColor));
 
             Hide();
         }

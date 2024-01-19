@@ -733,6 +733,8 @@ namespace TSMapEditor.Initialization
                     continue;
                 }
 
+                waypoint.ParseEditorInfo(mapIni);
+
                 map.AddWaypoint(waypoint);
             }
 

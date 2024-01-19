@@ -249,11 +249,7 @@ namespace TSMapEditor.Initialization
             var section = new IniSection(sectionName);
             mapIni.AddSection(section);
 
-            foreach (var waypoint in map.Waypoints)
-            {
-                int tileIndex = waypoint.Position.Y * 1000 + waypoint.Position.X;
-                section.SetIntValue(waypoint.Identifier.ToString(), tileIndex);
-            }
+            map.Waypoints.ForEach(w => w.WriteToIniFile(mapIni));
         }
 
         public static void WriteTaskForces(IMap map, IniFile mapIni)

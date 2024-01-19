@@ -998,7 +998,7 @@ namespace TSMapEditor.Rendering
             if (cell != null && !EditorState.Is2DMode)
                 drawPoint -= new Point2D(0, cell.Level * Constants.CellHeight);
 
-            Color waypointColor = Color.Fuchsia;
+            Color waypointColor = string.IsNullOrEmpty(waypoint.EditorColor) ? Color.Fuchsia : waypoint.XNAColor;
 
             DrawTexture(EditorGraphics.GenericTileTexture, drawPoint.ToXNAPoint(), new Color(0, 0, 0, 128));
             DrawTexture(EditorGraphics.TileBorderTexture, drawPoint.ToXNAPoint(), waypointColor);
