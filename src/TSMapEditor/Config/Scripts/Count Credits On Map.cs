@@ -26,7 +26,7 @@ namespace WAEScript
         /// </summary>
         public string GetSuccessMessage()
         {
-            return $"There is {count} credits worth of resources present.";
+            return $"There are {count} credits' worth of resources present.";
         }
 
         int count = 0;
