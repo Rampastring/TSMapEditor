@@ -31,7 +31,7 @@ namespace TSMapEditor.Models
 
         public int GetTiberiumIndex(bool useYROrder)
         {
-            var tiberium = getTiberiumTypeEnum();
+            var tiberium = GetTiberiumTypeEnum();
             return (tiberium, useYROrder) switch
             {
                 (TiberiumTypeEnum.Vinifera, true) => (int)TiberiumTypeEnum.Cruentus,
@@ -41,7 +41,7 @@ namespace TSMapEditor.Models
             };
         }
 
-        private TiberiumTypeEnum? getTiberiumTypeEnum()
+        private TiberiumTypeEnum? GetTiberiumTypeEnum()
         {
             switch (Index)
             {
