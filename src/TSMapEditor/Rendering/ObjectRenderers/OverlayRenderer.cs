@@ -22,7 +22,7 @@ namespace TSMapEditor.Rendering.ObjectRenderers
             if (drawParams is not ShapeDrawParams shapeDrawParams)
                 return;
 
-            int tiberiumIndex = gameObject.OverlayType.GetTiberiumIndex();
+            int tiberiumIndex = gameObject.OverlayType.GetTiberiumIndex(Constants.UseCountries);
 
             Color remapColor = Color.White;
             if (tiberiumIndex > -1 && tiberiumIndex < Map.Rules.TiberiumTypes.Count)

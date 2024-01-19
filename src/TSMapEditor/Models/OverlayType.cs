@@ -29,7 +29,19 @@ namespace TSMapEditor.Models
         public bool IsVeins { get; set; }
         public bool IsVeinholeMonster { get; set; }
 
-        public int GetTiberiumIndex()
+        public int GetTiberiumIndex(bool useYROrder)
+        {
+            var tiberium = getTiberiumTypeEnum();
+            return (tiberium, useYROrder) switch
+            {
+                (TiberiumTypeEnum.Vinifera, true) => (int)TiberiumTypeEnum.Cruentus,
+                (TiberiumTypeEnum.Cruentus, true) => (int)TiberiumTypeEnum.Vinifera,
+                (null, _) => -1,
+                _ => (int)tiberium,
+            };
+        }
+
+        private TiberiumTypeEnum? getTiberiumTypeEnum()
         {
             switch (Index)
             {
@@ -45,7 +57,7 @@ namespace TSMapEditor.Models
                 case 36:
                 case 37:
                 case 38:
-                    return (int)TiberiumTypeEnum.Vinifera;
+                    return TiberiumTypeEnum.Vinifera;
                 case 102:
                 case 103:
                 case 104:
@@ -66,7 +78,7 @@ namespace TSMapEditor.Models
                 case 119:
                 case 120:
                 case 121:
-                    return (int)TiberiumTypeEnum.Riparius;
+                    return TiberiumTypeEnum.Riparius;
                 case 127:
                 case 128:
                 case 129:
@@ -87,7 +99,7 @@ namespace TSMapEditor.Models
                 case 144:
                 case 145:
                 case 146:
-                    return (int)TiberiumTypeEnum.Cruentus;
+                    return TiberiumTypeEnum.Cruentus;
                 case 147:
                 case 148:
                 case 149:
@@ -108,9 +120,9 @@ namespace TSMapEditor.Models
                 case 164:
                 case 165:
                 case 166:
-                    return (int)TiberiumTypeEnum.Aboreus;
+                    return TiberiumTypeEnum.Aboreus;
                 default:
-                    return -1;
+                    return null;
             }
         }
     }

@@ -44,7 +44,7 @@ namespace WAEScript
                 if (cell.Overlay == null || cell.Overlay.OverlayType == null || !cell.Overlay.OverlayType.Tiberium)
                     return;
 
-                int tiberiumIndex = cell.Overlay.OverlayType.GetTiberiumIndex();
+                int tiberiumIndex = cell.Overlay.OverlayType.GetTiberiumIndex(Constants.UseCountries);
                 if (tiberiumIndex > -1)
                 {
                     int tiberiumTypeValue = map.Rules.TiberiumTypes[tiberiumIndex].Value;
