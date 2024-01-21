@@ -41,7 +41,7 @@ namespace WAEScript
 
             map.DoForAllValidTiles(cell =>
             {
-                if (cell.Overlay == null || cell.Overlay.OverlayType == null || !cell.Overlay.OverlayType.Tiberium)
+                if (cell.Overlay?.OverlayType == null || !cell.Overlay.OverlayType.Tiberium)
                     return;
 
                 int tiberiumIndex = cell.Overlay.OverlayType.GetTiberiumIndex(Constants.UseCountries);
