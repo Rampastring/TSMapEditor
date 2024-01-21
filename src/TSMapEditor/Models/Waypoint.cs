@@ -9,7 +9,7 @@ namespace TSMapEditor.Models
     public class Waypoint : AbstractObject, IMovable
     {
         public static NamedColor[] SupportedColors = new NamedColor[]
-{
+        {
             new NamedColor("Teal", new Color(0, 196, 196)),
             new NamedColor("Green", new Color(0, 255, 0)),
             new NamedColor("Dark Green", Color.Green),
@@ -25,7 +25,7 @@ namespace TSMapEditor.Models
             new NamedColor("Blue", new Color(40, 40, 255)),
             new NamedColor("Brown", Color.Brown),
             new NamedColor("Metalic", new Color(160, 160, 200)),
-};
+        };
 
         private const int Coefficient = 1000;
 
