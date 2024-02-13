@@ -13,6 +13,7 @@ namespace TSMapEditor.Rendering
 
         public BaseNode BaseNode { get; }
         public BuildingType BuildingType { get; set; }
+        // public Structure Structure { get; set; }
         public House Owner { get; set; }
     }
 }

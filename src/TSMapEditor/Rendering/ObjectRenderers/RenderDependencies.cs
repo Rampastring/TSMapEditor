@@ -11,6 +11,7 @@ namespace TSMapEditor.Rendering.ObjectRenderers
         public EditorState EditorState;
         public GraphicsDevice GraphicsDevice;
         public Effect ColorDrawEffect;
+        public Effect PalettedColorDrawEffect;
         public Camera Camera;
         public Func<int> GetCameraRightXCoord;
         public Func<int> GetCameraBottomYCoord;
@@ -22,6 +23,7 @@ namespace TSMapEditor.Rendering.ObjectRenderers
             EditorState editorState,
             GraphicsDevice graphicsDevice,
             Effect colorDrawEffect,
+            Effect palettedColorDrawEffect,
             Camera camera,
             Func<int> getCameraRightXCoord,
             Func<int> getCameraBottomYCoord,
@@ -32,6 +34,7 @@ namespace TSMapEditor.Rendering.ObjectRenderers
             EditorState = editorState;
             GraphicsDevice = graphicsDevice;
             ColorDrawEffect = colorDrawEffect;
+            PalettedColorDrawEffect = palettedColorDrawEffect;
             Camera = camera;
             GetCameraRightXCoord = getCameraRightXCoord;
             GetCameraBottomYCoord = getCameraBottomYCoord;

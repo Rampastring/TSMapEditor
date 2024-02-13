@@ -13,6 +13,7 @@ float SpriteDepthBottom;
 float SpriteDepthTop;
 float2 WorldTextureCoordinates;
 float2 SpriteSizeToWorldSizeRatio;
+bool IsShadow;
 
 sampler2D SpriteTextureSampler : register(s0)
 {
@@ -53,6 +54,11 @@ float4 MainPS(VertexShaderOutput input) : COLOR
     if (worldDepth.r - spriteDepth < -0.004)
     {
         discard;
+    }
+
+    if (IsShadow)
+    {
+        return float4(0, 0, 0, 128);
     }
 
     return tex * input.Color;

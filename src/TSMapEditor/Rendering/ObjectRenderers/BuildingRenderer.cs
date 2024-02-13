@@ -19,6 +19,8 @@ namespace TSMapEditor.Rendering.ObjectRenderers
             int foundationY = gameObject.ObjectType.ArtConfig.Foundation.Height;
 
             Color foundationLineColor = gameObject.Owner.XNAColor;
+            if (gameObject.IsBaseNodeDummy)
+                foundationLineColor *= 0.25f;
 
             if (foundationX == 0 || foundationY == 0)
                 return;
@@ -31,7 +33,7 @@ namespace TSMapEditor.Rendering.ObjectRenderers
             if (cell != null && !RenderDependencies.EditorState.Is2DMode)
                 heightOffset = cell.Level * Constants.CellHeight;
 
-            SetEffectParams(0.0f, 0.0f, Vector2.Zero, Vector2.Zero);
+            SetEffectParams_RGBADraw(0.0f, 0.0f, Vector2.Zero, Vector2.Zero, false);
 
             foreach (var edge in gameObject.ObjectType.ArtConfig.Foundation.Edges)
             {
@@ -75,7 +77,7 @@ namespace TSMapEditor.Rendering.ObjectRenderers
 
         private void DrawBibGraphics(Structure gameObject, ShapeImage bibGraphics, int heightOffset, Point2D drawPoint, in CommonDrawParams drawParams)
         {
-            DrawShapeImage(gameObject, drawParams, bibGraphics, 0, Color.White, true, gameObject.GetRemapColor(), drawPoint, heightOffset);
+            DrawShapeImage(gameObject, drawParams, bibGraphics, 0, Color.White, false, true, gameObject.GetRemapColor(), drawPoint, heightOffset);
         }
 
         protected override void Render(Structure gameObject, int heightOffset, Point2D drawPoint, in CommonDrawParams drawParams)
@@ -90,9 +92,11 @@ namespace TSMapEditor.Rendering.ObjectRenderers
             if (!gameObject.ObjectType.NoShadow)
                 DrawShadow(gameObject, drawParams, drawPoint, heightOffset);
 
+            Color nonRemapColor = gameObject.IsBaseNodeDummy ? new Color(150, 150, 255) * 0.5f : Color.White;
+
             DrawShapeImage(gameObject, drawParams, drawParams.ShapeImage,
                 gameObject.GetFrameIndex(drawParams.ShapeImage.GetFrameCount()),
-                Color.White, true, gameObject.GetRemapColor(), drawPoint, heightOffset);
+                nonRemapColor, false, true, gameObject.GetRemapColor(), drawPoint, heightOffset);
 
             if (gameObject.ObjectType.Turret && gameObject.ObjectType.TurretAnimIsVoxel)
             {
@@ -105,21 +109,21 @@ namespace TSMapEditor.Rendering.ObjectRenderers
                 if (gameObject.Facing is > facingStartDrawAbove and <= facingEndDrawAbove)
                 {
                     DrawVoxelModel(gameObject, drawParams, drawParams.TurretVoxel,
-                        gameObject.Facing, RampType.None, Color.White, true, gameObject.GetRemapColor(),
+                        gameObject.Facing, RampType.None, nonRemapColor, true, gameObject.GetRemapColor(),
                         turretDrawPoint, heightOffset);
 
                     DrawVoxelModel(gameObject, drawParams, drawParams.BarrelVoxel,
-                        gameObject.Facing, RampType.None, Color.White, true, gameObject.GetRemapColor(),
+                        gameObject.Facing, RampType.None, nonRemapColor, true, gameObject.GetRemapColor(),
                         turretDrawPoint, heightOffset);
                 }
                 else
                 {
                     DrawVoxelModel(gameObject, drawParams, drawParams.BarrelVoxel,
-                        gameObject.Facing, RampType.None, Color.White, true, gameObject.GetRemapColor(),
+                        gameObject.Facing, RampType.None, nonRemapColor, true, gameObject.GetRemapColor(),
                         turretDrawPoint, heightOffset);
 
                     DrawVoxelModel(gameObject, drawParams, drawParams.TurretVoxel,
-                        gameObject.Facing, RampType.None, Color.White, true, gameObject.GetRemapColor(),
+                        gameObject.Facing, RampType.None, nonRemapColor, true, gameObject.GetRemapColor(),
                         turretDrawPoint, heightOffset);
                 }
             }
@@ -127,7 +131,7 @@ namespace TSMapEditor.Rendering.ObjectRenderers
                      gameObject.ObjectType.BarrelAnimIsVoxel)
             {
                 DrawVoxelModel(gameObject, drawParams, drawParams.BarrelVoxel,
-                    gameObject.Facing, RampType.None, Color.White, true, gameObject.GetRemapColor(),
+                    gameObject.Facing, RampType.None, nonRemapColor, true, gameObject.GetRemapColor(),
                     drawPoint, heightOffset);
             }
 

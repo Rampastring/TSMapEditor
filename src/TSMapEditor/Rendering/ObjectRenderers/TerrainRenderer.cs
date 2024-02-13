@@ -26,7 +26,7 @@ namespace TSMapEditor.Rendering.ObjectRenderers
             DrawShadow(gameObject, drawParams, drawPoint, heightOffset);
 
             DrawShapeImage(gameObject, drawParams, drawParams.ShapeImage, 0, 
-                Color.White, false, Color.White, drawPoint, heightOffset);
+                Color.White, false, false, Color.White, drawPoint, heightOffset);
         }
     }
 }

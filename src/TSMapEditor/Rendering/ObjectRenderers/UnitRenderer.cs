@@ -83,7 +83,7 @@ namespace TSMapEditor.Rendering.ObjectRenderers
 
             DrawShapeImage(gameObject, drawParams, drawParams.ShapeImage, 
                 gameObject.GetFrameIndex(drawParams.ShapeImage.GetFrameCount()),
-                Color.White, true, gameObject.GetRemapColor(), drawPoint, heightOffset);
+                Color.White, false, true, gameObject.GetRemapColor(), drawPoint, heightOffset);
         }
 
         private void RenderTurretShape(Unit gameObject, int heightOffset, Point2D drawPoint,
@@ -99,7 +99,7 @@ namespace TSMapEditor.Rendering.ObjectRenderers
                     return;
 
                 DrawShapeImage(gameObject, drawParams, drawParams.ShapeImage,
-                    turretFrameIndex, Color.White, true, gameObject.GetRemapColor(),
+                    turretFrameIndex, Color.White, false, true, gameObject.GetRemapColor(),
                     drawPoint, heightOffset);
             }
         }

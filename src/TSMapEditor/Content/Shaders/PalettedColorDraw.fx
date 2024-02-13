@@ -9,10 +9,17 @@
 #define PS_SHADERMODEL ps_4_0
 #endif
 
+// The "main shader" of the editor.
+// Can render objects in either paletted or RGBA mode,
+// takes depth into account, and can also draw shadows.
+
 float SpriteDepthBottom;
 float SpriteDepthTop;
 float2 WorldTextureCoordinates;
 float2 SpriteSizeToWorldSizeRatio;
+bool IsShadow;
+bool UsePalette;
+bool UseRemap;
 
 sampler2D SpriteTextureSampler : register(s0)
 {
@@ -73,16 +80,38 @@ float4 MainPS(VertexShaderOutput input) : COLOR
         discard;
     }
 
-    // Get color from palette
-    float4 paletteColor = tex2D(PaletteTextureSampler, float2(tex.a + (0.00 / 256.0), 0.5));
+    if (tex.a > 0 && IsShadow)
+    {
+        return float4(0, 0, 0, 0.5);
+    }
+    
+    if (UsePalette)
+    {
+        // Get color from palette
+        float4 paletteColor = tex2D(PaletteTextureSampler, float2(tex.a, 0.5));
 
-    return paletteColor; // * input.Color;
+        // We need to convert the remap into grayscale
+        if (UseRemap)
+        {
+            float brightness = max(paletteColor.r, max(paletteColor.g, paletteColor.b));
+
+            // Brigthen it up a bit
+            brightness = brightness * 1.25;
+
+            return float4(brightness, brightness, brightness, paletteColor.a) * input.Color;
+        }
+
+        return paletteColor * input.Color;
+    }
+
+    return tex * input.Color;
 }
 
 technique SpriteDrawing
 {
     pass P0
     {
+        AlphaBlendEnable = TRUE;
         PixelShader = compile PS_SHADERMODEL MainPS();
     }
 };

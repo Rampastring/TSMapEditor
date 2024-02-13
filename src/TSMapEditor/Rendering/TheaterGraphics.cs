@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Threading.Tasks;
 using TSMapEditor.CCEngine;
 using TSMapEditor.Models;
@@ -161,12 +162,12 @@ namespace TSMapEditor.Rendering
 
     public class ShapeImage : IDisposable
     {
-        public ShapeImage(GraphicsDevice graphicsDevice, ShpFile shp, byte[] shpFileData, Palette palette,
+        public ShapeImage(GraphicsDevice graphicsDevice, ShpFile shp, byte[] shpFileData, XNAPalette palette,
             bool remapable = false, PositionedTexture pngTexture = null)
         {
             shpFile = shp;
             this.shpFileData = shpFileData;
-            this.palette = palette;
+            Palette = palette;
             this.remapable = remapable;
             this.graphicsDevice = graphicsDevice;
 
@@ -199,9 +200,10 @@ namespace TSMapEditor.Rendering
             }
         }
 
+        public XNAPalette Palette { get; }
+
         private ShpFile shpFile;
         private byte[] shpFileData;
-        private Palette palette;
         private bool remapable;
         private GraphicsDevice graphicsDevice;
 
@@ -219,7 +221,8 @@ namespace TSMapEditor.Rendering
             if (Frames[index] != null)
                 return Frames[index];
 
-            GenerateTextureForFrame(index);
+            GenerateTexturesForFrame_Paletted(index);
+            // GenerateTexturesForFrame_RGBA(index);
             return Frames[index];
         }
 
@@ -233,45 +236,121 @@ namespace TSMapEditor.Rendering
             return RemapFrames[index];
         }
 
-        private void GenerateTextureForFrame(int index)
+        private void GetFrameInfoAndData(int frameIndex, out ShpFrameInfo frameInfo, out byte[] frameData)
         {
-            var frameInfo = shpFile.GetShpFrameInfo(index);
-            byte[] frameData = shpFile.GetUncompressedFrameData(index, shpFileData);
+            frameInfo = shpFile.GetShpFrameInfo(frameIndex);
+            frameData = shpFile.GetUncompressedFrameData(frameIndex, shpFileData);
+        }
+
+        public void GenerateTexturesForFrame_RGBA(int index)
+        {
+            GetFrameInfoAndData(index, out ShpFrameInfo frameInfo, out byte[] frameData);
+
             if (frameData == null)
                 return;
 
-            var texture = new Texture2D(graphicsDevice, frameInfo.Width, frameInfo.Height, false, SurfaceFormat.Color);
-            Color[] colorArray = frameData.Select(b => b == 0 ? Color.Transparent : palette.Data[b].ToXnaColor()).ToArray();
-            texture.SetData<Color>(colorArray);
+            var texture = GetTextureForFrame_RGBA(index, frameInfo, frameData);
             Frames[index] = new PositionedTexture(shpFile.Width, shpFile.Height, frameInfo.XOffset, frameInfo.YOffset, texture);
 
-            if (remapable && Constants.HQRemap)
+            if (remapable)
             {
-                if (Constants.HQRemap)
-                {
-                    // Fetch remap colors from the array
-
-                    Color[] remapColorArray = frameData.Select(b =>
-                    {
-                        if (b >= 0x10 && b <= 0x1F)
-                        {
-                            // This is a remap color, convert to grayscale
-                            Color xnaColor = palette.Data[b].ToXnaColor();
-                            float value = Math.Max(xnaColor.R / 255.0f, Math.Max(xnaColor.G / 255.0f, xnaColor.B / 255.0f));
-
-                            // Brighten it up a bit
-                            value *= Constants.RemapBrightenFactor;
-                            return new Color(value, value, value);
-                        }
-
-                        return Color.Transparent;
-                    }).ToArray();
-
-                    var remapTexture = new Texture2D(graphicsDevice, frameInfo.Width, frameInfo.Height, false, SurfaceFormat.Color);
-                    remapTexture.SetData<Color>(remapColorArray);
-                    RemapFrames[index] = new PositionedTexture(shpFile.Width, shpFile.Height, frameInfo.XOffset, frameInfo.YOffset, remapTexture);
-                }
+                var remapTexture = GetRemapTextureForFrame_RGBA(index, frameInfo, frameData);
+                RemapFrames[index] = new PositionedTexture(shpFile.Width, shpFile.Height, frameInfo.XOffset, frameInfo.YOffset, remapTexture);
             }
+        }
+
+        public void GenerateTexturesForFrame_Paletted(int index)
+        {
+            GetFrameInfoAndData(index, out ShpFrameInfo frameInfo, out byte[] frameData);
+
+            if (frameData == null)
+                return;
+
+            var texture = GetTextureForFrame_Paletted(index, frameInfo, frameData);
+            Frames[index] = new PositionedTexture(shpFile.Width, shpFile.Height, frameInfo.XOffset, frameInfo.YOffset, texture);
+
+            if (remapable)
+            {
+                var remapTexture = GetRemapTextureForFrame_Paletted(index, frameInfo, frameData);
+                RemapFrames[index] = new PositionedTexture(shpFile.Width, shpFile.Height, frameInfo.XOffset, frameInfo.YOffset, remapTexture);
+            }
+        }
+
+        public Texture2D GetTextureForFrame_Paletted(int index, ShpFrameInfo frameInfo, byte[] frameData)
+        {
+            var texture = new Texture2D(graphicsDevice, frameInfo.Width, frameInfo.Height, false, SurfaceFormat.Alpha8);
+            texture.SetData(frameData);
+            return texture;
+        }
+
+        public Texture2D GetTextureForFrame_RGBA(int index, ShpFrameInfo frameInfo, byte[] frameData)
+        {
+            var texture = new Texture2D(graphicsDevice, frameInfo.Width, frameInfo.Height, false, SurfaceFormat.Color);
+            Color[] colorArray = frameData.Select(b => b == 0 ? Color.Transparent : Palette.Data[b].ToXnaColor()).ToArray();
+            texture.SetData<Color>(colorArray);
+
+            return texture;
+        }
+
+        public Texture2D GetTextureForFrame_RGBA(int index)
+        {
+            GetFrameInfoAndData(index, out ShpFrameInfo frameInfo, out byte[] frameData);
+
+            if (frameData == null)
+                return null;
+
+            return GetTextureForFrame_RGBA(index, frameInfo, frameData);
+        }
+
+        public Texture2D GetRemapTextureForFrame_Paletted(int index, ShpFrameInfo frameInfo, byte[] frameData)
+        {
+            byte[] remapColorArray = frameData.Select(b =>
+            {
+                if (b >= 0x10 && b <= 0x1F)
+                {
+                    // This is a remap color
+                    return (byte)b;
+                }
+
+                return (byte)0;
+            }).ToArray();
+
+            var remapTexture = new Texture2D(graphicsDevice, frameInfo.Width, frameInfo.Height, false, SurfaceFormat.Alpha8);
+            remapTexture.SetData(remapColorArray);
+            return remapTexture;
+        }
+
+        public Texture2D GetRemapTextureForFrame_RGBA(int index, ShpFrameInfo frameInfo, byte[] frameData)
+        {
+            Color[] remapColorArray = frameData.Select(b =>
+            {
+                if (b >= 0x10 && b <= 0x1F)
+                {
+                    // This is a remap color, convert to grayscale
+                    Color xnaColor = Palette.Data[b].ToXnaColor();
+                    float value = Math.Max(xnaColor.R / 255.0f, Math.Max(xnaColor.G / 255.0f, xnaColor.B / 255.0f));
+
+                    // Brighten it up a bit
+                    value *= Constants.RemapBrightenFactor;
+                    return new Color(value, value, value);
+                }
+
+                return Color.Transparent;
+            }).ToArray();
+
+            var remapTexture = new Texture2D(graphicsDevice, frameInfo.Width, frameInfo.Height, false, SurfaceFormat.Color);
+            remapTexture.SetData<Color>(remapColorArray);
+            return remapTexture;
+        }
+
+        public Texture2D GetRemapTextureForFrame_RGBA(int index)
+        {
+            GetFrameInfoAndData(index, out ShpFrameInfo frameInfo, out byte[] frameData);
+
+            if (frameData == null)
+                return null;
+
+            return GetRemapTextureForFrame_RGBA(index, frameInfo, frameData);
         }
 
         private PositionedTexture[] Frames { get; set; }
@@ -375,6 +454,7 @@ namespace TSMapEditor.Rendering
         {
             return;
 
+            /*
             var buildingZData = fileManager.LoadFile("BUILDNGZ.SHP");
 
             byte[] rgbBuffer = new byte[256 * 3];
@@ -398,6 +478,7 @@ namespace TSMapEditor.Rendering
             var shpFile = new ShpFile();
             shpFile.ParseFromBuffer(buildingZData);
             BuildingZ = new ShapeImage(graphicsDevice, shpFile, buildingZData, palette);
+            */
         }
 
         private void ReadTileTextures()
@@ -597,7 +678,7 @@ namespace TSMapEditor.Rendering
                 }
 
                 // Palette override in RA2/YR
-                Palette palette = buildingType.ArtConfig.TerrainPalette ? theaterPalette : unitPalette;
+                XNAPalette palette = buildingType.ArtConfig.TerrainPalette ? theaterPalette : unitPalette;
                 if (!string.IsNullOrWhiteSpace(buildingType.ArtConfig.Palette))
                     palette = GetPaletteOrDefault(buildingType.ArtConfig.Palette + Theater.FileExtension[1..] + ".pal", palette);
 
@@ -810,7 +891,7 @@ namespace TSMapEditor.Rendering
                 // Palette override in RA2/YR
                 // NOTE: Until we use indexed color rendering, we have to assume that a building
                 // anim will only be used as a building anim (because it forces unit palette).
-                Palette palette = animType.ArtConfig.IsBuildingAnim || animType.ArtConfig.AltPalette ? unitPalette : animPalette;
+                XNAPalette palette = animType.ArtConfig.IsBuildingAnim || animType.ArtConfig.AltPalette ? unitPalette : animPalette;
                 if (!string.IsNullOrWhiteSpace(animType.ArtConfig.CustomPalette))
                 {
                     palette = GetPaletteOrDefault(
@@ -1148,7 +1229,7 @@ namespace TSMapEditor.Rendering
 
                     var shpFile = new ShpFile(loadedShpName);
                     shpFile.ParseFromBuffer(shpData);
-                    Palette palette = theaterPalette;
+                    XNAPalette palette = theaterPalette;
 
                     if (overlayType.Tiberium)
                     {
@@ -1189,7 +1270,7 @@ namespace TSMapEditor.Rendering
 
                 var shpFile = new ShpFile(finalShpName);
                 shpFile.ParseFromBuffer(shpData);
-                Palette palette = theaterPalette;
+                XNAPalette palette = theaterPalette;
                 SmudgeTextures[i] = new ShapeImage(graphicsDevice, shpFile, shpData, palette);
             }
 
@@ -1207,6 +1288,8 @@ namespace TSMapEditor.Rendering
         private readonly XNAPalette tiberiumPalette;
         private readonly XNAPalette animPalette;
         private readonly VplFile vplFile;
+
+        private readonly List<XNAPalette> palettes = new List<XNAPalette>();
 
         private List<TileImage[]> terrainGraphicsList = new List<TileImage[]>();
         private List<TileImage[]> mmTerrainGraphicsList = new List<TileImage[]>();
@@ -1299,19 +1382,32 @@ namespace TSMapEditor.Rendering
 
         private XNAPalette GetPaletteOrFail(string paletteFileName)
         {
+            var existing = palettes.Find(p => p.Name == paletteFileName);
+            if (existing != null)
+                return existing;
+
             byte[] paletteData = fileManager.LoadFile(paletteFileName);
             if (paletteData == null)
                 throw new KeyNotFoundException(paletteFileName + " not found from loaded MIX files!");
 
-            return new XNAPalette(paletteData, graphicsDevice);
+            var newPalette = new XNAPalette(paletteFileName, paletteData, graphicsDevice);
+            palettes.Add(newPalette);
+            return newPalette;
         }
 
-        private Palette GetPaletteOrDefault(string paletteFileName, Palette palette)
+        private XNAPalette GetPaletteOrDefault(string paletteFileName, XNAPalette palette)
         {
+            var existing = palettes.Find(p => p.Name == paletteFileName);
+            if (existing != null)
+                return existing;
+
             byte[] paletteData = fileManager.LoadFile(paletteFileName);
             if (paletteData == null)
                 return palette;
-            return new Palette(paletteData);
+
+            var newPalette = new XNAPalette(paletteFileName, paletteData, graphicsDevice);
+            palettes.Add(newPalette);
+            return newPalette;
         }
 
         private VplFile GetVplFile(string filename = "voxels.vpl")

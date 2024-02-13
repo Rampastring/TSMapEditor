@@ -8,7 +8,7 @@ namespace TSMapEditor.CCEngine
     /// </summary>
     public class XNAPalette : Palette
     {
-        public XNAPalette(byte[] buffer, GraphicsDevice graphicsDevice) : base(buffer)
+        public XNAPalette(string name, byte[] buffer, GraphicsDevice graphicsDevice) : base(name, buffer)
         {
             CreateTexture(graphicsDevice);
         }
@@ -36,11 +36,14 @@ namespace TSMapEditor.CCEngine
     {
         protected const int LENGTH = 256;
 
-        public Palette(byte[] buffer)
+        public Palette(string name, byte[] buffer)
         {
+            Name = name;
             Data = new RGBColor[LENGTH];
             Parse(buffer);
         }
+
+        public readonly string Name;
 
         public RGBColor[] Data;
 

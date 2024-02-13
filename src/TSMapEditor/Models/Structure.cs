@@ -120,6 +120,12 @@ namespace TSMapEditor.Models
         public Animation[] Anims { get; set; }
         public Animation TurretAnim { get; set; }
 
+        /// <summary>
+        /// If set, this object instance only exists as a dummy for rendering base nodes.
+        /// It is not actually present on the map.
+        /// </summary>
+        public bool IsBaseNodeDummy { get; set; }
+
         public override double GetCloakGeneratorRange()
         {
             return ObjectType.CloakGenerator ? ObjectType.CloakRadiusInCells : 0.0;
@@ -157,6 +163,8 @@ namespace TSMapEditor.Models
         }
 
         public override bool Remapable() => ObjectType.ArtConfig.Remapable;
+
+        public override Color GetRemapColor() => IsBaseNodeDummy ? base.GetRemapColor() * 0.25f : base.GetRemapColor();
 
         public override Structure Clone()
         {

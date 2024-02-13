@@ -217,15 +217,15 @@ namespace TSMapEditor.UI.Sidebar
                     {
                         int frameCount = textures[i].GetFrameCount();
 
-                        // Find the first valid frame and use that as our texture
+                        // Find the first valid frame and use its RGBA variant as our texture
                         for (int frameIndex = 0; frameIndex < frameCount; frameIndex++)
                         {
                             var frame = textures[i].GetFrame(frameIndex);
                             if (frame != null)
                             {
-                                texture = frame.Texture;
+                                texture = textures[i].GetTextureForFrame_RGBA(frameIndex);
                                 if (Constants.HQRemap && objectType.GetArtConfig().Remapable && textures[i].HasRemapFrames())
-                                    remapTexture = textures[i].GetRemapFrame(frameIndex).Texture;
+                                    remapTexture = textures[i].GetRemapTextureForFrame_RGBA(frameIndex);
                                 break;
                             }
                         }

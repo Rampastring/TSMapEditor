@@ -47,7 +47,7 @@ namespace TSMapEditor.Rendering.ObjectRenderers
 
             DrawShapeImage(gameObject, drawParams, drawParams.ShapeImage, 
                 gameObject.GetFrameIndex(drawParams.ShapeImage.GetFrameCount()), 
-                Color.White, true, gameObject.GetRemapColor(), drawPoint, heightOffset);
+                Color.White, false, true, gameObject.GetRemapColor(), drawPoint, heightOffset);
         }
     }
 }
