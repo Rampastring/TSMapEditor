@@ -17,6 +17,7 @@ namespace TSMapEditor
         public static bool TiberiumAffectedByLighting = false;
         public static bool TerrainObjectsAffectedByLighting = false;
         public static bool TerrainPaletteBuildingsAffectedByLighting = false;
+        public static bool VoxelsAffectedByLighting = false;
         public static bool NewTheaterGenericBuilding = false;
         public static bool DrawBuildingAnimationShadows = false;
         public static bool UseCountries = false;
@@ -112,6 +113,7 @@ namespace TSMapEditor
             TiberiumAffectedByLighting = constantsIni.GetBooleanValue(ConstantsSectionName, nameof(TiberiumAffectedByLighting), TiberiumAffectedByLighting);
             TerrainObjectsAffectedByLighting = constantsIni.GetBooleanValue(ConstantsSectionName, nameof(TerrainObjectsAffectedByLighting), TerrainObjectsAffectedByLighting);
             TerrainPaletteBuildingsAffectedByLighting = constantsIni.GetBooleanValue(ConstantsSectionName, nameof(TerrainPaletteBuildingsAffectedByLighting), TerrainPaletteBuildingsAffectedByLighting);
+            VoxelsAffectedByLighting = constantsIni.GetBooleanValue(ConstantsSectionName, nameof(VoxelsAffectedByLighting), VoxelsAffectedByLighting);
             NewTheaterGenericBuilding = constantsIni.GetBooleanValue(ConstantsSectionName, nameof(NewTheaterGenericBuilding), NewTheaterGenericBuilding);
             DrawBuildingAnimationShadows = constantsIni.GetBooleanValue(ConstantsSectionName, nameof(DrawBuildingAnimationShadows), DrawBuildingAnimationShadows);
             UseCountries = constantsIni.GetBooleanValue(ConstantsSectionName, nameof(UseCountries), UseCountries);

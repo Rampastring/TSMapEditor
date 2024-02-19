@@ -4,7 +4,6 @@ using TSMapEditor.Misc;
 using TSMapEditor.Models;
 using TSMapEditor.Models.Enums;
 using TSMapEditor.Mutations.Classes;
-using TSMapEditor.Rendering.ObjectRenderers;
 using TSMapEditor.UI;
 
 namespace TSMapEditor.Rendering

@@ -30,7 +30,7 @@ namespace TSMapEditor.Rendering
     public class VoxelModel : IDisposable
     {
         public VoxelModel(GraphicsDevice graphicsDevice, VxlFile vxl, HvaFile hva, XNAPalette palette,
-            bool remapable = false, VplFile vpl = null)
+            bool remapable = false, bool subjectToLighting = false, VplFile vpl = null)
         {
             this.graphicsDevice = graphicsDevice;
             this.vxl = vxl;
@@ -38,6 +38,7 @@ namespace TSMapEditor.Rendering
             this.vpl = vpl;
             this.palette = palette;
             this.remapable = remapable;
+            this.subjectToLighting = subjectToLighting;
         }
 
         private readonly GraphicsDevice graphicsDevice;
@@ -46,6 +47,7 @@ namespace TSMapEditor.Rendering
         private readonly VplFile vpl;
         private readonly XNAPalette palette;
         private readonly bool remapable;
+        private readonly bool subjectToLighting;
 
         public void Dispose()
         {
@@ -68,7 +70,7 @@ namespace TSMapEditor.Rendering
             if (Frames.TryGetValue(key, out PositionedTexture value))
                 return value;
 
-            Palette palette = this.palette.GetPalette(affectedByLighting);
+            Palette palette = this.palette.GetPalette(subjectToLighting && affectedByLighting);
             var texture = VxlRenderer.Render(graphicsDevice, facing, ramp, vxl, hva, palette, vpl, forRemap: false);
             if (texture == null)
             {
@@ -96,7 +98,7 @@ namespace TSMapEditor.Rendering
             if (RemapFrames.TryGetValue(key, out PositionedTexture value))
                 return value;
 
-            Palette palette = this.palette.GetPalette(affectedByLighting);
+            Palette palette = this.palette.GetPalette(subjectToLighting && affectedByLighting);
             var texture = VxlRenderer.Render(graphicsDevice, facing, ramp, vxl, hva, palette, vpl, forRemap: true);
             if (texture == null)
             {
@@ -796,7 +798,8 @@ namespace TSMapEditor.Rendering
                 if (!string.IsNullOrWhiteSpace(buildingType.ArtConfig.Palette))
                     palette = GetPaletteOrFail(buildingType.ArtConfig.Palette + Theater.FileExtension[1..] + ".pal");
 
-                BuildingTurretModels[i] = new VoxelModel(graphicsDevice, vxlFile, hvaFile, palette, buildingType.ArtConfig.Remapable, vplFile);
+                BuildingTurretModels[i] = new VoxelModel(graphicsDevice, vxlFile, hvaFile, palette,
+                    buildingType.ArtConfig.Remapable, Constants.VoxelsAffectedByLighting, vplFile);
                 loadedModels[turretModelName] = BuildingTurretModels[i];
             }
 
@@ -851,7 +854,8 @@ namespace TSMapEditor.Rendering
                 if (!string.IsNullOrWhiteSpace(buildingType.ArtConfig.Palette))
                     palette = GetPaletteOrFail(buildingType.ArtConfig.Palette + Theater.FileExtension[1..] + ".pal");
 
-                BuildingBarrelModels[i] = new VoxelModel(graphicsDevice, vxlFile, hvaFile, palette, buildingType.ArtConfig.Remapable, vplFile);
+                BuildingBarrelModels[i] = new VoxelModel(graphicsDevice, vxlFile, hvaFile, palette,
+                    buildingType.ArtConfig.Remapable, Constants.VoxelsAffectedByLighting, vplFile);
                 loadedModels[barrelModelName] = BuildingBarrelModels[i];
             }
 
@@ -1000,7 +1004,8 @@ namespace TSMapEditor.Rendering
                 var vxlFile = new VxlFile(vxlData, unitImage);
                 var hvaFile = new HvaFile(hvaData, unitImage);
 
-                UnitModels[i] = new VoxelModel(graphicsDevice, vxlFile, hvaFile, unitPalette, unitType.ArtConfig.Remapable, vplFile);
+                UnitModels[i] = new VoxelModel(graphicsDevice, vxlFile, hvaFile, unitPalette, unitType.ArtConfig.Remapable,
+                    Constants.VoxelsAffectedByLighting, vplFile);
                 loadedModels[unitImage] = UnitModels[i];
             }
 
@@ -1044,7 +1049,8 @@ namespace TSMapEditor.Rendering
                 var vxlFile = new VxlFile(vxlData, turretModelName);
                 var hvaFile = new HvaFile(hvaData, turretModelName);
 
-                UnitTurretModels[i] = new VoxelModel(graphicsDevice, vxlFile, hvaFile, unitPalette, unitType.ArtConfig.Remapable, vplFile);
+                UnitTurretModels[i] = new VoxelModel(graphicsDevice, vxlFile, hvaFile, unitPalette, unitType.ArtConfig.Remapable,
+                    Constants.VoxelsAffectedByLighting, vplFile);
                 loadedModels[turretModelName] = UnitTurretModels[i];
             }
 
@@ -1088,7 +1094,8 @@ namespace TSMapEditor.Rendering
                 var vxlFile = new VxlFile(vxlData, barrelModelName);
                 var hvaFile = new HvaFile(hvaData, barrelModelName);
 
-                UnitBarrelModels[i] = new VoxelModel(graphicsDevice, vxlFile, hvaFile, unitPalette, unitType.ArtConfig.Remapable, vplFile);
+                UnitBarrelModels[i] = new VoxelModel(graphicsDevice, vxlFile, hvaFile, unitPalette, unitType.ArtConfig.Remapable,
+                    Constants.VoxelsAffectedByLighting, vplFile);
                 loadedModels[barrelModelName] = UnitBarrelModels[i];
             }
 
@@ -1128,7 +1135,8 @@ namespace TSMapEditor.Rendering
                 var vxlFile = new VxlFile(vxlData, aircraftImage);
                 var hvaFile = new HvaFile(hvaData, aircraftImage);
 
-                AircraftModels[i] = new VoxelModel(graphicsDevice, vxlFile, hvaFile, unitPalette, aircraftType.ArtConfig.Remapable, vplFile);
+                AircraftModels[i] = new VoxelModel(graphicsDevice, vxlFile, hvaFile, unitPalette, aircraftType.ArtConfig.Remapable,
+                    Constants.VoxelsAffectedByLighting, vplFile);
                 loadedModels[aircraftImage] = AircraftModels[i];
             }
 

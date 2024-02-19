@@ -373,7 +373,8 @@ namespace TSMapEditor.Rendering
         private void IsLightingChanged()
         {
             InvalidateMapForMinimap();
-            TheaterGraphics.InvalidateVoxelCache();
+            if (Constants.VoxelsAffectedByLighting)
+                TheaterGraphics.InvalidateVoxelCache();
         }
 
         private void Map_LightingChanged()
@@ -390,8 +391,9 @@ namespace TSMapEditor.Rendering
                 return;
 
             TheaterGraphics.ApplyLightingToPalettes((Color)color);
-            TheaterGraphics.InvalidateVoxelCache();
             InvalidateMapForMinimap();
+            if (Constants.VoxelsAffectedByLighting)
+                TheaterGraphics.InvalidateVoxelCache();
         }
 
         private void ClearRenderTargets()
