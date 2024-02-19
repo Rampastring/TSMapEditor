@@ -10,6 +10,7 @@ using System.Text;
 using TSMapEditor.GameMath;
 using TSMapEditor.Misc;
 using TSMapEditor.Models;
+using TSMapEditor.Models.Enums;
 using TSMapEditor.Mutations;
 using TSMapEditor.Mutations.Classes;
 using TSMapEditor.Rendering.ObjectRenderers;
@@ -256,6 +257,7 @@ namespace TSMapEditor.Rendering
             Map.LocalSizeChanged += (s, e) => InvalidateMap();
             Map.MapResized += Map_MapResized;
             Map.MapHeightChanged += (s, e) => InvalidateMap();
+            Map.Lighting.Changed += (s, e) => Map_LightingChanged();
 
             Map.HouseColorChanged += (s, e) => InvalidateMap();
             EditorState.HighlightImpassableCellsChanged += (s, e) => InvalidateMap();
@@ -263,6 +265,7 @@ namespace TSMapEditor.Rendering
             EditorState.DrawMapWideOverlayChanged += (s, e) => MapWideOverlay.Enabled = EditorState.DrawMapWideOverlay;
             EditorState.MarbleMadnessChanged += (s, e) => InvalidateMapForMinimap();
             EditorState.Is2DModeChanged += (s, e) => InvalidateMapForMinimap();
+            EditorState.IsLightingChanged += (s, e) => IsLightingChanged();
             EditorState.RenderedObjectsChanged += (s, e) => InvalidateMapForMinimap();
 
             refreshStopwatch = new Stopwatch();
@@ -365,6 +368,30 @@ namespace TSMapEditor.Rendering
 
             // And then re-draw the whole map
             InvalidateMap();
+        }
+
+        private void IsLightingChanged()
+        {
+            InvalidateMapForMinimap();
+            TheaterGraphics.InvalidateVoxelCache();
+        }
+
+        private void Map_LightingChanged()
+        {
+            Color? color = EditorState.LightingPreviewState switch
+            {
+                LightingPreviewMode.Normal => Map.Lighting.NormalColor,
+                LightingPreviewMode.IonStorm => Map.Lighting.IonColor,
+                LightingPreviewMode.Dominator => Map.Lighting.DominatorColor,
+                _ => null,
+            };
+
+            if (color == null)
+                return;
+
+            TheaterGraphics.ApplyLightingToPalettes((Color)color);
+            TheaterGraphics.InvalidateVoxelCache();
+            InvalidateMapForMinimap();
         }
 
         private void ClearRenderTargets()
@@ -826,7 +853,7 @@ namespace TSMapEditor.Rendering
                 if (isRenderingDepth)
                     SetDepthEffectParams(depthApplyEffect, depthBottom, depthTop, worldTextureCoordinates, spriteSizeToWorldSizeRatio, depthRenderTargetCopy);
                 else
-                    SetPaletteEffectParams(palettedColorDrawEffect, depthBottom, depthTop, worldTextureCoordinates, spriteSizeToWorldSizeRatio, depthRenderTarget, tmpImage.Palette.Texture, usePalette);
+                    SetPaletteEffectParams(palettedColorDrawEffect, depthBottom, depthTop, worldTextureCoordinates, spriteSizeToWorldSizeRatio, depthRenderTarget, tmpImage.GetPaletteTexture(EditorState.IsLighting), usePalette);
 
                 DrawTexture(textureToDraw, new Rectangle(drawPoint.X, drawPoint.Y,
                     Constants.CellSizeX, Constants.CellSizeY), null, color, 0f, Vector2.Zero, SpriteEffects.None, 0f);
@@ -847,7 +874,7 @@ namespace TSMapEditor.Rendering
                 if (isRenderingDepth)
                     SetDepthEffectParams(depthApplyEffect, depthBottom, depthTop, worldTextureCoordinates, spriteSizeToWorldSizeRatio, depthRenderTargetCopy);
                 else
-                    SetPaletteEffectParams(palettedColorDrawEffect, depthBottom, depthTop, worldTextureCoordinates, spriteSizeToWorldSizeRatio, depthRenderTarget, tmpImage.Palette.Texture, true);
+                    SetPaletteEffectParams(palettedColorDrawEffect, depthBottom, depthTop, worldTextureCoordinates, spriteSizeToWorldSizeRatio, depthRenderTarget, tmpImage.GetPaletteTexture(EditorState.IsLighting), true);
 
                 var exDrawRectangle = new Rectangle(exDrawPointX,
                     exDrawPointY,
@@ -1028,7 +1055,7 @@ namespace TSMapEditor.Rendering
                 int bibFinalDrawPointY = drawPoint.Y - bibFrame.ShapeHeight / 2 + bibFrame.OffsetY + Constants.CellSizeY / 2 + yDrawOffset;
 
                 palettedColorDrawEffect.Parameters["UseRemap"].SetValue(false);
-                palettedColorDrawEffect.Parameters["PaletteTexture"].SetValue(bibGraphics.Palette.Texture);
+                palettedColorDrawEffect.Parameters["PaletteTexture"].SetValue(bibGraphics.GetPaletteTexture(EditorState.IsLighting));
 
                 DrawTexture(texture, new Rectangle(
                     bibFinalDrawPointX, bibFinalDrawPointY,
@@ -1063,7 +1090,7 @@ namespace TSMapEditor.Rendering
             Rectangle drawRectangle = new Rectangle(x, y, width, height);
 
             palettedColorDrawEffect.Parameters["UseRemap"].SetValue(false);
-            palettedColorDrawEffect.Parameters["PaletteTexture"].SetValue(graphics.Palette.Texture);
+            palettedColorDrawEffect.Parameters["PaletteTexture"].SetValue(graphics.GetPaletteTexture(EditorState.IsLighting));
 
             DrawTexture(texture, drawRectangle, Constants.HQRemap ? nonRemapBaseNodeShade : remapColor);
 

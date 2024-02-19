@@ -1,18 +1,22 @@
 ﻿using Rampastring.XNAUI;
 using Rampastring.XNAUI.XNAControls;
 using TSMapEditor.Models;
+using TSMapEditor.Models.Enums;
+using TSMapEditor.Rendering;
 using TSMapEditor.UI.Controls;
 
 namespace TSMapEditor.UI.Windows
 {
     public class LightingSettingsWindow : INItializableWindow
     {
-        public LightingSettingsWindow(WindowManager windowManager, Map map) : base(windowManager)
+        public LightingSettingsWindow(WindowManager windowManager, Map map, EditorState state) : base(windowManager)
         {
             this.map = map;
+            this.state = state;
         }
 
         private readonly Map map;
+        private readonly EditorState state;
 
         private EditorNumberTextBox tbAmbientNormal;
         private EditorNumberTextBox tbLevelNormal;
@@ -35,6 +39,8 @@ namespace TSMapEditor.UI.Windows
         private EditorNumberTextBox tbRedDominator;
         private EditorNumberTextBox tbGreenDominator;
         private EditorNumberTextBox tbBlueDominator;
+
+        private XNADropDown ddLightingPreview;
 
         public override void Initialize()
         {
@@ -62,6 +68,8 @@ namespace TSMapEditor.UI.Windows
             tbRedDominator = FindChild<EditorNumberTextBox>(nameof(tbRedDominator));
             tbGreenDominator = FindChild<EditorNumberTextBox>(nameof(tbGreenDominator));
             tbBlueDominator = FindChild<EditorNumberTextBox>(nameof(tbBlueDominator));
+
+            ddLightingPreview = FindChild<XNADropDown>(nameof(ddLightingPreview));
 
             FindChild<EditorButton>("btnApply").LeftClick += BtnApply_LeftClick;
         }
@@ -95,6 +103,15 @@ namespace TSMapEditor.UI.Windows
                 tbBlueDominator.Text = (map.Lighting.DominatorBlue ?? 0).ToString(format);
             }
 
+            ddLightingPreview.SelectedIndex = state.LightingPreviewState switch
+            {
+                LightingPreviewMode.NoLighting => 0,
+                LightingPreviewMode.Normal => 1,
+                LightingPreviewMode.IonStorm => 2,
+                LightingPreviewMode.Dominator => 3,
+                _ => throw new System.NotImplementedException(),
+            };
+
             Show();
         }
 
@@ -124,6 +141,17 @@ namespace TSMapEditor.UI.Windows
                 map.Lighting.DominatorGreen = tbGreenDominator.DoubleValue;
                 map.Lighting.DominatorBlue = tbBlueDominator.DoubleValue;
             }
+
+            state.LightingPreviewState = ddLightingPreview.SelectedIndex switch
+            {
+                0 => LightingPreviewMode.NoLighting,
+                1 => LightingPreviewMode.Normal,
+                2 => LightingPreviewMode.IonStorm,
+                3 => LightingPreviewMode.Dominator,
+                _ => LightingPreviewMode.NoLighting,
+            };
+
+            map.Lighting.RefreshLightingColors();
 
             Hide();
         }

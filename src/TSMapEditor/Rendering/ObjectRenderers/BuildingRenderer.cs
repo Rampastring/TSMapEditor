@@ -1,4 +1,4 @@
-﻿using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework;
 using System.Linq;
 using TSMapEditor.CCEngine;
 using TSMapEditor.GameMath;
@@ -79,19 +79,22 @@ namespace TSMapEditor.Rendering.ObjectRenderers
             return base.ShouldRenderReplacementText(gameObject);
         }
 
-        private void DrawBibGraphics(Structure gameObject, ShapeImage bibGraphics, int heightOffset, Point2D drawPoint, in CommonDrawParams drawParams)
+        private void DrawBibGraphics(Structure gameObject, ShapeImage bibGraphics, int heightOffset, Point2D drawPoint, in CommonDrawParams drawParams, bool affectedByLighting)
         {
-            DrawShapeImage(gameObject, drawParams, bibGraphics, 0, Color.White, false, true, gameObject.GetRemapColor(), drawPoint, heightOffset);
+            DrawShapeImage(gameObject, drawParams, bibGraphics, 0, Color.White, false, true, gameObject.GetRemapColor(),
+                affectedByLighting, drawPoint, heightOffset);
         }
 
         protected override void Render(Structure gameObject, int heightOffset, Point2D drawPoint, in CommonDrawParams drawParams)
         {
             DrawFoundationLines(gameObject);
 
+            bool affectedByLighting = RenderDependencies.EditorState.IsLighting;
+
             // Bib is on the ground, gets grawn first
             var bibGraphics = RenderDependencies.TheaterGraphics.BuildingBibTextures[gameObject.ObjectType.Index];
             if (bibGraphics != null)
-                DrawBibGraphics(gameObject, bibGraphics, heightOffset, drawPoint, drawParams);
+                DrawBibGraphics(gameObject, bibGraphics, heightOffset, drawPoint, drawParams, affectedByLighting);
 
             Color nonRemapColor = gameObject.IsBaseNodeDummy ? new Color(150, 150, 255) * 0.5f : Color.White;
 
@@ -111,17 +114,18 @@ namespace TSMapEditor.Rendering.ObjectRenderers
 
             // Then the building itself
             if (!gameObject.ObjectType.NoShadow)
-                DrawShadow(gameObject, drawParams, drawPoint, heightOffset);
+                DrawShadow(gameObject, drawParams, affectedByLighting, drawPoint, heightOffset);
 
             DrawShapeImage(gameObject, drawParams, drawParams.ShapeImage,
                 gameObject.GetFrameIndex(drawParams.ShapeImage.GetFrameCount()),
-                nonRemapColor, false, true, gameObject.GetRemapColor(), drawPoint, heightOffset);
+                nonRemapColor, false, true, gameObject.GetRemapColor(),
+                affectedByLighting, drawPoint, heightOffset);
 
             // Then draw all anims with sort values >= 0
             foreach (var anim in animsList.Where(a => a.BuildingAnimDrawConfig.SortValue >= 0))
                 buildingAnimRenderer.Draw(anim, false);
 
-            DrawVoxelTurret(gameObject, heightOffset, drawPoint, drawParams, nonRemapColor);
+            DrawVoxelTurret(gameObject, heightOffset, drawPoint, drawParams, nonRemapColor, affectedByLighting);
 
             if (gameObject.ObjectType.HasSpotlight)
             {
@@ -133,7 +137,7 @@ namespace TSMapEditor.Rendering.ObjectRenderers
             }
         }
 
-        private void DrawVoxelTurret(Structure gameObject, int heightOffset, Point2D drawPoint, in CommonDrawParams drawParams, Color nonRemapColor)
+        private void DrawVoxelTurret(Structure gameObject, int heightOffset, Point2D drawPoint, in CommonDrawParams drawParams, Color nonRemapColor, bool affectedByLighting)
         {
             if (gameObject.ObjectType.Turret && gameObject.ObjectType.TurretAnimIsVoxel)
             {
@@ -147,21 +151,21 @@ namespace TSMapEditor.Rendering.ObjectRenderers
                 {
                     DrawVoxelModel(gameObject, drawParams, drawParams.TurretVoxel,
                         gameObject.Facing, RampType.None, nonRemapColor, true, gameObject.GetRemapColor(),
-                        turretDrawPoint, heightOffset);
+                        affectedByLighting, turretDrawPoint, heightOffset);
 
                     DrawVoxelModel(gameObject, drawParams, drawParams.BarrelVoxel,
                         gameObject.Facing, RampType.None, nonRemapColor, true, gameObject.GetRemapColor(),
-                        turretDrawPoint, heightOffset);
+                        affectedByLighting, turretDrawPoint, heightOffset);
                 }
                 else
                 {
                     DrawVoxelModel(gameObject, drawParams, drawParams.BarrelVoxel,
                         gameObject.Facing, RampType.None, nonRemapColor, true, gameObject.GetRemapColor(),
-                        turretDrawPoint, heightOffset);
+                        affectedByLighting, turretDrawPoint, heightOffset);
 
                     DrawVoxelModel(gameObject, drawParams, drawParams.TurretVoxel,
                         gameObject.Facing, RampType.None, nonRemapColor, true, gameObject.GetRemapColor(),
-                        turretDrawPoint, heightOffset);
+                        affectedByLighting, turretDrawPoint, heightOffset);
                 }
             }
             else if (gameObject.ObjectType.Turret && !gameObject.ObjectType.TurretAnimIsVoxel &&
@@ -169,7 +173,7 @@ namespace TSMapEditor.Rendering.ObjectRenderers
             {
                 DrawVoxelModel(gameObject, drawParams, drawParams.BarrelVoxel,
                     gameObject.Facing, RampType.None, nonRemapColor, true, gameObject.GetRemapColor(),
-                    drawPoint, heightOffset);
+                    affectedByLighting, drawPoint, heightOffset);
             }
         }
 

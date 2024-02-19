@@ -163,7 +163,7 @@ namespace TSMapEditor.UI.Windows
             CopiedEntryTypesWindow = new CopiedEntryTypesWindow(windowParentControl.WindowManager);
             Windows.Add(CopiedEntryTypesWindow);
 
-            LightingSettingsWindow = new LightingSettingsWindow(windowParentControl.WindowManager, map);
+            LightingSettingsWindow = new LightingSettingsWindow(windowParentControl.WindowManager, map, editorState);
             Windows.Add(LightingSettingsWindow);
 
             ApplyINICodeWindow = new ApplyINICodeWindow(windowParentControl.WindowManager, map);

@@ -58,15 +58,17 @@ namespace TSMapEditor.Rendering.ObjectRenderers
                     break;
             }
 
-            DrawShadow(gameObject, drawParams, drawPoint, heightOffset);
+            bool affectedByLighting = RenderDependencies.EditorState.IsLighting;
+
+            DrawShadow(gameObject, drawParams, affectedByLighting, drawPoint, heightOffset);
 
             DrawShapeImage(gameObject, drawParams, drawParams.ShapeImage,
                 frameIndex, Color.White * alpha, false,
                 gameObject.IsBuildingAnim, gameObject.GetRemapColor() * alpha,
-                drawPoint, heightOffset);
+                affectedByLighting, drawPoint, heightOffset);
         }
 
-        protected override void DrawShadow(Animation gameObject, in CommonDrawParams drawParams, Point2D drawPoint, int heightOffset)
+        protected override void DrawShadow(Animation gameObject, in CommonDrawParams drawParams, bool affectedByLighting, Point2D drawPoint, int heightOffset)
         {
             if (!Constants.DrawBuildingAnimationShadows && gameObject.IsBuildingAnim)
                 return;
@@ -83,7 +85,8 @@ namespace TSMapEditor.Rendering.ObjectRenderers
             if (shadowFrameIndex > 0 && shadowFrameIndex < drawParams.ShapeImage.GetFrameCount())
             {
                 DrawShapeImage(gameObject, drawParams, drawParams.ShapeImage, shadowFrameIndex,
-                    new Color(0, 0, 0, 128), true, false, Color.White, drawPoint, heightOffset);
+                    new Color(0, 0, 0, 128), true, false, Color.White,
+                    affectedByLighting, drawPoint, heightOffset);
             }
         }
     }

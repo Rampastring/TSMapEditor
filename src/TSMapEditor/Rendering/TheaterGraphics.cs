@@ -29,7 +29,7 @@ namespace TSMapEditor.Rendering
 
     public class VoxelModel : IDisposable
     {
-        public VoxelModel(GraphicsDevice graphicsDevice, VxlFile vxl, HvaFile hva, Palette palette,
+        public VoxelModel(GraphicsDevice graphicsDevice, VxlFile vxl, HvaFile hva, XNAPalette palette,
             bool remapable = false, VplFile vpl = null)
         {
             this.graphicsDevice = graphicsDevice;
@@ -44,7 +44,7 @@ namespace TSMapEditor.Rendering
         private readonly VxlFile vxl;
         private readonly HvaFile hva;
         private readonly VplFile vpl;
-        private readonly Palette palette;
+        private readonly XNAPalette palette;
         private readonly bool remapable;
 
         public void Dispose()
@@ -56,7 +56,7 @@ namespace TSMapEditor.Rendering
                 frame.Value?.Dispose();
         }
 
-        public PositionedTexture GetFrame(byte facing, RampType ramp)
+        public PositionedTexture GetFrame(byte facing, RampType ramp, bool affectedByLighting)
         {
             // The game only renders 32 facings, so round it to the closest true facing
             facing = Convert.ToByte(Math.Clamp(
@@ -68,6 +68,7 @@ namespace TSMapEditor.Rendering
             if (Frames.TryGetValue(key, out PositionedTexture value))
                 return value;
 
+            Palette palette = this.palette.GetPalette(affectedByLighting);
             var texture = VxlRenderer.Render(graphicsDevice, facing, ramp, vxl, hva, palette, vpl, forRemap: false);
             if (texture == null)
             {
@@ -80,7 +81,7 @@ namespace TSMapEditor.Rendering
             return Frames[key];
         }
 
-        public PositionedTexture GetRemapFrame(byte facing, RampType ramp)
+        public PositionedTexture GetRemapFrame(byte facing, RampType ramp, bool affectedByLighting)
         {
             if (!(remapable && Constants.HQRemap))
                 return null;
@@ -95,6 +96,7 @@ namespace TSMapEditor.Rendering
             if (RemapFrames.TryGetValue(key, out PositionedTexture value))
                 return value;
 
+            Palette palette = this.palette.GetPalette(affectedByLighting);
             var texture = VxlRenderer.Render(graphicsDevice, facing, ramp, vxl, hva, palette, vpl, forRemap: true);
             if (texture == null)
             {
@@ -155,6 +157,12 @@ namespace TSMapEditor.Rendering
             }
         }
 
+        public void ClearFrames()
+        {
+            Frames.Clear();
+            RemapFrames.Clear();
+        }
+
         public Dictionary<(byte facing, RampType ramp), PositionedTexture> Frames { get; set; } = new();
         public Dictionary<(byte facing, RampType ramp), PositionedTexture> RemapFrames { get; set; } = new();
     }
@@ -162,12 +170,13 @@ namespace TSMapEditor.Rendering
     public class ShapeImage : IDisposable
     {
         public ShapeImage(GraphicsDevice graphicsDevice, ShpFile shp, byte[] shpFileData, XNAPalette palette,
-            bool remapable = false, PositionedTexture pngTexture = null)
+            bool subjectToLighting, bool remapable = false, PositionedTexture pngTexture = null)
         {
             shpFile = shp;
             this.shpFileData = shpFileData;
             Palette = palette;
             this.remapable = remapable;
+            this.subjectToLighting = subjectToLighting;
             this.graphicsDevice = graphicsDevice;
 
             if (pngTexture != null && !remapable)
@@ -199,11 +208,11 @@ namespace TSMapEditor.Rendering
             }
         }
 
-        public XNAPalette Palette { get; }
-
+        private XNAPalette Palette { get; }
         private ShpFile shpFile;
         private byte[] shpFileData;
         private bool remapable;
+        private bool subjectToLighting;
         private GraphicsDevice graphicsDevice;
 
         public int GetFrameCount() => Frames.Length;
@@ -233,6 +242,11 @@ namespace TSMapEditor.Rendering
                 return null;
 
             return RemapFrames[index];
+        }
+
+        public Texture2D GetPaletteTexture(bool useLighting)
+        {
+            return Palette.GetTexture(useLighting && subjectToLighting);
         }
 
         private void GetFrameInfoAndData(int frameIndex, out ShpFrameInfo frameInfo, out byte[] frameData)
@@ -594,11 +608,13 @@ namespace TSMapEditor.Rendering
 
                 byte[] data = fileManager.LoadFile(pngFileName);
 
+                bool subjectToLighting = !terrainTypes[i].SpawnsTiberium || Constants.TerrainObjectsAffectedByLighting;
+
                 if (data != null)
                 {
                     // Load graphics as PNG
 
-                    TerrainObjectTextures[i] = new ShapeImage(graphicsDevice, null, null, null, false, PositionedTextureFromBytes(data));
+                    TerrainObjectTextures[i] = new ShapeImage(graphicsDevice, null, null, null, subjectToLighting, false, PositionedTextureFromBytes(data));
                 }
                 else
                 {
@@ -612,7 +628,7 @@ namespace TSMapEditor.Rendering
                     var shpFile = new ShpFile(shpFileName);
                     shpFile.ParseFromBuffer(data);
                     TerrainObjectTextures[i] = new ShapeImage(graphicsDevice, shpFile, data,
-                        terrainTypes[i].SpawnsTiberium ? unitPalette : theaterPalette);
+                        terrainTypes[i].SpawnsTiberium ? unitPalette : theaterPalette, subjectToLighting);
                 }
             }
 
@@ -684,7 +700,10 @@ namespace TSMapEditor.Rendering
                 var shpFile = new ShpFile(loadedShpName);
                 shpFile.ParseFromBuffer(shpData);
 
-                BuildingTextures[i] = new ShapeImage(graphicsDevice, shpFile, shpData, palette, buildingType.ArtConfig.Remapable);
+                bool affectedByLighting = !buildingType.ArtConfig.TerrainPalette || Constants.TerrainPaletteBuildingsAffectedByLighting;
+
+                BuildingTextures[i] = new ShapeImage(graphicsDevice, shpFile, shpData, palette,
+                    affectedByLighting, buildingType.ArtConfig.Remapable);
 
                 // If this building has a bib, attempt to load it
                 if (!string.IsNullOrWhiteSpace(buildingType.ArtConfig.BibShape))
@@ -725,7 +744,8 @@ namespace TSMapEditor.Rendering
 
                     var bibShpFile = new ShpFile(loadedShpName);
                     bibShpFile.ParseFromBuffer(shpData);
-                    BuildingBibTextures[i] = new ShapeImage(graphicsDevice, bibShpFile, shpData, palette, buildingType.ArtConfig.Remapable);
+                    BuildingBibTextures[i] = new ShapeImage(graphicsDevice, bibShpFile, shpData, palette,
+                        affectedByLighting, buildingType.ArtConfig.Remapable);
                 }
             }
 
@@ -772,7 +792,7 @@ namespace TSMapEditor.Rendering
                 var vxlFile = new VxlFile(vxlData, turretModelName);
                 var hvaFile = new HvaFile(hvaData, turretModelName);
 
-                Palette palette = buildingType.ArtConfig.TerrainPalette ? theaterPalette : unitPalette;
+                XNAPalette palette = buildingType.ArtConfig.TerrainPalette ? theaterPalette : unitPalette;
                 if (!string.IsNullOrWhiteSpace(buildingType.ArtConfig.Palette))
                     palette = GetPaletteOrFail(buildingType.ArtConfig.Palette + Theater.FileExtension[1..] + ".pal");
 
@@ -827,7 +847,7 @@ namespace TSMapEditor.Rendering
                 var vxlFile = new VxlFile(vxlData, barrelModelName);
                 var hvaFile = new HvaFile(hvaData, barrelModelName);
 
-                Palette palette = buildingType.ArtConfig.TerrainPalette ? theaterPalette : unitPalette;
+                XNAPalette palette = buildingType.ArtConfig.TerrainPalette ? theaterPalette : unitPalette;
                 if (!string.IsNullOrWhiteSpace(buildingType.ArtConfig.Palette))
                     palette = GetPaletteOrFail(buildingType.ArtConfig.Palette + Theater.FileExtension[1..] + ".pal");
 
@@ -900,8 +920,8 @@ namespace TSMapEditor.Rendering
 
                 var shpFile = new ShpFile(loadedShpName);
                 shpFile.ParseFromBuffer(shpData);
-                AnimTextures[i] = new ShapeImage(graphicsDevice, shpFile, shpData, palette, 
-                    animType.ArtConfig.Remapable || animType.ArtConfig.IsBuildingAnim);
+                AnimTextures[i] = new ShapeImage(graphicsDevice, shpFile, shpData, palette,
+                    animType.ArtConfig.IsBuildingAnim, animType.ArtConfig.Remapable || animType.ArtConfig.IsBuildingAnim);
             }
 
             Logger.Log("Finished loading animation textures.");
@@ -937,7 +957,7 @@ namespace TSMapEditor.Rendering
                 var shpFile = new ShpFile(shpFileName);
                 shpFile.ParseFromBuffer(shpData);
 
-                UnitTextures[i] = new ShapeImage(graphicsDevice, shpFile, shpData, unitPalette, unitType.ArtConfig.Remapable);
+                UnitTextures[i] = new ShapeImage(graphicsDevice, shpFile, shpData, unitPalette, true, unitType.ArtConfig.Remapable);
                 loadedTextures[shpFileName] = UnitTextures[i];
             }
 
@@ -1161,7 +1181,7 @@ namespace TSMapEditor.Rendering
                 for (int j = 0; j < regularFrameCount; j++)
                     framesToLoad.Add(framesToLoad[j] + (shpFile.FrameCount / 2));
 
-                InfantryTextures[i] = new ShapeImage(graphicsDevice, shpFile, shpData, unitPalette, infantryType.ArtConfig.Remapable);
+                InfantryTextures[i] = new ShapeImage(graphicsDevice, shpFile, shpData, unitPalette, true, infantryType.ArtConfig.Remapable);
                 loadedTextures[shpFileName] = InfantryTextures[i];
             }
 
@@ -1191,7 +1211,8 @@ namespace TSMapEditor.Rendering
                 {
                     // Load graphics as PNG
 
-                    OverlayTextures[i] = new ShapeImage(graphicsDevice, null, null, null, false, PositionedTextureFromBytes(pngData));
+                    OverlayTextures[i] = new ShapeImage(graphicsDevice, null, null, null,
+                        true, false, PositionedTextureFromBytes(pngData));
                 }
                 else
                 {
@@ -1242,8 +1263,9 @@ namespace TSMapEditor.Rendering
                         palette = unitPalette;
 
                     bool isRemapable = overlayType.Tiberium && !Constants.TheaterPaletteForTiberium;
+                    bool affectedByLighting = !overlayType.Tiberium || Constants.TiberiumAffectedByLighting;
 
-                    OverlayTextures[i] = new ShapeImage(graphicsDevice, shpFile, shpData, palette, isRemapable, null);
+                    OverlayTextures[i] = new ShapeImage(graphicsDevice, shpFile, shpData, palette, affectedByLighting, isRemapable, null);
                 }
             }
 
@@ -1270,10 +1292,29 @@ namespace TSMapEditor.Rendering
                 var shpFile = new ShpFile(finalShpName);
                 shpFile.ParseFromBuffer(shpData);
                 XNAPalette palette = theaterPalette;
-                SmudgeTextures[i] = new ShapeImage(graphicsDevice, shpFile, shpData, palette);
+                SmudgeTextures[i] = new ShapeImage(graphicsDevice, shpFile, shpData, palette, true);
             }
 
             Logger.Log("Finished loading smudge textures.");
+        }
+
+        public void ApplyLightingToPalettes(Color lighting)
+        {
+            theaterPalette.ApplyLighting(lighting);
+            unitPalette.ApplyLighting(lighting);
+            tiberiumPalette.ApplyLighting(lighting);
+            animPalette.ApplyLighting(lighting);
+            palettes.ForEach(p => p.ApplyLighting(lighting));
+        }
+
+        public void InvalidateVoxelCache()
+        {
+            Array.ForEach(BuildingTurretModels, m => m?.ClearFrames());
+            Array.ForEach(BuildingBarrelModels, m => m?.ClearFrames());
+            Array.ForEach(UnitModels, m => m?.ClearFrames());
+            Array.ForEach(UnitTurretModels, m => m?.ClearFrames());
+            Array.ForEach(UnitBarrelModels, m => m?.ClearFrames());
+            Array.ForEach(AircraftModels, m => m?.ClearFrames());
         }
 
         private Random random = new Random();

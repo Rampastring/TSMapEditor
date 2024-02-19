@@ -1,10 +1,14 @@
-﻿using Rampastring.Tools;
+﻿using Microsoft.Xna.Framework;
+using Rampastring.Tools;
+using System;
 
 namespace TSMapEditor.Models
 {
     public class Lighting : INIDefineable
     {
         private const string LightingIniSectionName = "Lighting";
+
+        public event EventHandler Changed;
 
         public double Red { get; set; }
         public double Green { get; set; }
@@ -28,6 +32,10 @@ namespace TSMapEditor.Models
         public double? DominatorLevel { get; set; }
         public double? DominatorGround { get; set; }
 
+        public Color NormalColor { get; private set; }
+        public Color IonColor { get; private set; }
+        public Color? DominatorColor { get; private set; }
+
         public void ReadFromIniFile(IniFile iniFile)
         {
             var lightingSection = iniFile.GetSection(LightingIniSectionName);
@@ -36,6 +44,7 @@ namespace TSMapEditor.Models
                 return;
 
             ReadPropertiesFromIniSection(lightingSection);
+            RefreshLightingColors();
         }
 
         public void WriteToIniFile(IniFile iniFile)
@@ -48,6 +57,23 @@ namespace TSMapEditor.Models
             }
 
             WritePropertiesToIniSection(lightingSection);
+        }
+
+        public void RefreshLightingColors()
+        {
+            NormalColor = RefreshLightingColor(Red, Green, Blue, Ambient);
+            IonColor = RefreshLightingColor(IonRed, IonGreen, IonBlue, IonAmbient);
+            DominatorColor = RefreshLightingColor(DominatorRed, DominatorGreen, DominatorBlue, DominatorAmbient);
+
+            Changed?.Invoke(this, EventArgs.Empty);
+        }
+
+        private static Color RefreshLightingColor(double? red, double? green, double? blue, double? ambient)
+        {
+            if (red == null || green == null || blue == null || ambient == null)
+                return Color.White;
+
+            return new Color((float)red, (float)green, (float)blue) * (float)ambient;
         }
     }
 }

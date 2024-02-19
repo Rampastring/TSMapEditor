@@ -10,22 +10,56 @@ namespace TSMapEditor.CCEngine
     {
         public XNAPalette(string name, byte[] buffer, GraphicsDevice graphicsDevice) : base(name, buffer)
         {
-            CreateTexture(graphicsDevice);
+            PaletteWithLight = new(name, buffer);
+            Texture = CreateTexture(graphicsDevice, this);
+            TextureWithLight = CreateTexture(graphicsDevice, PaletteWithLight);
         }
 
-        public Texture2D Texture;
+        private Texture2D Texture;
+        private Texture2D TextureWithLight;
+        private Palette PaletteWithLight;
 
-        private void CreateTexture(GraphicsDevice graphicsDevice)
+        public Texture2D GetTexture(bool subjectToLighting)
         {
-            Texture = new Texture2D(graphicsDevice, LENGTH, 1, false, SurfaceFormat.Color);
+            return subjectToLighting ? TextureWithLight : Texture;
+        }
+
+        public Palette GetPalette(bool subjectToLighting)
+        {
+            return subjectToLighting ? PaletteWithLight : this;
+        }
+
+        private Texture2D CreateTexture(GraphicsDevice graphicsDevice, Palette palette)
+        {
+            Texture2D texture = new(graphicsDevice, LENGTH, 1, false, SurfaceFormat.Color);
 
             Color[] colorData = new Color[LENGTH];
             colorData[0] = Color.Transparent;
             for (int i = 1; i < colorData.Length; i++)
             {
-                colorData[i] = Data[i].ToXnaColor();
+                colorData[i] = palette.Data[i].ToXnaColor();
             }
-            Texture.SetData(colorData);
+            texture.SetData(colorData);
+
+            return texture;
+        }
+
+        public void ApplyLighting(Color color)
+        {
+            Color[] colorData = new Color[LENGTH];
+            for (int i = 1; i < LENGTH - 8; i++)
+            {
+                RGBColor newColor = new
+                (
+                    (byte)((Data[i].R * color.R) / 255),
+                    (byte)((Data[i].G * color.G) / 255),
+                    (byte)((Data[i].B * color.B) / 255)
+                );
+                PaletteWithLight.Data[i] = newColor;
+                colorData[i] = newColor.ToXnaColor();
+            }
+
+            TextureWithLight.SetData(colorData);
         }
     }
 

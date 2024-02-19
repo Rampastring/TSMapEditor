@@ -28,13 +28,15 @@ namespace TSMapEditor.Rendering.ObjectRenderers
 
         protected override void Render(Unit gameObject, int heightOffset, Point2D drawPoint, in CommonDrawParams drawParams)
         {
+            bool affectedByLighting = RenderDependencies.EditorState.IsLighting;
+
             if (gameObject.UnitType.ArtConfig.Voxel)
             {
-                RenderVoxelModel(gameObject, heightOffset, drawPoint, drawParams, drawParams.MainVoxel);
+                RenderVoxelModel(gameObject, heightOffset, drawPoint, drawParams, drawParams.MainVoxel, affectedByLighting);
             }
             else
             {
-                RenderMainShape(gameObject, heightOffset, drawPoint, drawParams);
+                RenderMainShape(gameObject, heightOffset, drawPoint, drawParams, affectedByLighting);
             }
 
             if (gameObject.UnitType.Turret)
@@ -57,37 +59,38 @@ namespace TSMapEditor.Rendering.ObjectRenderers
                 if (gameObject.Facing is > facingStartDrawAbove and <= facingEndDrawAbove)
                 {
                     if (gameObject.UnitType.ArtConfig.Voxel)
-                        RenderVoxelModel(gameObject, heightOffset, drawPoint + turretOffset, drawParams, drawParams.TurretVoxel);
+                        RenderVoxelModel(gameObject, heightOffset, drawPoint + turretOffset, drawParams, drawParams.TurretVoxel, affectedByLighting);
                     else
-                        RenderTurretShape(gameObject, heightOffset, drawPoint, drawParams);
+                        RenderTurretShape(gameObject, heightOffset, drawPoint, drawParams, affectedByLighting);
                     
-                    RenderVoxelModel(gameObject, heightOffset, drawPoint + turretOffset, drawParams, drawParams.BarrelVoxel);
+                    RenderVoxelModel(gameObject, heightOffset, drawPoint + turretOffset, drawParams, drawParams.BarrelVoxel, affectedByLighting);
                 }
                 else
                 {
-                    RenderVoxelModel(gameObject, heightOffset, drawPoint + turretOffset, drawParams, drawParams.BarrelVoxel);
+                    RenderVoxelModel(gameObject, heightOffset, drawPoint + turretOffset, drawParams, drawParams.BarrelVoxel, affectedByLighting);
 
                     if (gameObject.UnitType.ArtConfig.Voxel)
-                        RenderVoxelModel(gameObject, heightOffset, drawPoint + turretOffset, drawParams, drawParams.TurretVoxel);
+                        RenderVoxelModel(gameObject, heightOffset, drawPoint + turretOffset, drawParams, drawParams.TurretVoxel, affectedByLighting);
                     else
-                        RenderTurretShape(gameObject, heightOffset, drawPoint, drawParams);
+                        RenderTurretShape(gameObject, heightOffset, drawPoint, drawParams, affectedByLighting);
                 }
             }
         }
 
         private void RenderMainShape(Unit gameObject, int heightOffset, Point2D drawPoint,
-            CommonDrawParams drawParams)
+            CommonDrawParams drawParams, bool affectedByLighting)
         {
             if (!gameObject.ObjectType.NoShadow)
-                DrawShadow(gameObject, drawParams, drawPoint, heightOffset);
+                DrawShadow(gameObject, drawParams, affectedByLighting, drawPoint, heightOffset);
 
             DrawShapeImage(gameObject, drawParams, drawParams.ShapeImage, 
                 gameObject.GetFrameIndex(drawParams.ShapeImage.GetFrameCount()),
-                Color.White, false, true, gameObject.GetRemapColor(), drawPoint, heightOffset);
+                Color.White, false, true, gameObject.GetRemapColor(),
+                affectedByLighting, drawPoint, heightOffset);
         }
 
         private void RenderTurretShape(Unit gameObject, int heightOffset, Point2D drawPoint,
-            CommonDrawParams drawParams)
+            CommonDrawParams drawParams, bool affectedByLighting)
         {
             int turretFrameIndex = gameObject.GetTurretFrameIndex();
 
@@ -100,12 +103,12 @@ namespace TSMapEditor.Rendering.ObjectRenderers
 
                 DrawShapeImage(gameObject, drawParams, drawParams.ShapeImage,
                     turretFrameIndex, Color.White, false, true, gameObject.GetRemapColor(),
-                    drawPoint, heightOffset);
+                    affectedByLighting, drawPoint, heightOffset);
             }
         }
 
         private void RenderVoxelModel(Unit gameObject, int heightOffset, Point2D drawPoint,
-            in CommonDrawParams drawParams, VoxelModel model)
+            in CommonDrawParams drawParams, VoxelModel model, bool affectedByLighting)
         {
             var unitTile = RenderDependencies.Map.GetTile(gameObject.Position.X, gameObject.Position.Y);
 
@@ -118,7 +121,7 @@ namespace TSMapEditor.Rendering.ObjectRenderers
 
             DrawVoxelModel(gameObject, drawParams, model,
                 gameObject.Facing, ramp, Color.White, true, gameObject.GetRemapColor(),
-                drawPoint, heightOffset);
+                affectedByLighting, drawPoint, heightOffset);
         }
     }
 }

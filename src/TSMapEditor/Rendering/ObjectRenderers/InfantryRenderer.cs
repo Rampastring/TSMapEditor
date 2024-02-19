@@ -42,12 +42,15 @@ namespace TSMapEditor.Rendering.ObjectRenderers
                     break;
             }
 
+            bool affectedByLighting = RenderDependencies.EditorState.IsLighting;
+
             if (!gameObject.ObjectType.NoShadow)
-                DrawShadow(gameObject, drawParams, drawPoint, heightOffset);
+                DrawShadow(gameObject, drawParams, affectedByLighting, drawPoint, heightOffset);
 
             DrawShapeImage(gameObject, drawParams, drawParams.ShapeImage, 
                 gameObject.GetFrameIndex(drawParams.ShapeImage.GetFrameCount()), 
-                Color.White, false, true, gameObject.GetRemapColor(), drawPoint, heightOffset);
+                Color.White, false, true, gameObject.GetRemapColor(),
+                affectedByLighting, drawPoint, heightOffset);
         }
     }
 }

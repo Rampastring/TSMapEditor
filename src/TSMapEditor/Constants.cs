@@ -14,6 +14,9 @@ namespace TSMapEditor
 
         public static bool IsFlatWorld = false;
         public static bool TheaterPaletteForTiberium = false;
+        public static bool TiberiumAffectedByLighting = false;
+        public static bool TerrainObjectsAffectedByLighting = false;
+        public static bool TerrainPaletteBuildingsAffectedByLighting = false;
         public static bool NewTheaterGenericBuilding = false;
         public static bool DrawBuildingAnimationShadows = false;
         public static bool UseCountries = false;
@@ -106,6 +109,9 @@ namespace TSMapEditor
 
             IsFlatWorld = constantsIni.GetBooleanValue(ConstantsSectionName, nameof(IsFlatWorld), IsFlatWorld);
             TheaterPaletteForTiberium = constantsIni.GetBooleanValue(ConstantsSectionName, nameof(TheaterPaletteForTiberium), TheaterPaletteForTiberium);
+            TiberiumAffectedByLighting = constantsIni.GetBooleanValue(ConstantsSectionName, nameof(TiberiumAffectedByLighting), TiberiumAffectedByLighting);
+            TerrainObjectsAffectedByLighting = constantsIni.GetBooleanValue(ConstantsSectionName, nameof(TerrainObjectsAffectedByLighting), TerrainObjectsAffectedByLighting);
+            TerrainPaletteBuildingsAffectedByLighting = constantsIni.GetBooleanValue(ConstantsSectionName, nameof(TerrainPaletteBuildingsAffectedByLighting), TerrainPaletteBuildingsAffectedByLighting);
             NewTheaterGenericBuilding = constantsIni.GetBooleanValue(ConstantsSectionName, nameof(NewTheaterGenericBuilding), NewTheaterGenericBuilding);
             DrawBuildingAnimationShadows = constantsIni.GetBooleanValue(ConstantsSectionName, nameof(DrawBuildingAnimationShadows), DrawBuildingAnimationShadows);
             UseCountries = constantsIni.GetBooleanValue(ConstantsSectionName, nameof(UseCountries), UseCountries);

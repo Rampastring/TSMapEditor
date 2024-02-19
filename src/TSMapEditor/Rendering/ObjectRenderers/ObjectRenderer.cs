@@ -50,7 +50,7 @@ namespace TSMapEditor.Rendering.ObjectRenderers
 
             CommonDrawParams drawParams = GetDrawParams(gameObject);
 
-            PositionedTexture frame = GetFrameTexture(gameObject, drawParams);
+            PositionedTexture frame = GetFrameTexture(gameObject, drawParams, RenderDependencies.EditorState.IsLighting);
 
             Rectangle drawingBounds = GetTextureDrawCoords(gameObject, frame, drawPoint);
 
@@ -145,7 +145,7 @@ namespace TSMapEditor.Rendering.ObjectRenderers
             return true;
         }
 
-        private PositionedTexture GetFrameTexture(T gameObject, in CommonDrawParams drawParams)
+        private PositionedTexture GetFrameTexture(T gameObject, in CommonDrawParams drawParams, bool affectedByLighting)
         {
             if (drawParams.ShapeImage != null && drawParams.ShapeImage.GetFrameCount() > 0)
             {
@@ -156,15 +156,15 @@ namespace TSMapEditor.Rendering.ObjectRenderers
             }
             else if (drawParams.MainVoxel?.Frames != null)
             {
-                return drawParams.MainVoxel.GetFrame(0, RampType.None);
+                return drawParams.MainVoxel.GetFrame(0, RampType.None, affectedByLighting);
             }
             else if (drawParams.TurretVoxel?.Frames != null)
             {
-                return drawParams.TurretVoxel.GetFrame(0, RampType.None);
+                return drawParams.TurretVoxel.GetFrame(0, RampType.None, affectedByLighting);
             }
             else if (drawParams.BarrelVoxel?.Frames != null)
             {
-                return drawParams.BarrelVoxel.GetFrame(0, RampType.None);
+                return drawParams.BarrelVoxel.GetFrame(0, RampType.None, affectedByLighting);
             }
 
             return null;
@@ -233,7 +233,7 @@ namespace TSMapEditor.Rendering.ObjectRenderers
             RenderDependencies.PalettedColorDrawEffect.Parameters["UseRemap"].SetValue(false); // Disable remap by default
         }
 
-        protected virtual void DrawShadow(T gameObject, in CommonDrawParams drawParams, Point2D drawPoint, int heightOffset)
+        protected virtual void DrawShadow(T gameObject, in CommonDrawParams drawParams, bool affectedByLighting, Point2D drawPoint, int heightOffset)
         {
             if (drawParams.ShapeImage == null)
                 return;
@@ -242,12 +242,12 @@ namespace TSMapEditor.Rendering.ObjectRenderers
             if (shadowFrameIndex > 0 && shadowFrameIndex < drawParams.ShapeImage.GetFrameCount())
             {
                 DrawShapeImage(gameObject, drawParams, drawParams.ShapeImage, shadowFrameIndex,
-                    new Color(0, 0, 0, 128), true, false, Color.White, drawPoint, heightOffset);
+                    new Color(0, 0, 0, 128), true, false, Color.White, affectedByLighting, drawPoint, heightOffset);
             }
         }
 
         protected void DrawShapeImage(T gameObject, in CommonDrawParams drawParams, ShapeImage image,
-            int frameIndex, Color color, bool isShadow, bool drawRemap, Color remapColor, Point2D drawPoint, int heightOffset)
+            int frameIndex, Color color, bool isShadow, bool drawRemap, Color remapColor, bool affectedByLighting, Point2D drawPoint, int heightOffset)
         {
             if (image == null)
                 return;
@@ -263,22 +263,22 @@ namespace TSMapEditor.Rendering.ObjectRenderers
             Rectangle drawingBounds = GetTextureDrawCoords(gameObject, frame, drawPoint);
 
             RenderFrame(frame, remapFrame, color, drawRemap, remapColor, isShadow,
-                drawingBounds.X, drawingBounds.Y, heightOffset, image.Palette?.Texture);
+                drawingBounds.X, drawingBounds.Y, heightOffset, image.GetPaletteTexture(affectedByLighting));
         }
 
         protected void DrawVoxelModel(T gameObject, in CommonDrawParams drawParams, VoxelModel model,
-            byte facing, RampType ramp, Color color, bool drawRemap, Color remapColor, Point2D drawPoint, int heightOffset)
+            byte facing, RampType ramp, Color color, bool drawRemap, Color remapColor, bool affectedByLighting, Point2D drawPoint, int heightOffset)
         {
             if (model == null)
                 return;
 
-            PositionedTexture frame = model.GetFrame(facing, ramp);
+            PositionedTexture frame = model.GetFrame(facing, ramp, affectedByLighting);
             if (frame == null || frame.Texture == null)
                 return;
 
             PositionedTexture remapFrame = null;
             if (drawRemap && Constants.HQRemap)
-                remapFrame = model.GetRemapFrame(facing, ramp);
+                remapFrame = model.GetRemapFrame(facing, ramp, affectedByLighting);
 
             Rectangle drawingBounds = GetTextureDrawCoords(gameObject, frame, drawPoint);
 

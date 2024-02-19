@@ -27,7 +27,7 @@ namespace TSMapEditor.Rendering.ObjectRenderers
         {
             DrawVoxelModel(gameObject, drawParams, drawParams.MainVoxel,
                 gameObject.Facing, RampType.None, Color.White, true, gameObject.GetRemapColor(),
-                drawPoint, heightOffset);
+                RenderDependencies.EditorState.IsLighting, drawPoint, heightOffset);
         }
     }
 }
