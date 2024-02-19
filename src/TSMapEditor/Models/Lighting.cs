@@ -32,8 +32,11 @@ namespace TSMapEditor.Models
         public double? DominatorLevel { get; set; }
         public double? DominatorGround { get; set; }
 
+        [INI(false)]
         public Color NormalColor { get; private set; }
+        [INI(false)]
         public Color IonColor { get; private set; }
+        [INI(false)]
         public Color? DominatorColor { get; private set; }
 
         public void ReadFromIniFile(IniFile iniFile)
