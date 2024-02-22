@@ -257,7 +257,7 @@ namespace TSMapEditor.Rendering
             Map.LocalSizeChanged += (s, e) => InvalidateMap();
             Map.MapResized += Map_MapResized;
             Map.MapHeightChanged += (s, e) => InvalidateMap();
-            Map.Lighting.Changed += (s, e) => Map_LightingChanged();
+            Map.Lighting.ColorsRefreshed += (s, e) => Map_LightingColorsRefreshed();
 
             Map.HouseColorChanged += (s, e) => InvalidateMap();
             EditorState.HighlightImpassableCellsChanged += (s, e) => InvalidateMap();
@@ -377,7 +377,7 @@ namespace TSMapEditor.Rendering
                 TheaterGraphics.InvalidateVoxelCache();
         }
 
-        private void Map_LightingChanged()
+        private void Map_LightingColorsRefreshed()
         {
             Color? color = EditorState.LightingPreviewState switch
             {

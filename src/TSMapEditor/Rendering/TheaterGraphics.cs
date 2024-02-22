@@ -51,11 +51,11 @@ namespace TSMapEditor.Rendering
 
         public void Dispose()
         {
-            foreach (var frame in Frames)
-                frame.Value?.Dispose();
+            foreach (var frame in Frames.Values)
+                frame?.Dispose();
 
-            foreach (var frame in RemapFrames)
-                frame.Value?.Dispose();
+            foreach (var frame in RemapFrames.Values)
+                frame?.Dispose();
         }
 
         public PositionedTexture GetFrame(byte facing, RampType ramp, bool affectedByLighting)
@@ -161,6 +161,12 @@ namespace TSMapEditor.Rendering
 
         public void ClearFrames()
         {
+            foreach (var frame in Frames.Values)
+                frame?.Dispose();
+
+            foreach (var frame in RemapFrames.Values)
+                frame?.Dispose();
+
             Frames.Clear();
             RemapFrames.Clear();
         }
@@ -610,7 +616,7 @@ namespace TSMapEditor.Rendering
 
                 byte[] data = fileManager.LoadFile(pngFileName);
 
-                bool subjectToLighting = !terrainTypes[i].SpawnsTiberium || Constants.TerrainObjectsAffectedByLighting;
+                bool subjectToLighting = !terrainTypes[i].SpawnsTiberium || Constants.TiberiumTreesAffectedByLighting;
 
                 if (data != null)
                 {
@@ -1308,10 +1314,6 @@ namespace TSMapEditor.Rendering
 
         public void ApplyLightingToPalettes(Color lighting)
         {
-            theaterPalette.ApplyLighting(lighting);
-            unitPalette.ApplyLighting(lighting);
-            tiberiumPalette.ApplyLighting(lighting);
-            animPalette.ApplyLighting(lighting);
             palettes.ForEach(p => p.ApplyLighting(lighting));
         }
 

@@ -8,7 +8,7 @@ namespace TSMapEditor.Models
     {
         private const string LightingIniSectionName = "Lighting";
 
-        public event EventHandler Changed;
+        public event EventHandler ColorsRefreshed;
 
         public double Red { get; set; }
         public double Green { get; set; }
@@ -68,7 +68,7 @@ namespace TSMapEditor.Models
             IonColor = RefreshLightingColor(IonRed, IonGreen, IonBlue, IonAmbient);
             DominatorColor = RefreshLightingColor(DominatorRed, DominatorGreen, DominatorBlue, DominatorAmbient);
 
-            Changed?.Invoke(this, EventArgs.Empty);
+            ColorsRefreshed?.Invoke(this, EventArgs.Empty);
         }
 
         private static Color RefreshLightingColor(double? red, double? green, double? blue, double? ambient)
