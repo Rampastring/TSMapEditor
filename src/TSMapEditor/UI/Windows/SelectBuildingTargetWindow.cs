@@ -16,10 +16,22 @@ namespace TSMapEditor.UI.Windows
 
         private readonly Map map;
 
+        private XNADropDown ddTarget;
+
+        public BuildingWithPropertyType Property { get; private set; }
+
         public override void Initialize()
         {
             Name = nameof(SelectBuildingTargetWindow);
             base.Initialize();
+
+            ddTarget = FindChild<XNADropDown>(nameof(ddTarget));
+            ddTarget.AddItem(new XNADropDownItem { Text = BuildingWithPropertyType.LeastThreat.ToDescription(), Tag = BuildingWithPropertyType.LeastThreat });
+            ddTarget.AddItem(new XNADropDownItem { Text = BuildingWithPropertyType.HighestThreat.ToDescription(), Tag = BuildingWithPropertyType.HighestThreat });
+            ddTarget.AddItem(new XNADropDownItem { Text = BuildingWithPropertyType.Nearest.ToDescription(), Tag = BuildingWithPropertyType.Nearest });
+            ddTarget.AddItem(new XNADropDownItem { Text = BuildingWithPropertyType.Farthest.ToDescription(), Tag = BuildingWithPropertyType.Farthest });
+            ddTarget.SelectedIndexChanged += DdTarget_SelectedIndexChanged;
+            ddTarget.SelectedIndex = 0;
         }
 
         protected override void LbObjectList_SelectedIndexChanged(object sender, EventArgs e)
@@ -33,32 +45,29 @@ namespace TSMapEditor.UI.Windows
             SelectedObject = (int)lbObjectList.SelectedItem.Tag;
         }
 
+        protected void DdTarget_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            Property = (BuildingWithPropertyType)ddTarget.SelectedItem?.Tag;
+        }
+
         protected override void ListObjects()
         {
             lbObjectList.Clear();
 
-            bool useDifferentColor = false;
-
             foreach (BuildingType buildingType in map.Rules.BuildingTypes)
             {
-                AddItem(buildingType, "Least threat", (int)BuildingWithPropertyType.LeastThreat, useDifferentColor);
-                AddItem(buildingType, "Highest threat", (int)BuildingWithPropertyType.HighestThreat, useDifferentColor);
-                AddItem(buildingType, "Nearest", (int)BuildingWithPropertyType.Nearest, useDifferentColor);
-                AddItem(buildingType, "Farthest", (int)BuildingWithPropertyType.Farthest, useDifferentColor);
+                int number = buildingType.Index;
+                lbObjectList.AddItem(new XNAListBoxItem() { Text = $"{number} {buildingType.GetEditorDisplayName()}", Tag = number });
 
-                useDifferentColor = !useDifferentColor;
+                if (SelectedObject == number)
+                    lbObjectList.SelectedIndex = lbObjectList.Items.Count - 1;
             }
         }
-
-        private void AddItem(BuildingType buildingType, string description, int targetTypeNumber, bool useDifferentColor)
+        
+        public void Open(int buildingTypeIndex, BuildingWithPropertyType property)
         {
-            Color color = useDifferentColor ? lbObjectList.DefaultItemColor * 0.7f : lbObjectList.DefaultItemColor;
-
-            int number = buildingType.Index + targetTypeNumber;
-            lbObjectList.AddItem(new XNAListBoxItem() { Text = $"{number} {buildingType.GetEditorDisplayName()} ({description})", Tag = number, TextColor = color });
-
-            if (SelectedObject == number)
-                lbObjectList.SelectedIndex = lbObjectList.Items.Count - 1;
+            Open(buildingTypeIndex);
+            Property = property;
         }
     }
 }

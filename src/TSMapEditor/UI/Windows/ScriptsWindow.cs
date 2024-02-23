@@ -112,7 +112,7 @@ namespace TSMapEditor.UI.Windows
 
             if (selectBuildingTargetWindow.SelectedObject > -1)
             {
-                tbParameterValue.Text = GetBuildingWithPropertyText(selectBuildingTargetWindow.SelectedObject);
+                tbParameterValue.Text = GetBuildingWithPropertyText(selectBuildingTargetWindow.SelectedObject, selectBuildingTargetWindow.Property);
             }
         }
 
@@ -207,7 +207,8 @@ namespace TSMapEditor.UI.Windows
             }
             else if (action.ParamType == TriggerParamType.BuildingWithProperty)
             {
-                selectBuildingTargetWindow.Open(entry.Argument);
+                var (index, property) = SplitBuildingWithProperty(entry.Argument);
+                selectBuildingTargetWindow.Open(index, property);
             }
         }
 
@@ -370,40 +371,34 @@ namespace TSMapEditor.UI.Windows
             }
         }
 
-        private string GetBuildingWithPropertyText(int argument)
+        private static Tuple<int, BuildingWithPropertyType> SplitBuildingWithProperty(int argument)
         {
-            string description = "";
-            BuildingType buildingType = null;
+            var property = argument switch
+            {
+                < (int)BuildingWithPropertyType.HighestThreat => BuildingWithPropertyType.LeastThreat,
+                < (int)BuildingWithPropertyType.Nearest => BuildingWithPropertyType.HighestThreat,
+                < (int)BuildingWithPropertyType.Farthest => BuildingWithPropertyType.Nearest,
+                _ => BuildingWithPropertyType.Farthest,
+            };
+            return new(argument - (int)property, property);
+        }
 
-            if (argument < (int)BuildingWithPropertyType.HighestThreat) // range 0x00000 - 0x0FFFF
-            {
-                buildingType = map.Rules.BuildingTypes.GetElementIfInRange(argument);
-                description = "Least threat";
-            }
-            else if (argument < (int)BuildingWithPropertyType.Nearest) // range 0x10000 - 0x1FFFF
-            {
-                buildingType = map.Rules.BuildingTypes.GetElementIfInRange(argument - (int)BuildingWithPropertyType.HighestThreat);
-                description = "Highest threat";
-            }
-            else if (argument < (int)BuildingWithPropertyType.Farthest) // range 0x20000 - 0x2FFFF
-            {
-                buildingType = map.Rules.BuildingTypes.GetElementIfInRange(argument - (int)BuildingWithPropertyType.Nearest);
-                description = "Nearest";
-            }
-            else if (argument < (int)BuildingWithPropertyType.Invalid) // range 0x30000 - 0x3FFFF
-            {
-                buildingType = map.Rules.BuildingTypes.GetElementIfInRange(argument - (int)BuildingWithPropertyType.Farthest);
-                description = "Farthest";
-            }
-            else
-            {
-                description = "";
-            }
+        private string GetBuildingWithPropertyText(int buildingTypeIndex, BuildingWithPropertyType property)
+        {
+            string description = property.ToDescription();
+            BuildingType buildingType = map.Rules.BuildingTypes.GetElementIfInRange(buildingTypeIndex);
+            int value = buildingTypeIndex + (int)property;
 
             if (buildingType == null)
-                return argument + " - invalid value";
+                return value + " - invalid value";
 
-            return argument + " - " + buildingType.GetEditorDisplayName() + " (" + description + ")";
+            return value + " - " + buildingType.GetEditorDisplayName() + " (" + description + ")";
+        }
+
+        private string GetBuildingWithPropertyText(int argument)
+        {
+            var (index, property) = SplitBuildingWithProperty(argument);
+            return GetBuildingWithPropertyText(index, property);
         }
 
         private void FillPresetContextMenu(ScriptActionEntry entry, ScriptAction action)
