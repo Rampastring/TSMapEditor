@@ -103,14 +103,7 @@ namespace TSMapEditor.UI.Windows
                 tbBlueDominator.Text = (map.Lighting.DominatorBlue ?? 0).ToString(format);
             }
 
-            ddLightingPreview.SelectedIndex = state.LightingPreviewState switch
-            {
-                LightingPreviewMode.NoLighting => 0,
-                LightingPreviewMode.Normal => 1,
-                LightingPreviewMode.IonStorm => 2,
-                LightingPreviewMode.Dominator => 3,
-                _ => throw new System.NotImplementedException(),
-            };
+            ddLightingPreview.SelectedIndex = (int)state.LightingPreviewState;
 
             Show();
         }
@@ -142,14 +135,7 @@ namespace TSMapEditor.UI.Windows
                 map.Lighting.DominatorBlue = tbBlueDominator.DoubleValue;
             }
 
-            state.LightingPreviewState = ddLightingPreview.SelectedIndex switch
-            {
-                0 => LightingPreviewMode.NoLighting,
-                1 => LightingPreviewMode.Normal,
-                2 => LightingPreviewMode.IonStorm,
-                3 => LightingPreviewMode.Dominator,
-                _ => LightingPreviewMode.NoLighting,
-            };
+            state.LightingPreviewState = (LightingPreviewMode)ddLightingPreview.SelectedIndex;
 
             map.Lighting.RefreshLightingColors();
 

@@ -221,6 +221,9 @@ namespace TSMapEditor.Rendering
             get => _lightingPreviewState;
             set
             {
+                if (!Enum.IsDefined(value.GetType(), value))
+                    value = LightingPreviewMode.NoLighting;
+
                 if (value == _lightingPreviewState)
                     return;
 

@@ -2,9 +2,9 @@
 {
     public enum LightingPreviewMode
     {
-        NoLighting,
-        Normal,
-        IonStorm,
-        Dominator,
+        NoLighting = 0,
+        Normal = 1,
+        IonStorm = 2,
+        Dominator = 3,
     }
 }
