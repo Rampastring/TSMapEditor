@@ -89,7 +89,7 @@ namespace TSMapEditor.UI.Windows
             command.Key = command.DefaultKey;
             newHotkeyInput.Key = command.Key.Key;
             newHotkeyInput.Modifiers = command.Key.Modifiers;
-            lbKeyboardCommands.GetItem(1, lbKeyboardCommands.SelectedIndex).Text = command.Key.ToString();
+            lbKeyboardCommands.GetItem(1, lbKeyboardCommands.SelectedIndex).Text = command.Key.GetKeyDisplayString(command.AllowedWithModifiersOnly);
             UpdateAlsoAssigned();
         }
 
