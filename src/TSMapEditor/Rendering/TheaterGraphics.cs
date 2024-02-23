@@ -1312,7 +1312,7 @@ namespace TSMapEditor.Rendering
             Logger.Log("Finished loading smudge textures.");
         }
 
-        public void ApplyLightingToPalettes(Color lighting)
+        public void ApplyLightingToPalettes(MapColor lighting)
         {
             palettes.ForEach(p => p.ApplyLighting(lighting));
         }

@@ -1,5 +1,6 @@
 ﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
+using TSMapEditor.Models;
 
 namespace TSMapEditor.CCEngine
 {
@@ -46,19 +47,14 @@ namespace TSMapEditor.CCEngine
             return texture;
         }
 
-        public void ApplyLighting(Color color)
+        public void ApplyLighting(MapColor color)
         {
             Color[] colorData = new Color[LENGTH];
             int last = HasFullyBrightColors ? LENGTH - 16 : 255;
 
             var adjustColor = (int i) =>
             {
-                RGBColor newColor = new
-                (
-                    (byte)((Data[i].R * color.R) / 255),
-                    (byte)((Data[i].G * color.G) / 255),
-                    (byte)((Data[i].B * color.B) / 255)
-                );
+                RGBColor newColor = Data[i] * color;
                 PaletteWithLight.Data[i] = newColor;
                 colorData[i] = newColor.ToXnaColor();
             };

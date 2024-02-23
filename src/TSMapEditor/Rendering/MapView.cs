@@ -379,7 +379,7 @@ namespace TSMapEditor.Rendering
 
         private void Map_LightingColorsRefreshed()
         {
-            Color? color = EditorState.LightingPreviewState switch
+            MapColor? color = EditorState.LightingPreviewState switch
             {
                 LightingPreviewMode.Normal => Map.Lighting.NormalColor,
                 LightingPreviewMode.IonStorm => Map.Lighting.IonColor,
@@ -390,7 +390,7 @@ namespace TSMapEditor.Rendering
             if (color == null)
                 return;
 
-            TheaterGraphics.ApplyLightingToPalettes((Color)color);
+            TheaterGraphics.ApplyLightingToPalettes((MapColor)color);
             InvalidateMapForMinimap();
             if (Constants.VoxelsAffectedByLighting)
                 TheaterGraphics.InvalidateVoxelCache();

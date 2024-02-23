@@ -1,9 +1,52 @@
-﻿using Microsoft.Xna.Framework;
-using Rampastring.Tools;
+﻿using Rampastring.Tools;
 using System;
+using Microsoft.Xna.Framework;
+using TSMapEditor.CCEngine;
 
 namespace TSMapEditor.Models
 {
+    public struct MapColor
+    {
+        public MapColor(double red, double green, double blue)
+        {
+            R = red;
+            G = green;
+            B = blue;
+        }
+
+        public double R;
+        public double G;
+        public double B;
+
+        public static MapColor operator *(MapColor value, double multiplier)
+        {
+            return new(value.R * multiplier, value.G * multiplier, value.B * multiplier);
+        }
+
+        public static Color operator *(Color left, MapColor right)
+        {
+            return new
+            (
+                (byte)Math.Clamp(left.R * right.R, 0, 255.0),
+                (byte)Math.Clamp(left.G * right.G, 0, 255.0),
+                (byte)Math.Clamp(left.B * right.B, 0, 255.0),
+                (byte)255
+            );
+        }
+
+        public static RGBColor operator *(RGBColor left, MapColor right)
+        {
+            return new
+            (
+                (byte)Math.Clamp(left.R * right.R, 0, 255.0),
+                (byte)Math.Clamp(left.G * right.G, 0, 255.0),
+                (byte)Math.Clamp(left.B * right.B, 0, 255.0)
+            );
+        }
+
+        public static readonly MapColor White = new(1.0, 1.0, 1.0);
+    }
+
     public class Lighting : INIDefineable
     {
         private const string LightingIniSectionName = "Lighting";
@@ -33,11 +76,11 @@ namespace TSMapEditor.Models
         public double? DominatorGround { get; set; }
 
         [INI(false)]
-        public Color NormalColor { get; private set; }
+        public MapColor NormalColor { get; private set; }
         [INI(false)]
-        public Color IonColor { get; private set; }
+        public MapColor IonColor { get; private set; }
         [INI(false)]
-        public Color? DominatorColor { get; private set; }
+        public MapColor? DominatorColor { get; private set; }
 
         public void ReadFromIniFile(IniFile iniFile)
         {
@@ -71,12 +114,12 @@ namespace TSMapEditor.Models
             ColorsRefreshed?.Invoke(this, EventArgs.Empty);
         }
 
-        private static Color RefreshLightingColor(double? red, double? green, double? blue, double? ambient)
+        private static MapColor RefreshLightingColor(double? red, double? green, double? blue, double? ambient)
         {
             if (red == null || green == null || blue == null || ambient == null)
-                return Color.White;
+                return MapColor.White;
 
-            return new Color((float)red, (float)green, (float)blue) * (float)ambient;
+            return new MapColor((double)red, (double)green, (double)blue) * (double)ambient;
         }
     }
 }
