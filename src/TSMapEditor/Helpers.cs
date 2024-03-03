@@ -413,6 +413,13 @@ namespace TSMapEditor
             int width = lastNonTransparentX - firstNonTransparentX;
             int height = lastNonTransparentY - firstNonTransparentY;
 
+            // If there are no visible pixels then set the texture size to 1 to avoid crashes.
+            if (width <= 0)
+                width = 1;
+
+            if (height <= 0)
+                height = 1;
+
             // Now we know the exact rectangle of the texture that is visible.
             // Create a new texture and render only the visible portion into it.
             var renderTarget = new RenderTarget2D(graphicsDevice, width, height, false, SurfaceFormat.Color, DepthFormat.None);
