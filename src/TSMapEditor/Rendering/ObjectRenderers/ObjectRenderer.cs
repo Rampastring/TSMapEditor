@@ -154,17 +154,17 @@ namespace TSMapEditor.Rendering.ObjectRenderers
                 if (frameIndex > -1 && frameIndex < drawParams.ShapeImage.GetFrameCount())
                     return drawParams.ShapeImage.GetFrame(frameIndex);
             }
-            else if (drawParams.MainVoxel?.Frames != null)
+            else if (drawParams.MainVoxel?.Frames != null && drawParams.MainVoxel.GetFrame(0, RampType.None, affectedByLighting) is var frameMain && frameMain != null)
             {
-                return drawParams.MainVoxel.GetFrame(0, RampType.None, affectedByLighting);
+                return frameMain;
             }
-            else if (drawParams.TurretVoxel?.Frames != null)
+            else if (drawParams.TurretVoxel?.Frames != null && drawParams.TurretVoxel.GetFrame(0, RampType.None, affectedByLighting) is var frameTur && frameTur != null)
             {
-                return drawParams.TurretVoxel.GetFrame(0, RampType.None, affectedByLighting);
+                return frameTur;
             }
-            else if (drawParams.BarrelVoxel?.Frames != null)
+            else if (drawParams.BarrelVoxel?.Frames != null && drawParams.BarrelVoxel.GetFrame(0, RampType.None, affectedByLighting) is var frameBarl && frameBarl != null)
             {
-                return drawParams.BarrelVoxel.GetFrame(0, RampType.None, affectedByLighting);
+                return frameBarl;
             }
 
             return null;
