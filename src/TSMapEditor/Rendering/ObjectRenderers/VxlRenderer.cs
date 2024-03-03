@@ -102,6 +102,10 @@ namespace TSMapEditor.Rendering.ObjectRenderers
                                 vpl?.GetPaletteIndex(normalIndexToVplPage[voxel.NormalIndex], voxel.ColorIndex) ??
                                 voxel.ColorIndex;
 
+                            // Don't draw first color in the palette.
+                            if (colorIndex == 0)
+                                continue;
+
                             // If we are drawing remap, draw all non-remap as magenta
                             Color color = forRemap && colorIndex is < 0x10 or > 0x1F
                                 ? Color.Magenta
