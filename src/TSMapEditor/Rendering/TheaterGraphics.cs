@@ -905,8 +905,20 @@ namespace TSMapEditor.Rendering
                 // Palette override in RA2/YR
                 // NOTE: Until we use indexed color rendering, we have to assume that a building
                 // anim will only be used as a building anim (because it forces unit palette).
-                XNAPalette palette = animType.ArtConfig.IsBuildingAnim || animType.ArtConfig.AltPalette ? unitPalette : animPalette;
-                if (!string.IsNullOrWhiteSpace(animType.ArtConfig.CustomPalette))
+
+                var parentBuildingType = animType.ArtConfig.ParentBuildingType;
+                bool useBuildingPalette = parentBuildingType != null && animType.ArtConfig.ShouldUseCellDrawer;
+                XNAPalette palette = useBuildingPalette || animType.ArtConfig.AltPalette ? unitPalette : animPalette;
+
+                if (parentBuildingType != null && parentBuildingType.ArtConfig.TerrainPalette)
+                {
+                    palette = theaterPalette;
+                }
+                else if (useBuildingPalette && !string.IsNullOrWhiteSpace(parentBuildingType.ArtConfig.Palette))
+                {
+                    palette = GetPaletteOrDefault(parentBuildingType.ArtConfig.Palette + Theater.FileExtension[1..] + ".pal", palette, true);
+                }
+                else if (!useBuildingPalette && !string.IsNullOrWhiteSpace(animType.ArtConfig.CustomPalette))
                 {
                     palette = GetPaletteOrDefault(
                         animType.ArtConfig.CustomPalette.Replace("~~~", Theater.FileExtension.Substring(1)),
@@ -952,7 +964,13 @@ namespace TSMapEditor.Rendering
                 var shpFile = new ShpFile(shpFileName);
                 shpFile.ParseFromBuffer(shpData);
 
-                UnitTextures[i] = new ShapeImage(graphicsDevice, shpFile, shpData, unitPalette, true, unitType.ArtConfig.Remapable);
+                // Palette override in RA2/YR
+                // Only actually used in-game for vehicles with Phobos enabled.
+                XNAPalette palette = unitPalette;
+                if (!string.IsNullOrWhiteSpace(unitType.ArtConfig.Palette))
+                    palette = GetPaletteOrDefault(unitType.ArtConfig.Palette + Theater.FileExtension[1..] + ".pal", palette, true);
+
+                UnitTextures[i] = new ShapeImage(graphicsDevice, shpFile, shpData, palette, true, unitType.ArtConfig.Remapable);
                 loadedTextures[shpFileName] = UnitTextures[i];
             }
 
@@ -995,7 +1013,13 @@ namespace TSMapEditor.Rendering
                 var vxlFile = new VxlFile(vxlData, unitImage);
                 var hvaFile = new HvaFile(hvaData, unitImage);
 
-                UnitModels[i] = new VoxelModel(graphicsDevice, vxlFile, hvaFile, unitPalette, unitType.ArtConfig.Remapable,
+                // Palette override in RA2/YR
+                // Only actually used in-game for vehicles with Phobos enabled.
+                XNAPalette palette = unitPalette;
+                if (!string.IsNullOrWhiteSpace(unitType.ArtConfig.Palette))
+                    palette = GetPaletteOrDefault(unitType.ArtConfig.Palette + Theater.FileExtension[1..] + ".pal", palette, true);
+
+                UnitModels[i] = new VoxelModel(graphicsDevice, vxlFile, hvaFile, palette, unitType.ArtConfig.Remapable,
                     Constants.VoxelsAffectedByLighting, vplFile);
                 loadedModels[unitImage] = UnitModels[i];
             }
@@ -1040,7 +1064,13 @@ namespace TSMapEditor.Rendering
                 var vxlFile = new VxlFile(vxlData, turretModelName);
                 var hvaFile = new HvaFile(hvaData, turretModelName);
 
-                UnitTurretModels[i] = new VoxelModel(graphicsDevice, vxlFile, hvaFile, unitPalette, unitType.ArtConfig.Remapable,
+                // Palette override in RA2/YR
+                // Only actually used in-game for vehicles with Phobos enabled.
+                XNAPalette palette = unitPalette;
+                if (!string.IsNullOrWhiteSpace(unitType.ArtConfig.Palette))
+                    palette = GetPaletteOrDefault(unitType.ArtConfig.Palette + Theater.FileExtension[1..] + ".pal", palette, true);
+
+                UnitTurretModels[i] = new VoxelModel(graphicsDevice, vxlFile, hvaFile, palette, unitType.ArtConfig.Remapable,
                     Constants.VoxelsAffectedByLighting, vplFile);
                 loadedModels[turretModelName] = UnitTurretModels[i];
             }
@@ -1085,7 +1115,13 @@ namespace TSMapEditor.Rendering
                 var vxlFile = new VxlFile(vxlData, barrelModelName);
                 var hvaFile = new HvaFile(hvaData, barrelModelName);
 
-                UnitBarrelModels[i] = new VoxelModel(graphicsDevice, vxlFile, hvaFile, unitPalette, unitType.ArtConfig.Remapable,
+                // Palette override in RA2/YR
+                // Only actually used in-game for vehicles with Phobos enabled.
+                XNAPalette palette = unitPalette;
+                if (!string.IsNullOrWhiteSpace(unitType.ArtConfig.Palette))
+                    palette = GetPaletteOrDefault(unitType.ArtConfig.Palette + Theater.FileExtension[1..] + ".pal", palette, true);
+
+                UnitBarrelModels[i] = new VoxelModel(graphicsDevice, vxlFile, hvaFile, palette, unitType.ArtConfig.Remapable,
                     Constants.VoxelsAffectedByLighting, vplFile);
                 loadedModels[barrelModelName] = UnitBarrelModels[i];
             }
@@ -1126,7 +1162,12 @@ namespace TSMapEditor.Rendering
                 var vxlFile = new VxlFile(vxlData, aircraftImage);
                 var hvaFile = new HvaFile(hvaData, aircraftImage);
 
-                AircraftModels[i] = new VoxelModel(graphicsDevice, vxlFile, hvaFile, unitPalette, aircraftType.ArtConfig.Remapable,
+                // Palette override in RA2/YR
+                XNAPalette palette = unitPalette;
+                if (!string.IsNullOrWhiteSpace(aircraftType.ArtConfig.Palette))
+                    palette = GetPaletteOrDefault(aircraftType.ArtConfig.Palette + Theater.FileExtension[1..] + ".pal", palette, true);
+
+                AircraftModels[i] = new VoxelModel(graphicsDevice, vxlFile, hvaFile, palette, aircraftType.ArtConfig.Remapable,
                     Constants.VoxelsAffectedByLighting, vplFile);
                 loadedModels[aircraftImage] = AircraftModels[i];
             }
@@ -1180,7 +1221,12 @@ namespace TSMapEditor.Rendering
                 for (int j = 0; j < regularFrameCount; j++)
                     framesToLoad.Add(framesToLoad[j] + (shpFile.FrameCount / 2));
 
-                InfantryTextures[i] = new ShapeImage(graphicsDevice, shpFile, shpData, unitPalette, true, infantryType.ArtConfig.Remapable);
+                // Palette override in RA2/YR
+                XNAPalette palette = unitPalette;
+                if (!string.IsNullOrWhiteSpace(infantryType.ArtConfig.Palette))
+                    palette = GetPaletteOrDefault(infantryType.ArtConfig.Palette + Theater.FileExtension[1..] + ".pal", palette, true);
+
+                InfantryTextures[i] = new ShapeImage(graphicsDevice, shpFile, shpData, palette, true, infantryType.ArtConfig.Remapable);
                 loadedTextures[shpFileName] = InfantryTextures[i];
             }
 
@@ -1260,6 +1306,10 @@ namespace TSMapEditor.Rendering
 
                     if (overlayType.Wall || overlayType.IsVeins)
                         palette = unitPalette;
+
+                    // Palette override for wall overlays in Phobos
+                    if (overlayType.Wall && !string.IsNullOrWhiteSpace(overlayType.ArtConfig.Palette))
+                        palette = GetPaletteOrDefault(overlayType.ArtConfig.Palette + Theater.FileExtension[1..] + ".pal", palette, true);
 
                     bool isRemapable = overlayType.Tiberium && !Constants.TheaterPaletteForTiberium;
                     bool affectedByLighting = !overlayType.Tiberium || Constants.TiberiumAffectedByLighting;

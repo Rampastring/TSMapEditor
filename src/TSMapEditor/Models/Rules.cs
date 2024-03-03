@@ -425,7 +425,7 @@ namespace TSMapEditor.Models
                 AnimType anim = AnimTypes.Find(at => at.ININame == buildingAnimConfig.ININame);
                 if (anim != null)
                 {
-                    anim.ArtConfig.IsBuildingAnim = true;
+                    anim.ArtConfig.ParentBuildingType = type;
                     anims.Add(anim);
                 }
             }
@@ -446,7 +446,7 @@ namespace TSMapEditor.Models
                 AnimType anim = AnimTypes.Find(at => at.ININame == image);
                 if (anim != null)
                 {
-                    anim.ArtConfig.IsBuildingAnim = true;
+                    anim.ArtConfig.ParentBuildingType = type;
                     powerUpAnims.Add(anim);
                 }
             }
@@ -458,7 +458,7 @@ namespace TSMapEditor.Models
                 var turretAnim = AnimTypes.Find(at => at.ININame == type.TurretAnim);
                 if (turretAnim != null)
                 {
-                    turretAnim.ArtConfig.IsBuildingAnim = true;
+                    turretAnim.ArtConfig.ParentBuildingType = type;
                     type.ArtConfig.TurretAnim = turretAnim;
                 }
             }

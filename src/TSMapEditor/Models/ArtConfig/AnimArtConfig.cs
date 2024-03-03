@@ -14,6 +14,7 @@ namespace TSMapEditor.Models.ArtConfig
         public bool Theater { get; set; }
         public bool AltPalette { get; set; }
         public string CustomPalette { get; set; } // Ares
+        public bool ShouldUseCellDrawer { get; set; } = true; // Only used by building and tile animations
         public bool Shadow { get; set; }
         public int Start { get; set; }
         public int Translucency { get; set; }
@@ -22,7 +23,9 @@ namespace TSMapEditor.Models.ArtConfig
         /// Not an INI entry. Temporarily set per-type instead of per instance until
         /// we have indexed color rendering.
         /// </summary>
-        public bool IsBuildingAnim { get; set; }
+        public BuildingType ParentBuildingType { get; set; }
+
+        public bool IsBuildingAnim => ParentBuildingType != null;
 
         public void ReadFromIniSection(IniSection iniSection)
         {
@@ -36,6 +39,7 @@ namespace TSMapEditor.Models.ArtConfig
             Theater = iniSection.GetBooleanValue(nameof(Theater), Theater);
             AltPalette = iniSection.GetBooleanValue(nameof(AltPalette), AltPalette);
             CustomPalette = iniSection.GetStringValue(nameof(CustomPalette), CustomPalette);
+            ShouldUseCellDrawer = iniSection.GetBooleanValue(nameof(ShouldUseCellDrawer), ShouldUseCellDrawer);
             Shadow = iniSection.GetBooleanValue(nameof(Shadow), Shadow);
             Start = iniSection.GetIntValue(nameof(Start), Start);
             Translucency = iniSection.GetIntValue(nameof(Translucency), Translucency);
