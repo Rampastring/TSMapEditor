@@ -58,7 +58,13 @@ namespace TSMapEditor.Rendering.ObjectRenderers
             if (checkInCamera && !IsObjectInCamera(drawingBounds))
                 return;
 
-            if (frame == null && ShouldRenderReplacementText(gameObject))
+            bool forceRender = false;
+
+            // Draw buildings that do not have main shape set.
+            if (gameObject as Structure is var structure && structure != null)
+                forceRender = structure.Anims.Length > 0 || structure.TurretAnim != null;
+
+            if ((frame == null && !forceRender) && ShouldRenderReplacementText(gameObject))
             {
                 DrawObjectReplacementText(gameObject, drawParams, drawPoint);
             }
