@@ -14,10 +14,15 @@ namespace TSMapEditor.Models.ArtConfig
         public bool Theater { get; set; }
         public bool AltPalette { get; set; }
         public string CustomPalette { get; set; } // Ares
-        public bool ShouldUseCellDrawer { get; set; } = true; // Only used by building and tile animations
         public bool Shadow { get; set; }
         public int Start { get; set; }
         public int Translucency { get; set; }
+
+        /// <summary>
+        /// Only used on building and tile animations, setting it to false makes them draw
+        /// using regular animation palette (or a custom animation palette if available).
+        /// </summary>
+        public bool ShouldUseCellDrawer { get; set; } = true;
 
         /// <summary>
         /// Not an INI entry. Temporarily set per-type instead of per instance until

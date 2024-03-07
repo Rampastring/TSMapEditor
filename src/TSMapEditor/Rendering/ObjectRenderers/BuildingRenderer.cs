@@ -76,6 +76,9 @@ namespace TSMapEditor.Rendering.ObjectRenderers
             if (gameObject.TurretAnim != null)
                 return false;
 
+            if (gameObject.Anims.Length > 0)
+                return false;
+
             return base.ShouldRenderReplacementText(gameObject);
         }
 
