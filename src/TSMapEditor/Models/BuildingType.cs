@@ -26,6 +26,11 @@ namespace TSMapEditor.Models
         public bool SensorArray { get; set; }
         public Color? RadialColor { get; set; }
         public int CloakRadiusInCells { get; set; }
+        public double LightIntensity { get; set; }
+        public int LightVisibility { get; set; }
+        public double LightRedTint { get; set; }
+        public double LightGreenTint { get; set; }
+        public double LightBlueTint { get; set; }
 
         public BuildingArtConfig ArtConfig { get; set; } = new BuildingArtConfig();
         public IArtConfig GetArtConfig() => ArtConfig;

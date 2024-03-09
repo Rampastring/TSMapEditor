@@ -260,6 +260,7 @@ namespace TSMapEditor.Rendering
             Map.MapResized += Map_MapResized;
             Map.MapHeightChanged += (s, e) => InvalidateMap();
             Map.Lighting.ColorsRefreshed += (s, e) => Map_LightingColorsRefreshed();
+            Map.CellLightingModified += Map_CellLightingModified;
 
             Map.HouseColorChanged += (s, e) => InvalidateMap();
             EditorState.HighlightImpassableCellsChanged += (s, e) => InvalidateMap();
@@ -372,8 +373,16 @@ namespace TSMapEditor.Rendering
             InvalidateMap();
         }
 
+        private void Map_CellLightingModified(object sender, EventArgs e)
+        {
+            if (EditorState.IsLighting && EditorState.LightingPreviewState != LightingPreviewMode.NoLighting)
+                Map.RefreshCellLighting(EditorState.LightingPreviewState);
+        }
+
         private void IsLightingChanged()
         {
+            Map.RefreshCellLighting(EditorState.LightingPreviewState);
+
             InvalidateMapForMinimap();
             if (Constants.VoxelsAffectedByLighting)
                 TheaterGraphics.InvalidateVoxelCache();
@@ -388,6 +397,8 @@ namespace TSMapEditor.Rendering
                 LightingPreviewMode.Dominator => Map.Lighting.DominatorColor,
                 _ => null,
             };
+
+            Map.RefreshCellLighting(EditorState.LightingPreviewState);
 
             if (color == null)
                 return;
@@ -604,7 +615,8 @@ namespace TSMapEditor.Rendering
         }
 
         private void SetPaletteEffectParams(Effect effect, float bottomDepth, float topDepth,
-            Vector2 worldTextureCoordinates, Vector2 spriteSizeToWorldSizeRatio, Texture2D depthTexture, Texture2D paletteTexture, bool usePalette)
+            Vector2 worldTextureCoordinates, Vector2 spriteSizeToWorldSizeRatio, Texture2D depthTexture, Texture2D paletteTexture, bool usePalette,
+            Vector4 lighting)
         {
             SetCommonEffectParams(effect, bottomDepth, topDepth, worldTextureCoordinates, spriteSizeToWorldSizeRatio);
 
@@ -623,6 +635,7 @@ namespace TSMapEditor.Rendering
             effect.Parameters["IsShadow"].SetValue(false);
             effect.Parameters["UsePalette"].SetValue(usePalette);
             effect.Parameters["UseRemap"].SetValue(false);
+            effect.Parameters["Lighting"].SetValue(lighting);
         }
 
         private void DoForVisibleCells(Action<MapTile> action)
@@ -827,6 +840,8 @@ namespace TSMapEditor.Rendering
                 return;
             }
 
+            Vector4 lightingColor = new Vector4((float)tile.CellLighting.R, (float)tile.CellLighting.G, (float)tile.CellLighting.B, 1.0f);
+
             float depthTop = 0f;
             float depthBottom = 0f;
 
@@ -858,7 +873,7 @@ namespace TSMapEditor.Rendering
                 if (isRenderingDepth)
                     SetDepthEffectParams(depthApplyEffect, depthBottom, depthTop, worldTextureCoordinates, spriteSizeToWorldSizeRatio, depthRenderTargetCopy);
                 else
-                    SetPaletteEffectParams(palettedColorDrawEffect, depthBottom, depthTop, worldTextureCoordinates, spriteSizeToWorldSizeRatio, depthRenderTarget, tmpImage.GetPaletteTexture(EditorState.IsLighting), usePalette);
+                    SetPaletteEffectParams(palettedColorDrawEffect, depthBottom, depthTop, worldTextureCoordinates, spriteSizeToWorldSizeRatio, depthRenderTarget, tmpImage.GetPaletteTexture(EditorState.IsLighting), usePalette, lightingColor);
 
                 DrawTexture(textureToDraw, new Rectangle(drawPoint.X, drawPoint.Y,
                     Constants.CellSizeX, Constants.CellSizeY), null, color, 0f, Vector2.Zero, SpriteEffects.None, 0f);
@@ -879,7 +894,7 @@ namespace TSMapEditor.Rendering
                 if (isRenderingDepth)
                     SetDepthEffectParams(depthApplyEffect, depthBottom, depthTop, worldTextureCoordinates, spriteSizeToWorldSizeRatio, depthRenderTargetCopy);
                 else
-                    SetPaletteEffectParams(palettedColorDrawEffect, depthBottom, depthTop, worldTextureCoordinates, spriteSizeToWorldSizeRatio, depthRenderTarget, tmpImage.GetPaletteTexture(EditorState.IsLighting), true);
+                    SetPaletteEffectParams(palettedColorDrawEffect, depthBottom, depthTop, worldTextureCoordinates, spriteSizeToWorldSizeRatio, depthRenderTarget, tmpImage.GetPaletteTexture(EditorState.IsLighting), true, lightingColor);
 
                 var exDrawRectangle = new Rectangle(exDrawPointX,
                     exDrawPointY,
@@ -1004,7 +1019,8 @@ namespace TSMapEditor.Rendering
         private void DrawBaseNodes()
         {
             Renderer.PushSettings(new SpriteBatchSettings(SpriteSortMode.Immediate, BlendState.NonPremultiplied, null, null, null, palettedColorDrawEffect));
-            SetPaletteEffectParams(palettedColorDrawEffect, 1.0f, 1.0f, Vector2.Zero, Vector2.Zero, null, null, true);
+            var lightingColor = new Vector4(1.0f, 1.0f, 1.0f, 1.0f);
+            SetPaletteEffectParams(palettedColorDrawEffect, 1.0f, 1.0f, Vector2.Zero, Vector2.Zero, null, null, true, lightingColor);
             Map.GraphicalBaseNodes.ForEach(DrawBaseNode);
             Renderer.PopSettings();
         }

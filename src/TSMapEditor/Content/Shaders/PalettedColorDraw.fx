@@ -20,6 +20,7 @@ float2 SpriteSizeToWorldSizeRatio;
 bool IsShadow;
 bool UsePalette;
 bool UseRemap;
+float4 Lighting;
 
 sampler2D SpriteTextureSampler : register(s0)
 {
@@ -98,13 +99,15 @@ float4 MainPS(VertexShaderOutput input) : COLOR
             // Brigthen it up a bit
             brightness = brightness * 1.25;
 
-            return float4(brightness, brightness, brightness, paletteColor.a) * input.Color;
+            float4 brightened = float4(brightness, brightness, brightness, paletteColor.a) * input.Color;
+
+            return brightened * Lighting;
         }
 
-        return paletteColor * input.Color;
+        return paletteColor * Lighting * input.Color;
     }
 
-    return tex * input.Color;
+    return tex * input.Color * Lighting;
 }
 
 technique SpriteDrawing

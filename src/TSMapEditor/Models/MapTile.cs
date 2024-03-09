@@ -51,6 +51,8 @@ namespace TSMapEditor.Models
         /// </summary>
         public ulong LastRefreshIndex;
 
+        public MapColor CellLighting { get; set; } = new MapColor(1.0, 1.0, 1.0);
+
 
         public void ShiftPosition(int x, int y)
         {

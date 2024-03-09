@@ -184,7 +184,7 @@ namespace TSMapEditor.Rendering
 
         public Texture2D GetPaletteTexture(bool useLighting)
         {
-            return Palette.GetTexture(useLighting);
+            return Palette.GetTexture(false);
         }
     }
 }
