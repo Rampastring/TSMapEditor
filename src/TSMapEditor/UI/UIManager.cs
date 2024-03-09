@@ -124,7 +124,7 @@ namespace TSMapEditor.UI
             editorSidebar.Height = WindowManager.RenderResolutionY - editorSidebar.Y;
             AddChild(editorSidebar);
 
-            tileSelector = new TileSelector(WindowManager, theaterGraphics, placeTerrainCursorAction, editorState);
+            tileSelector = new TileSelector(WindowManager, map, theaterGraphics, placeTerrainCursorAction, editorState);
             tileSelector.X = editorSidebar.Right;
             tileSelector.Width = WindowManager.RenderResolutionX - tileSelector.X;
             tileSelector.Height = 300;

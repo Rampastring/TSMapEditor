@@ -71,7 +71,7 @@ namespace TSMapEditor.Rendering
             if (Frames.TryGetValue(key, out PositionedTexture value))
                 return value;
 
-            Palette palette = this.palette.GetPalette(subjectToLighting && affectedByLighting);
+            Palette palette = this.palette.GetPalette();
             (Texture2D texture, Point2D offset) = VxlRenderer.Render(graphicsDevice, facing, ramp, vxl, hva, palette, vpl, forRemap: false);
             if (texture == null)
             {
@@ -99,7 +99,7 @@ namespace TSMapEditor.Rendering
             if (RemapFrames.TryGetValue(key, out PositionedTexture value))
                 return value;
 
-            Palette palette = this.palette.GetPalette(subjectToLighting && affectedByLighting);
+            Palette palette = this.palette.GetPalette();
             (Texture2D texture, Point2D offset) = VxlRenderer.Render(graphicsDevice, facing, ramp, vxl, hva, palette, vpl, forRemap: true);
             if (texture == null)
             {
@@ -228,9 +228,9 @@ namespace TSMapEditor.Rendering
             return RemapFrames[index];
         }
 
-        public Texture2D GetPaletteTexture(bool useLighting)
+        public Texture2D GetPaletteTexture()
         {
-            return Palette?.GetTexture(useLighting && SubjectToLighting);
+            return Palette?.GetTexture();
         }
 
         private void GetFrameInfoAndData(int frameIndex, out ShpFrameInfo frameInfo, out byte[] frameData)

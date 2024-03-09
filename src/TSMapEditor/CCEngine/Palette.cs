@@ -22,14 +22,14 @@ namespace TSMapEditor.CCEngine
         private Palette PaletteWithLight;
         private bool HasFullyBrightColors;
 
-        public Texture2D GetTexture(bool subjectToLighting)
+        public Texture2D GetTexture()
         {
-            return subjectToLighting ? TextureWithLight : Texture;
+            return Texture;
         }
 
-        public Palette GetPalette(bool subjectToLighting)
+        public Palette GetPalette()
         {
-            return subjectToLighting ? PaletteWithLight : this;
+            return this;
         }
 
         private Texture2D CreateTexture(GraphicsDevice graphicsDevice, Palette palette)

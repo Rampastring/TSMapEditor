@@ -1319,9 +1319,15 @@ namespace TSMapEditor.Models
 
         public void RefreshCellLighting(LightingPreviewMode lightingPreviewMode)
         {
+            if (lightingPreviewMode == LightingPreviewMode.NoLighting)
+            {
+                DoForAllValidTiles(cell => cell.CellLighting = new MapColor(1.0, 1.0, 1.0));
+                return;
+            }
+
             const double LeptonsPerCell = 256.0;
 
-            var lightSources = Structures.FindAll(s => s.ObjectType.LightVisibility > 0);
+            var lightSources = Structures.FindAll(s => s.ObjectType.LightVisibility > 0 && s.ObjectType.LightIntensity != 0);
 
             MapColor globalLightingColor = Lighting.MapColorFromPreviewMode(lightingPreviewMode);
 
@@ -1347,24 +1353,41 @@ namespace TSMapEditor.Models
 
                     double distanceRatio = 1.0 - (distanceInLeptons / building.ObjectType.LightVisibility);
 
-                    double intensity = distanceRatio * building.ObjectType.LightIntensity * 10.0;
+                    double intensity = distanceRatio * building.ObjectType.LightIntensity;
 
-                    // Calculate tint
-                    double highestComponent = Math.Max(building.ObjectType.LightRedTint, Math.Max(building.ObjectType.LightGreenTint, building.ObjectType.LightBlueTint));
-                    double redStrength = building.ObjectType.LightRedTint / highestComponent;
-                    double greenStrength = building.ObjectType.LightGreenTint / highestComponent;
-                    double blueStrength = building.ObjectType.LightBlueTint / highestComponent;
+                    // Intensity applies equally to all components and is additive in contrast to ambient.
+                    // For example, if Ambient=0.5 and LightIntensity=1.0, in a cell that is fully
+                    // lit by the light post, the overall light level becomes 0.5 + 1.0 = 1.5
 
-                    redStrength *= intensity;
-                    greenStrength *= intensity;
-                    blueStrength *= intensity;
+                    // However, intensity is relative to global lighting color!
+                    double redStrength = intensity * globalLightingColor.R;
+                    double greenStrength = intensity * globalLightingColor.G;
+                    double blueStrength = intensity * globalLightingColor.B;
+
+                    // Apply tint, it is additive.
+                    // Tint does NOT recolor intensity, but instead is additional
+                    // per-component light applied on top of intensity!
+                    redStrength += building.ObjectType.LightRedTint * distanceRatio;
+                    greenStrength += building.ObjectType.LightGreenTint * distanceRatio;
+                    blueStrength += building.ObjectType.LightBlueTint * distanceRatio;
 
                     currentR += redStrength;
                     currentG += greenStrength;
                     currentB += blueStrength;
                 }
 
-                // TODO cap lighting values to 2.0?
+                const double LightingComponentMax = 2.0;
+
+                // In case the components exceed 2.0, they are all scaled down to fit within 0.0 to 2.0
+                double highestComponentValue = Math.Max(currentR, Math.Max(currentG, currentB));
+                if (highestComponentValue > LightingComponentMax)
+                {
+                    double ratio = LightingComponentMax / highestComponentValue;
+                    currentR *= ratio;
+                    currentG *= ratio;
+                    currentB *= ratio;
+                }
+
                 cell.CellLighting = new MapColor(currentR, currentG, currentB);
             });
         }

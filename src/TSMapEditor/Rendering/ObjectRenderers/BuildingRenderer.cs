@@ -37,6 +37,7 @@ namespace TSMapEditor.Rendering.ObjectRenderers
             if (cell != null && !RenderDependencies.EditorState.Is2DMode)
                 heightOffset = cell.Level * Constants.CellHeight;
 
+            SetLighting(cell.CellLighting.ToXNAVector4Ambient());
             SetEffectParams_RGBADraw(0.0f, 0.0f, Vector2.Zero, Vector2.Zero, false);
 
             foreach (var edge in gameObject.ObjectType.ArtConfig.Foundation.Edges)

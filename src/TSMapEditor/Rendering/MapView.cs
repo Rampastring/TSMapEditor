@@ -873,7 +873,7 @@ namespace TSMapEditor.Rendering
                 if (isRenderingDepth)
                     SetDepthEffectParams(depthApplyEffect, depthBottom, depthTop, worldTextureCoordinates, spriteSizeToWorldSizeRatio, depthRenderTargetCopy);
                 else
-                    SetPaletteEffectParams(palettedColorDrawEffect, depthBottom, depthTop, worldTextureCoordinates, spriteSizeToWorldSizeRatio, depthRenderTarget, tmpImage.GetPaletteTexture(EditorState.IsLighting), usePalette, lightingColor);
+                    SetPaletteEffectParams(palettedColorDrawEffect, depthBottom, depthTop, worldTextureCoordinates, spriteSizeToWorldSizeRatio, depthRenderTarget, tmpImage.GetPaletteTexture(), usePalette, lightingColor);
 
                 DrawTexture(textureToDraw, new Rectangle(drawPoint.X, drawPoint.Y,
                     Constants.CellSizeX, Constants.CellSizeY), null, color, 0f, Vector2.Zero, SpriteEffects.None, 0f);
@@ -894,7 +894,7 @@ namespace TSMapEditor.Rendering
                 if (isRenderingDepth)
                     SetDepthEffectParams(depthApplyEffect, depthBottom, depthTop, worldTextureCoordinates, spriteSizeToWorldSizeRatio, depthRenderTargetCopy);
                 else
-                    SetPaletteEffectParams(palettedColorDrawEffect, depthBottom, depthTop, worldTextureCoordinates, spriteSizeToWorldSizeRatio, depthRenderTarget, tmpImage.GetPaletteTexture(EditorState.IsLighting), true, lightingColor);
+                    SetPaletteEffectParams(palettedColorDrawEffect, depthBottom, depthTop, worldTextureCoordinates, spriteSizeToWorldSizeRatio, depthRenderTarget, tmpImage.GetPaletteTexture(), true, lightingColor);
 
                 var exDrawRectangle = new Rectangle(exDrawPointX,
                     exDrawPointY,
@@ -1065,6 +1065,9 @@ namespace TSMapEditor.Rendering
                 return;
             }
 
+            var cell = Map.GetTile(graphicalBaseNode.BaseNode.Position);
+            var lighting = cell == null ? Vector4.One : cell.CellLighting.ToXNAVector4Ambient();
+
             Texture2D texture;
 
             if (bibGraphics != null)
@@ -1079,7 +1082,8 @@ namespace TSMapEditor.Rendering
                     int bibFinalDrawPointY = drawPoint.Y - bibFrame.ShapeHeight / 2 + bibFrame.OffsetY + Constants.CellSizeY / 2 + yDrawOffset;
 
                     palettedColorDrawEffect.Parameters["UseRemap"].SetValue(false);
-                    palettedColorDrawEffect.Parameters["PaletteTexture"].SetValue(bibGraphics.GetPaletteTexture(EditorState.IsLighting));
+                    palettedColorDrawEffect.Parameters["PaletteTexture"].SetValue(bibGraphics.GetPaletteTexture());
+                    palettedColorDrawEffect.Parameters["Lighting"].SetValue(lighting);
 
                     DrawTexture(texture, new Rectangle(
                         bibFinalDrawPointX, bibFinalDrawPointY,
@@ -1115,7 +1119,8 @@ namespace TSMapEditor.Rendering
             Rectangle drawRectangle = new Rectangle(x, y, width, height);
 
             palettedColorDrawEffect.Parameters["UseRemap"].SetValue(false);
-            palettedColorDrawEffect.Parameters["PaletteTexture"].SetValue(graphics.GetPaletteTexture(EditorState.IsLighting));
+            palettedColorDrawEffect.Parameters["PaletteTexture"].SetValue(graphics.GetPaletteTexture());
+            palettedColorDrawEffect.Parameters["Lighting"].SetValue(lighting);
 
             DrawTexture(texture, drawRectangle, nonRemapBaseNodeShade);
 

@@ -39,6 +39,10 @@ namespace TSMapEditor.Models
         public TutorialLines TutorialLines { get; set; }
         public Themes Themes { get; set; }
 
+        public double ExtraUnitLight { get; set; }
+        public double ExtraInfantryLight { get; set; }
+        public double ExtraAircraftLight { get; set; }
+
         /// <summary>
         /// Initializes rules types from an INI file.
         /// </summary>
@@ -84,6 +88,8 @@ namespace TSMapEditor.Models
                 InitTiberiums(iniFile);
 
             InitSides(iniFile);
+
+            InitAudioVisual(iniFile);
 
             if (!isMapIni)
             {
@@ -155,6 +161,18 @@ namespace TSMapEditor.Models
                 {
                     Sides.Add(kvp.Key);
                 }
+            }
+        }
+
+        private void InitAudioVisual(IniFile iniFile)
+        {
+            var audioVisualSection = iniFile.GetSection("AudioVisual");
+
+            if (audioVisualSection != null)
+            {
+                ExtraUnitLight = audioVisualSection.GetDoubleValue(nameof(ExtraUnitLight), ExtraUnitLight);
+                ExtraInfantryLight = audioVisualSection.GetDoubleValue(nameof(ExtraInfantryLight), ExtraInfantryLight);
+                ExtraAircraftLight = audioVisualSection.GetDoubleValue(nameof(ExtraAircraftLight), ExtraAircraftLight);
             }
         }
 

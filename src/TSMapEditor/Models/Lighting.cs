@@ -46,6 +46,28 @@ namespace TSMapEditor.Models
             );
         }
 
+        public Vector4 ToXNAVector4(double extraLight) => new Vector4(
+            (float)(R + extraLight),
+            (float)(G + extraLight),
+            (float)(B + extraLight),
+            1.0f);
+
+        public Vector4 ToXNAVector4() => new Vector4((float)R, (float)G, (float)B, 1.0f);
+
+        public Vector4 ToXNAVector4Ambient(double extraLight)
+        {
+            double average = ((R + G + B) / 3.0) + extraLight;
+            return new Vector4((float)average, (float)average, (float)average, 1.0f);
+        }
+
+        public Vector4 ToXNAVector4Ambient()
+        {
+            // double highestComponent = Math.Max(R, Math.Max(G, B));
+            // return new Vector4((float)highestComponent, (float)highestComponent, (float)highestComponent, 1.0f);
+            double average = (R + G + B) / 3.0;
+            return new Vector4((float)average, (float)average, (float)average, 1.0f);
+        }
+
         public static readonly MapColor White = new(1.0, 1.0, 1.0);
     }
 

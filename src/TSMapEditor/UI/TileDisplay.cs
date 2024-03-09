@@ -6,6 +6,7 @@ using Rampastring.XNAUI.XNAControls;
 using System;
 using System.Collections.Generic;
 using TSMapEditor.CCEngine;
+using TSMapEditor.Models;
 using TSMapEditor.Rendering;
 using TSMapEditor.UI.CursorActions;
 
@@ -35,7 +36,7 @@ namespace TSMapEditor.UI
         private const int SCROLL_RATE = 10;
         private const int KEYBOARD_SCROLL_RATE = 400;
 
-        public TileDisplay(WindowManager windowManager, TheaterGraphics theaterGraphics,
+        public TileDisplay(WindowManager windowManager, Map map, TheaterGraphics theaterGraphics,
             PlaceTerrainCursorAction placeTerrainCursorAction, EditorState editorState) : base(windowManager)
         {
             this.theaterGraphics = theaterGraphics;
@@ -60,6 +61,7 @@ namespace TSMapEditor.UI
             }
         }
 
+        private readonly Map map;
         private readonly TheaterGraphics theaterGraphics;
 
         private TileSet tileSet;
@@ -321,7 +323,11 @@ namespace TSMapEditor.UI
 
                     if (!paletteTextureSet)
                     {
-                        palettedDrawEffect.Parameters["PaletteTexture"].SetValue(image.GetPaletteTexture(editorState.IsLighting));
+                        palettedDrawEffect.Parameters["PaletteTexture"].SetValue(image.GetPaletteTexture());
+
+                        if (editorState.IsLighting)
+                            palettedDrawEffect.Parameters["Lighting"].SetValue(map.Lighting.MapColorFromPreviewMode(editorState.LightingPreviewState).ToXNAVector4());
+
                         paletteTextureSet = true;
                     }
 

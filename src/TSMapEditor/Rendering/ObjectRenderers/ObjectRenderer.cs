@@ -233,6 +233,11 @@ namespace TSMapEditor.Rendering.ObjectRenderers
             RenderDependencies.PalettedColorDrawEffect.Parameters["UseRemap"].SetValue(false); // Disable remap by default
         }
 
+        protected void SetLighting(Vector4 lighting)
+        {
+            RenderDependencies.PalettedColorDrawEffect.Parameters["Lighting"].SetValue(lighting);
+        }
+
         protected virtual void DrawShadow(T gameObject, in CommonDrawParams drawParams, Point2D drawPoint, int heightOffset)
         {
             if (drawParams.ShapeImage == null)
@@ -260,16 +265,41 @@ namespace TSMapEditor.Rendering.ObjectRenderers
             if (drawRemap && image.HasRemapFrames())
                 remapFrame = image.GetRemapFrame(frameIndex);
 
-            if (affectedByAmbient)
-            {
-                color = ScaleColorToAmbient(color);
-                remapColor = ScaleColorToAmbient(remapColor);
-            }
-
             Rectangle drawingBounds = GetTextureDrawCoords(gameObject, frame, drawPoint);
 
+            double extraLight = 0.0;
+            switch (gameObject.WhatAmI())
+            {
+                case RTTIType.Unit:
+                    extraLight = Map.Rules.ExtraUnitLight;
+                    break;
+                case RTTIType.Infantry:
+                    extraLight = Map.Rules.ExtraInfantryLight;
+                    break;
+                case RTTIType.Aircraft:
+                    extraLight = Map.Rules.ExtraAircraftLight;
+                    break;
+            }
+
+            Vector4 lighting = Vector4.One;
+            var mapCell = Map.GetTile(gameObject.Position);
+
+            if (mapCell != null)
+            {
+                if (affectedByLighting && image.SubjectToLighting)
+                {
+                    lighting = mapCell.CellLighting.ToXNAVector4(extraLight);
+                }
+                else if (affectedByAmbient)
+                {
+                    lighting = mapCell.CellLighting.ToXNAVector4Ambient(extraLight);
+                }
+            }
+
+            remapColor = ScaleColorToAmbient(remapColor, mapCell.CellLighting);
+
             RenderFrame(frame, remapFrame, color, drawRemap, remapColor, isShadow,
-                drawingBounds.X, drawingBounds.Y, heightOffset, image.GetPaletteTexture(affectedByLighting));
+                drawingBounds.X, drawingBounds.Y, heightOffset, image.GetPaletteTexture(), lighting);
         }
 
         protected void DrawVoxelModel(T gameObject, in CommonDrawParams drawParams, VoxelModel model,
@@ -278,27 +308,60 @@ namespace TSMapEditor.Rendering.ObjectRenderers
             if (model == null)
                 return;
 
-            PositionedTexture frame = model.GetFrame(facing, ramp, affectedByLighting);
+            PositionedTexture frame = model.GetFrame(facing, ramp, false);
             if (frame == null || frame.Texture == null)
                 return;
 
             PositionedTexture remapFrame = null;
             if (drawRemap)
-                remapFrame = model.GetRemapFrame(facing, ramp, affectedByLighting);
+                remapFrame = model.GetRemapFrame(facing, ramp, false);
+
+            double extraLight = 0.0;
+            switch (gameObject.WhatAmI())
+            {
+                case RTTIType.Unit:
+                    extraLight = Map.Rules.ExtraUnitLight;
+                    break;
+                case RTTIType.Infantry:
+                    extraLight = Map.Rules.ExtraInfantryLight;
+                    break;
+                case RTTIType.Aircraft:
+                    extraLight = Map.Rules.ExtraAircraftLight;
+                    break;
+            }
+
+            Vector4 lighting = Vector4.One;
+            var mapCell = Map.GetTile(gameObject.Position);
+
+            if (mapCell != null)
+            {
+                if (affectedByLighting)
+                {
+                    lighting = mapCell.CellLighting.ToXNAVector4(extraLight);
+                }
+                else
+                {
+                    lighting = mapCell.CellLighting.ToXNAVector4Ambient(extraLight);
+                }
+            }
+
+            remapColor = ScaleColorToAmbient(remapColor, mapCell.CellLighting);
 
             Rectangle drawingBounds = GetTextureDrawCoords(gameObject, frame, drawPoint);
 
             RenderFrame(frame, remapFrame, color, drawRemap, remapColor, false,
-                drawingBounds.X, drawingBounds.Y, heightOffset, null);
+                drawingBounds.X, drawingBounds.Y, heightOffset, null, lighting);
         }
 
         private void RenderFrame(PositionedTexture frame, PositionedTexture remapFrame, Color color, bool drawRemap, Color remapColor,
             bool isShadow,
-            int finalDrawPointX, int finalDrawPointY, int heightOffset, Texture2D paletteTexture)
+            int finalDrawPointX, int finalDrawPointY, int heightOffset, Texture2D paletteTexture, Vector4 lightingColor)
         {
             Texture2D texture = frame.Texture;
 
             ApplyShaderEffectValues(texture, new Point2D(finalDrawPointX, finalDrawPointY), heightOffset, isShadow, paletteTexture);
+
+            SetLighting(lightingColor);
 
             Renderer.DrawTexture(texture, 
                 new Rectangle(finalDrawPointX, finalDrawPointY, texture.Width, texture.Height),
@@ -340,16 +403,13 @@ namespace TSMapEditor.Rendering.ObjectRenderers
         protected void DrawLine(Vector2 start, Vector2 end, Color color, int thickness = 1, float depth = 0f)
             => Renderer.DrawLine(start, end, color, thickness, depth);
 
-        protected Color ScaleColorToAmbient(Color color)
+        protected Color ScaleColorToAmbient(Color color, MapColor mapColor)
         {
-            if (!RenderDependencies.EditorState.IsLighting)
-                return color;
+            double highestComponent = Math.Max(mapColor.R, Math.Max(mapColor.G, mapColor.B));
 
-            double ambient = Map.Lighting.AmbientLevelFromPreviewMode(RenderDependencies.EditorState.LightingPreviewState, 0);
-
-            return new Color((int)(color.R * ambient),
-                (int)(color.G * ambient),
-                (int)(color.B * ambient),
+            return new Color((int)(color.R * highestComponent),
+                (int)(color.G * highestComponent),
+                (int)(color.B * highestComponent),
                 color.A);
         }
     }

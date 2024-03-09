@@ -182,9 +182,9 @@ namespace TSMapEditor.Rendering
             return texture;
         }
 
-        public Texture2D GetPaletteTexture(bool useLighting)
+        public Texture2D GetPaletteTexture()
         {
-            return Palette.GetTexture(false);
+            return Palette.GetTexture();
         }
     }
 }
