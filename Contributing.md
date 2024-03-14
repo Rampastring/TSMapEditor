@@ -1,3 +1,5 @@
+**English** · [简体中文](./Contributing-zhCN.md)
+
 # Contributing
 
 This file lists the contributing guidelines that are used in the project.
