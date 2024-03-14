@@ -1,4 +1,5 @@
 # C&C World-Altering Editor (WAE)
+**English** · [简体中文](./README-zhCN.md)
 
 Modern open-source map and scenario editor for
 
