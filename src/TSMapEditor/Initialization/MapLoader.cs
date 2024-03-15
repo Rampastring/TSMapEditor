@@ -939,7 +939,7 @@ namespace TSMapEditor.Initialization
 
                 if (!Helpers.IsStringNoneValue(parts[14]) )
                 {
-                    aiTriggerType.SecondaryTeam = map.TeamTypes.Concat(map.Rules.TeamTypes).First(tt => tt.ININame == parts[14]);
+                    aiTriggerType.SecondaryTeam = map.TeamTypes.Concat(map.Rules.TeamTypes).FirstOrDefault(tt => tt.ININame == parts[14]);
 
                     if (aiTriggerType.SecondaryTeam == null)
                     {

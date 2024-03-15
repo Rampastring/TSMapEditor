@@ -12,6 +12,8 @@ namespace TSMapEditor.UI.Sidebar
     /// </summary>
     public class UnitListPanel : ObjectListPanel
     {
+        private const byte FacingSouthEast = 64;
+
         public UnitListPanel(WindowManager windowManager, EditorState editorState, Map map, TheaterGraphics theaterGraphics, ICursorActionTarget cursorActionTarget, bool isNaval) : base(windowManager, editorState, map, theaterGraphics)
         {
             unitPlacementAction = new UnitPlacementAction(cursorActionTarget, Keyboard);
@@ -30,15 +32,41 @@ namespace TSMapEditor.UI.Sidebar
 
         private RenderTarget2D renderTarget;
 
+        private (Texture2D regular, Texture2D remap) GetTexturesForSHP(UnitType unitType, ShapeImage[] textures)
+        {
+            Texture2D texture = null;
+            Texture2D remapTexture = null;
+
+            if (textures != null)
+            {
+                if (textures[unitType.Index] != null)
+                {
+                    int frameCount = textures[unitType.Index].GetFrameCount();
+                    var unit = new Unit(unitType);
+                    unit.Facing = FacingSouthEast;
+
+                    int frameIndex = unit.GetFrameIndex(frameCount);
+
+                    var frame = textures[unitType.Index].GetFrame(frameIndex);
+                    if (frame != null)
+                    {
+                        texture = textures[unitType.Index].GetTextureForFrame_RGBA(frameIndex);
+                        if (unitType.GetArtConfig().Remapable && textures[unitType.Index].HasRemapFrames())
+                            remapTexture = textures[unitType.Index].GetRemapTextureForFrame_RGBA(frameIndex);
+                    }
+                }
+            }
+
+            return (texture, remapTexture);
+        }
+
         protected override (Texture2D regular, Texture2D remap) GetObjectTextures<T>(T objectType, ShapeImage[] textures)
         {
-            const byte facingSouthEast = 64;
-
             var unitType = objectType as UnitType;
             if (unitType.ArtConfig.Voxel)
-                return GetTextureForVoxel(objectType, TheaterGraphics.UnitModels, renderTarget, facingSouthEast);
+                return GetTextureForVoxel(objectType, TheaterGraphics.UnitModels, renderTarget, FacingSouthEast);
 
-            return base.GetObjectTextures(objectType, textures);
+            return GetTexturesForSHP(unitType, textures);
         }
 
         protected override void InitObjects()
