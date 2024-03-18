@@ -9,7 +9,7 @@ namespace TSMapEditor.GameMath
     /// </summary>
     public static class CellMath
     {
-        public static Point2D CellTopLeftPointFromCellCoords(Point2D cellCoords, Map map)
+        public static Point2D CellTopLeftPointFromCellCoords_NoBaseline(Point2D cellCoords, Map map)
         {
             int cx = (cellCoords.X - 1) * (Constants.CellSizeX / 2);
             int cy = (cellCoords.X - 1) * (Constants.CellSizeY / 2);
@@ -17,7 +17,27 @@ namespace TSMapEditor.GameMath
             int diff = map.Size.X - cellCoords.Y;
             cx += diff * (Constants.CellSizeX / 2);
             cy -= diff * (Constants.CellSizeY / 2);
+
             return new Point2D(cx, cy);
+        }
+
+        public static Point2D CellTopLeftPointFromCellCoords(Point2D cellCoords, Map map)
+        {
+            Point2D noBaseline = CellTopLeftPointFromCellCoords_NoBaseline(cellCoords, map);
+
+            // Include height baseline, this function is typically used for graphics
+            return new Point2D(noBaseline.X, noBaseline.Y + Constants.MapYBaseline);
+        }
+
+        public static Point2D CellTopLeftPointFromCellCoords_3D_NoBaseline(Point2D cellCoords, Map map)
+        {
+            var cell = map.GetTile(cellCoords);
+
+            if (cell == null)
+                return CellTopLeftPointFromCellCoords_NoBaseline(cellCoords, map);
+
+            Point2D preHeightCoords = CellTopLeftPointFromCellCoords_NoBaseline(cellCoords, map);
+            return preHeightCoords - new Point2D(0, cell.Level * Constants.CellHeight);
         }
 
         public static Point2D CellTopLeftPointFromCellCoords_3D(Point2D cellCoords, Map map)
@@ -31,8 +51,22 @@ namespace TSMapEditor.GameMath
             return preHeightCoords - new Point2D(0, cell.Level * Constants.CellHeight);
         }
 
+        public static Point2D CellCenterPointFromCellCoords_NoBaseline(Point2D cellCoords, Map map)
+            => CellTopLeftPointFromCellCoords_NoBaseline(cellCoords, map) + new Point2D(Constants.CellSizeX / 2, Constants.CellSizeY / 2);
+
         public static Point2D CellCenterPointFromCellCoords(Point2D cellCoords, Map map)
             => CellTopLeftPointFromCellCoords(cellCoords, map) + new Point2D(Constants.CellSizeX / 2, Constants.CellSizeY / 2);
+
+        public static Point2D CellCenterPointFromCellCoords_3D_NoBaseline(Point2D cellCoords, Map map)
+        {
+            var cell = map.GetTile(cellCoords);
+
+            if (cell == null)
+                return CellCenterPointFromCellCoords_NoBaseline(cellCoords, map);
+
+            Point2D preHeightCoords = CellCenterPointFromCellCoords_NoBaseline(cellCoords, map);
+            return preHeightCoords - new Point2D(0, cell.Level * Constants.CellHeight);
+        }
 
         public static Point2D CellCenterPointFromCellCoords_3D(Point2D cellCoords, Map map)
         {
@@ -83,6 +117,7 @@ namespace TSMapEditor.GameMath
         /// <param name="map">The map.</param>
         /// <param name="seethrough">Whether we should "see through" walls in the game world, such as cliffs,
         /// allowing us to reach cells that are behind cliffs.</param>
+        /// <param name="includeHeightBaseline">Should the "height padding area" at the top of the map be taken into account?</param>
         public static Point2D CellCoordsFromPixelCoords(Point2D pixelCoords, Map map, bool seethrough = true)
         {
             Point2D coords2D = CellCoordsFromPixelCoords_2D(pixelCoords, map);
@@ -114,7 +149,7 @@ namespace TSMapEditor.GameMath
 
                         if (otherCell != null)
                         {
-                            var centerCoords = CellCenterPointFromCellCoords_3D(otherCellCoords, map);
+                            var centerCoords = CellCenterPointFromCellCoords_3D_NoBaseline(otherCellCoords, map);
 
                             // Take isometric perspective into account
                             centerCoords = new Point2D(centerCoords.X / 2, centerCoords.Y);
@@ -150,7 +185,7 @@ namespace TSMapEditor.GameMath
                             {
                                 for (int h = 0; h < otherCell.Level; h++)
                                 {
-                                    centerCoords = CellCenterPointFromCellCoords(otherCellCoords, map);
+                                    centerCoords = CellCenterPointFromCellCoords_NoBaseline(otherCellCoords, map);
                                     centerCoords = new Point2D(centerCoords.X / 2, centerCoords.Y - Constants.CellHeight * h);
 
                                     distance = Vector2.Distance(centerCoords.ToXNAVector(), worldCoordsNonIsometric);

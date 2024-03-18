@@ -387,13 +387,13 @@ namespace TSMapEditor.Rendering.ObjectRenderers
         {
             int depthOffset = Constants.CellSizeY;
 
-            float depthTop = (finalDrawPoint.Y + heightOffset + depthOffset) / (float)Map.HeightInPixels;
-            float depthBottom = (finalDrawPoint.Y + heightOffset + texture.Height + depthOffset) / (float)Map.HeightInPixels;
+            float depthTop = (finalDrawPoint.Y + heightOffset + depthOffset) / (float)Map.HeightInPixelsWithCellHeight;
+            float depthBottom = (finalDrawPoint.Y + heightOffset + texture.Height + depthOffset) / (float)Map.HeightInPixelsWithCellHeight;
             depthTop = 1.0f - depthTop;
             depthBottom = 1.0f - depthBottom;
 
-            Vector2 worldTextureCoordinates = new Vector2(finalDrawPoint.X / (float)Map.WidthInPixels, finalDrawPoint.Y / (float)Map.HeightInPixels);
-            Vector2 spriteSizeToWorldSizeRatio = new Vector2(texture.Width / (float)Map.WidthInPixels, texture.Height / (float)Map.HeightInPixels);
+            Vector2 worldTextureCoordinates = new Vector2(finalDrawPoint.X / (float)Map.WidthInPixels, finalDrawPoint.Y / (float)Map.HeightInPixelsWithCellHeight);
+            Vector2 spriteSizeToWorldSizeRatio = new Vector2(texture.Width / (float)Map.WidthInPixels, texture.Height / (float)Map.HeightInPixelsWithCellHeight);
 
             if (paletteTexture == null)
                 SetEffectParams_RGBADraw(depthBottom, depthTop, worldTextureCoordinates, spriteSizeToWorldSizeRatio, isShadow);

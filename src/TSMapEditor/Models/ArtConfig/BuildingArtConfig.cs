@@ -309,6 +309,12 @@ namespace TSMapEditor.Models.ArtConfig
             }
         }
 
+        /// <summary>
+        /// Performs an action for all cells of the building's foundation.
+        /// Does NOT do anything for buildings with 0x0 foundations.
+        /// If the action is also desired for them, call
+        /// <see cref="DoForFoundationCoordsOrOrigin(Action{Point2D})"/> instead.
+        /// </summary>
         public void DoForFoundationCoords(Action<Point2D> action)
         {
             if (Foundation.FoundationCells == null)
@@ -318,6 +324,11 @@ namespace TSMapEditor.Models.ArtConfig
                 action(cell);
         }
 
+        /// <summary>
+        /// Performs an action for all cells of the building's foundation.
+        /// If the building's foundation is 0x0, then performs the action
+        /// for the building's origin cell (offet 0,0) only.
+        /// </summary>
         public void DoForFoundationCoordsOrOrigin(Action<Point2D> action)
         {
             if (Foundation.Width == 0 || Foundation.Height == 0)

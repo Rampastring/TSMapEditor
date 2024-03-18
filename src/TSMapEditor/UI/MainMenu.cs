@@ -62,6 +62,16 @@ namespace TSMapEditor.UI
             {
                 ReadGameInstallDirectoryFromRegistry();
             }
+
+#if DEBUG
+            // When debugging we might often switch between configs - make it a bit more convenient
+            string expectedPath = Path.Combine(tbGameDirectory.Text, Constants.ExpectedClientExecutableName);
+            if (!File.Exists(expectedPath))
+            {
+                ReadGameInstallDirectoryFromRegistry();
+            }
+#endif
+
             tbGameDirectory.TextChanged += TbGameDirectory_TextChanged;
             AddChild(tbGameDirectory);
 

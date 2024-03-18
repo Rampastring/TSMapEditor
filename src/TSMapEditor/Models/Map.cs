@@ -170,6 +170,8 @@ namespace TSMapEditor.Models
 
         public int HeightInPixels => Size.Y * Constants.CellSizeY;
 
+        public int HeightInPixelsWithCellHeight => Size.Y * Constants.CellSizeY + Constants.MapYBaseline;
+
         public string TheaterName { get; set; }
         public ITheater TheaterInstance { get; set; }
         public string LoadedTheaterName => TheaterInstance.Theater.UIName;
@@ -870,7 +872,7 @@ namespace TSMapEditor.Models
 
         public void PlaceBuilding(Structure structure)
         {
-            structure.ObjectType.ArtConfig.DoForFoundationCoords(offset =>
+            structure.ObjectType.ArtConfig.DoForFoundationCoordsOrOrigin(offset =>
             {
                 var cell = GetTile(structure.Position + offset);
                 if (cell == null)
@@ -878,11 +880,6 @@ namespace TSMapEditor.Models
 
                 cell.Structures.Add(structure);
             });
-
-            if (structure.ObjectType.ArtConfig.Foundation.FoundationCells.Length == 0)
-            {
-                GetTile(structure.Position).Structures.Add(structure);
-            }
             
             Structures.Add(structure);
             CheckForLightingChange(structure);
@@ -906,7 +903,7 @@ namespace TSMapEditor.Models
 
         public void RemoveBuilding(Structure structure, bool updateLighting = true)
         {
-            structure.ObjectType.ArtConfig.DoForFoundationCoords(offset =>
+            structure.ObjectType.ArtConfig.DoForFoundationCoordsOrOrigin(offset =>
             {
                 var cell = GetTile(structure.Position + offset);
                 if (cell == null)
@@ -915,11 +912,6 @@ namespace TSMapEditor.Models
                 if (cell.Structures.Contains(structure))
                     cell.Structures.Remove(structure);
             });
-
-            if (structure.ObjectType.ArtConfig.Foundation.Width == 0 && structure.ObjectType.ArtConfig.Foundation.Height == 0)
-            {
-                GetTile(structure.Position).Structures.Remove(structure);
-            }
 
             Structures.Remove(structure);
 
@@ -1098,9 +1090,11 @@ namespace TSMapEditor.Models
 
             if (movable.WhatAmI() == RTTIType.Building)
             {
+                var buildingArtConfig = ((Structure)movable).ObjectType.ArtConfig;
+
                 bool canPlace = true;
 
-                ((Structure)movable).ObjectType.ArtConfig.DoForFoundationCoords(offset =>
+                buildingArtConfig.DoForFoundationCoordsOrOrigin(offset =>
                 {
                     MapTile foundationCell = GetTile(newCoords + offset);
                     if (foundationCell == null)

@@ -43,10 +43,19 @@ namespace TSMapEditor.Mutations.Classes.HeightMutations
                 int height = targetCell.Level;
                 BrushSize.DoForBrushSize(offset =>
                 {
+                    if (!canCreateSmallHill)
+                        return;
+
                     var otherCellCoords = OriginCell + offset;
                     var otherCell = Map.GetTile(otherCellCoords);
+                    if (otherCell == null)
+                    {
+                        canCreateSmallHill = false;
+                        return;
+                    }
+
                     var subTile = Map.TheaterInstance.GetTile(otherCell.TileIndex).GetSubTile(otherCell.SubTileIndex);
-                    if (otherCell == null || !IsCellMorphable(otherCell) || otherCell.Level != height || subTile.TmpImage.RampType != RampType.None)
+                    if (!IsCellMorphable(otherCell) || otherCell.Level != height || subTile.TmpImage.RampType != RampType.None)
                         canCreateSmallHill = false;
                 });
 

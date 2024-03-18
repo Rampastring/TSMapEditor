@@ -497,7 +497,7 @@ namespace TSMapEditor.Rendering
         {
            return new RenderTarget2D(GraphicsDevice,
                Map.WidthInPixels,
-               Map.HeightInPixels, false, surfaceFormat,
+               Map.HeightInPixels + (Constants.CellHeight * Constants.MaxMapHeightLevel), false, surfaceFormat,
                depthFormat, 0, RenderTargetUsage.PreserveContents);
         }
 
@@ -647,7 +647,7 @@ namespace TSMapEditor.Rendering
             {
                 // If the minimap needs a full refresh, then we need to re-render the whole map
                 tlX = 0;
-                tlY = 0;
+                tlY = -Constants.MapYBaseline;
                 camRight = mapRenderTarget.Width;
                 camBottom = mapRenderTarget.Height;
             }
@@ -656,7 +656,7 @@ namespace TSMapEditor.Rendering
                 // Otherwise, screen contents will do.
                 // Add some padding to take objects just outside of the visible screen to account
                 tlX = Camera.TopLeftPoint.X - Constants.RenderPixelPadding;
-                tlY = Camera.TopLeftPoint.Y - Constants.RenderPixelPadding;
+                tlY = Camera.TopLeftPoint.Y - Constants.RenderPixelPadding - Constants.MapYBaseline;
 
                 if (tlX < 0)
                     tlX = 0;
@@ -720,7 +720,7 @@ namespace TSMapEditor.Rendering
         public int GetCameraRightXCoord() => Math.Min(Camera.TopLeftPoint.X + GetCameraWidth(), Map.Size.X * Constants.CellSizeX);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public int GetCameraBottomYCoord() => Math.Min(Camera.TopLeftPoint.Y + GetCameraHeight(), Map.Size.Y * Constants.CellSizeY);
+        public int GetCameraBottomYCoord() => Math.Min(Camera.TopLeftPoint.Y + GetCameraHeight(), Map.Size.Y * Constants.CellSizeY + Constants.MapYBaseline);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Rectangle GetCameraRectangle() => new Rectangle(Camera.TopLeftPoint.X, Camera.TopLeftPoint.Y, GetCameraWidth(), GetCameraHeight());
@@ -845,13 +845,13 @@ namespace TSMapEditor.Rendering
 
             if (tmpImage.Texture != null)
             {
-                depthTop = originalDrawPointY / (float)Map.HeightInPixels;
-                depthBottom = (originalDrawPointY + tmpImage.Texture.Height) / (float)Map.HeightInPixels;
+                depthTop = originalDrawPointY / (float)Map.HeightInPixelsWithCellHeight;
+                depthBottom = (originalDrawPointY + tmpImage.Texture.Height) / (float)Map.HeightInPixelsWithCellHeight;
                 depthTop = 1.0f - depthTop;
                 depthBottom = 1.0f - depthBottom;
 
-                Vector2 worldTextureCoordinates = new Vector2(drawPoint.X / (float)Map.WidthInPixels, drawPoint.Y / (float)Map.HeightInPixels);
-                Vector2 spriteSizeToWorldSizeRatio = new Vector2(Constants.CellSizeX / (float)Map.WidthInPixels, Constants.CellSizeY / (float)Map.HeightInPixels);
+                Vector2 worldTextureCoordinates = new Vector2(drawPoint.X / (float)Map.WidthInPixels, drawPoint.Y / (float)Map.HeightInPixelsWithCellHeight);
+                Vector2 spriteSizeToWorldSizeRatio = new Vector2(Constants.CellSizeX / (float)Map.WidthInPixels, Constants.CellSizeY / (float)Map.HeightInPixelsWithCellHeight);
 
                 var textureToDraw = tmpImage.Texture;
                 Color color = Color.White;
@@ -886,8 +886,8 @@ namespace TSMapEditor.Rendering
                 int exDrawPointX = drawPoint.X + tmpImage.TmpImage.XExtra - tmpImage.TmpImage.X;
                 int exDrawPointY = drawPoint.Y + tmpImage.TmpImage.YExtra - tmpImage.TmpImage.Y;
 
-                Vector2 worldTextureCoordinates = new Vector2(exDrawPointX / (float)Map.WidthInPixels, exDrawPointY / (float)Map.HeightInPixels);
-                Vector2 spriteSizeToWorldSizeRatio = new Vector2(tmpImage.ExtraTexture.Width / (float)Map.WidthInPixels, tmpImage.ExtraTexture.Height / (float)Map.HeightInPixels);
+                Vector2 worldTextureCoordinates = new Vector2(exDrawPointX / (float)Map.WidthInPixels, exDrawPointY / (float)Map.HeightInPixelsWithCellHeight);
+                Vector2 spriteSizeToWorldSizeRatio = new Vector2(tmpImage.ExtraTexture.Width / (float)Map.WidthInPixels, tmpImage.ExtraTexture.Height / (float)Map.HeightInPixelsWithCellHeight);
 
                 if (isRenderingDepth)
                     SetDepthEffectParams(depthApplyEffect, depthBottom, depthTop, worldTextureCoordinates, spriteSizeToWorldSizeRatio, depthRenderTargetCopy);
@@ -1169,7 +1169,7 @@ namespace TSMapEditor.Rendering
             const double HeightAddition = 4.5; // TS engine adds 4.5 to specified map height <3
 
             int x = (int)(Map.LocalSize.X * Constants.CellSizeX);
-            int y = (int)(Map.LocalSize.Y - InitialHeight) * Constants.CellSizeY;
+            int y = (int)(Map.LocalSize.Y - InitialHeight) * Constants.CellSizeY + Constants.MapYBaseline;
             int width = (int)(Map.LocalSize.Width * Constants.CellSizeX);
             int height = (int)(Map.LocalSize.Height + HeightAddition) * Constants.CellSizeY;
 
@@ -1491,7 +1491,7 @@ namespace TSMapEditor.Rendering
         {
             Point cursorPoint = GetCursorPoint();
             Point2D cursorMapPoint = new Point2D(Camera.TopLeftPoint.X + (int)(cursorPoint.X / Camera.ZoomLevel),
-                    Camera.TopLeftPoint.Y + (int)(cursorPoint.Y / Camera.ZoomLevel));
+                    Camera.TopLeftPoint.Y - Constants.MapYBaseline + (int)(cursorPoint.Y / Camera.ZoomLevel));
 
             return cursorMapPoint;
         }
@@ -1665,7 +1665,9 @@ namespace TSMapEditor.Rendering
                 return;
             }
 
-            Point2D cellTopLeftPoint = CellMath.CellTopLeftPointFromCellCoords_3D(cell.CoordsToPoint(), Map);
+            Point2D cellTopLeftPoint = EditorState.Is2DMode ?
+                CellMath.CellTopLeftPointFromCellCoords(cell.CoordsToPoint(), Map) :
+                CellMath.CellTopLeftPointFromCellCoords_3D(cell.CoordsToPoint(), Map);
 
             DrawTexture(EditorGraphics.ImpassableCellHighlightTexture, cellTopLeftPoint.ToXNAPoint(), Color.White);
         }
@@ -1675,7 +1677,9 @@ namespace TSMapEditor.Rendering
             if (cell.IceGrowth <= 0)
                 return;
 
-            Point2D cellTopLeftPoint = CellMath.CellTopLeftPointFromCellCoords(cell.CoordsToPoint(), Map);
+            Point2D cellTopLeftPoint = EditorState.Is2DMode ?
+                CellMath.CellTopLeftPointFromCellCoords(cell.CoordsToPoint(), Map) :
+                CellMath.CellTopLeftPointFromCellCoords_3D(cell.CoordsToPoint(), Map);
 
             DrawTexture(EditorGraphics.IceGrowthHighlightTexture, cellTopLeftPoint.ToXNAPoint(), Color.White);
         }

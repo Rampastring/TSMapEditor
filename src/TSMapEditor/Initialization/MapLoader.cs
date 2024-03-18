@@ -733,8 +733,26 @@ namespace TSMapEditor.Initialization
                 var tile = map.GetTile(waypoint.Position.X, waypoint.Position.Y);
                 if (tile == null)
                 {
-                    AddMapLoadError($"Waypoint {waypoint.Identifier} at {waypoint.Position} is not within the valid map area.");
-                    continue;
+                    Point2D oldPosition = waypoint.Position;
+
+                    // Find new cell to move waypoint to
+                    // Lazy and inefficient implementation, but waypoints outside the map aren't common
+                    int lowestDistance = int.MaxValue;
+                    Point2D nearestCell = Point2D.NegativeOne;
+                    map.DoForAllValidTiles(cell =>
+                    {
+                        int distance = cell.CoordsToPoint().DistanceTo(waypoint.Position);
+                        if (distance < lowestDistance)
+                        {
+                            lowestDistance = distance;
+                            nearestCell = cell.CoordsToPoint();
+                        }
+                    });
+
+                    waypoint.Position = nearestCell;
+                    tile = map.GetTile(waypoint.Position);
+
+                    AddMapLoadError($"Waypoint {waypoint.Identifier} at {oldPosition} was not within the valid map area. It has been moved to {waypoint.Position}.");
                 }
 
                 if (tile.Waypoints.Count > 0)

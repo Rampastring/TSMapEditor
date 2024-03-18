@@ -5,7 +5,7 @@ namespace TSMapEditor
 {
     public static class Constants
     {
-        public const string ReleaseVersion = "1.0.0.1";
+        public const string ReleaseVersion = "1.0.1";
 
         public static int CellSizeX = 48;
         public static int CellSizeY = 24;
@@ -51,6 +51,7 @@ namespace TSMapEditor
         public static int MaxMapHeight;
 
         public const byte MaxMapHeightLevel = 12;
+        public static int MapYBaseline => MaxMapHeightLevel * CellHeight;
 
         public static int MaxWaypoint = 100;
 

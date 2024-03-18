@@ -57,7 +57,7 @@ namespace TSMapEditor.UI.Windows
             foreach (BuildingType buildingType in map.Rules.BuildingTypes)
             {
                 int number = buildingType.Index;
-                lbObjectList.AddItem(new XNAListBoxItem() { Text = $"{number} {buildingType.GetEditorDisplayName()}", Tag = number });
+                lbObjectList.AddItem(new XNAListBoxItem() { Text = $"{number} {buildingType.GetEditorDisplayName()} ({buildingType.ININame})", Tag = number });
 
                 if (SelectedObject == number)
                     lbObjectList.SelectedIndex = lbObjectList.Items.Count - 1;
