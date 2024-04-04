@@ -2,6 +2,7 @@
 using TSMapEditor.CCEngine;
 using TSMapEditor.GameMath;
 using TSMapEditor.Models;
+using TSMapEditor.Rendering;
 
 namespace TSMapEditor.Scripts
 {
@@ -99,18 +100,27 @@ namespace TSMapEditor.Scripts
             // MutationTarget.Map.TheaterInstance.Theater.TileSets[tileSetIndex].SetName.StartsWith("~~~")
 
             var latGrounds = map.TheaterInstance.Theater.LATGrounds;
+            var autoLatGround = map.TheaterInstance.Theater.LATGrounds.Find(g => g.GroundTileSet.Index == tileSetIndex || g.TransitionTileSet.Index == tileSetIndex);
+
             Func<TileSet, bool> miscChecker = null;
             if (tileSet.SetName.StartsWith("~~~"))
             {
                 miscChecker = (ts) =>
                 {
-                            // On its own line so it's possible to debug this
+                    // On its own line so it's possible to debug this
                     return ts.SetName.StartsWith("~~~") && !latGrounds.Exists(g => g.GroundTileSet == ts);
                 };
             }
+            else if (autoLatGround != null && map.TheaterInstance.Theater.TileSets.Exists(tSet => autoLatGround.ConnectToTileSetIndices.Contains(tSet.Index)))
+            {
+                // Some tilesets connect to LAT types, so transitions should not be applied with them either either.
+                miscChecker = (ts) =>
+                {
+                    // On its own line so it's possible to debug this
+                    return autoLatGround != null && autoLatGround.ConnectToTileSetIndices.Contains(ts.Index);
+                };
+            }
 
-
-            var autoLatGround = map.TheaterInstance.Theater.LATGrounds.Find(g => g.GroundTileSet.Index == tileSetIndex || g.TransitionTileSet.Index == tileSetIndex);
             if (autoLatGround != null)
             {
                 int autoLatIndex = map.GetAutoLATIndex(mapTile, autoLatGround.GroundTileSet.Index, autoLatGround.TransitionTileSet.Index, miscChecker);
