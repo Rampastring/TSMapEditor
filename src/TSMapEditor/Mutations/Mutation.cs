@@ -135,7 +135,7 @@ namespace TSMapEditor.Mutations
                     // For example, ~~~Snow shouldn't be auto-LAT'd when it's next to a tile belonging to ~~~Straight Dirt Roads
 
                     var autoLatGround = latGrounds.Find(g => (g.GroundTileSet.Index == tileSetIndex || g.TransitionTileSet.Index == tileSetIndex) &&
-                    g.TransitionTileSet.Index != baseTileSetId && g.BaseTileSet.Index == baseTileSetId);
+                        g.TransitionTileSet.Index != baseTileSetId && g.BaseTileSet.Index == baseTileSetId);
 
                     Func<TileSet, bool> miscChecker = null;
                     if (tileSet.SetName.StartsWith("~~~") && latGrounds.Exists(g => g.BaseTileSet == tileSet))
