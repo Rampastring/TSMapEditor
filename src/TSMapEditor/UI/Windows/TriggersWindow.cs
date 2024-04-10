@@ -180,6 +180,13 @@ namespace TSMapEditor.UI.Windows
             ddActions.AddItem(new XNADropDownItem() { Text = "Clear CellTags", Tag = new Action(ClearCellTags) });
             ddActions.AddItem(new XNADropDownItem() { Text = "Attach to Objects", Tag = new Action(AttachTagToObjects) });
             ddActions.AddItem(new XNADropDownItem() { Text = "View Attached Objects", Tag = new Action(ShowAttachedObjects) });
+
+            if (!Constants.UseCountries)
+            {
+                ddActions.AddItem(new XNADropDownItem() { Text = string.Empty, Selectable = false });
+                ddActions.AddItem(new XNADropDownItem() { Text = "Wrap in EVA disable/enable actions", Tag = new Action(WrapInEVADisableAndEnableActions) });
+            }
+
             ddActions.AddItem(new XNADropDownItem() { Text = string.Empty, Selectable = false });
             ddActions.AddItem(new XNADropDownItem() { Text = "Re-generate Trigger IDs", Tag = new Action(RegenerateIDs) });
             ddActions.AddItem(new XNADropDownItem() { Text = "Clone for Easier Difficulties", Tag = new Action(CloneForEasierDifficulties) });
@@ -494,6 +501,32 @@ namespace TSMapEditor.UI.Windows
         {
             if (techno.AttachedTag == tag)
                 technoList.Add(techno);
+        }
+
+        private void WrapInEVADisableAndEnableActions()
+        {
+            if (editedTrigger == null)
+                return;
+
+            const int TSDisableSpeechActionIndex = 102;
+            const int TSEnableSpeechActionIndex = 103;
+
+            if (!map.EditorConfig.TriggerActionTypes.TryGetValue(TSDisableSpeechActionIndex, out TriggerActionType disableSpeechTriggerActionType))
+            {
+                EditorMessageBox.Show(WindowManager, "Trigger action type not found", $"Could not find trigger action type for \"Disable Speech\" {TSDisableSpeechActionIndex}", MessageBoxButtons.OK);
+                return;
+            }
+
+            if (!map.EditorConfig.TriggerActionTypes.TryGetValue(TSEnableSpeechActionIndex, out TriggerActionType enableSpeechTriggerActionType))
+            {
+                EditorMessageBox.Show(WindowManager, "Trigger action type not found", $"Could not find trigger action type for \"Enable Speech\" {TSEnableSpeechActionIndex}", MessageBoxButtons.OK);
+                return;
+            }
+
+            editedTrigger.Actions.Insert(0, CreateTriggerAction(disableSpeechTriggerActionType));
+            editedTrigger.Actions.Add(CreateTriggerAction(enableSpeechTriggerActionType));
+
+            EditTrigger(editedTrigger);
         }
 
         #endregion
@@ -1187,7 +1220,7 @@ namespace TSMapEditor.UI.Windows
                 if (triggerActionType == null)
                     return;
 
-                editedTrigger.Actions.Add(new TriggerAction());
+                editedTrigger.Actions.Add(CreateTriggerAction(triggerActionType));
                 EditTrigger(editedTrigger);
                 lbActions.SelectedIndex = lbActions.Items.Count - 1;
             }
@@ -1195,34 +1228,42 @@ namespace TSMapEditor.UI.Windows
             {
                 if (lbActions.SelectedItem == null)
                     return;
+
+                TriggerAction existingAction = editedTrigger.Actions[lbActions.SelectedIndex];
+                existingAction.ActionIndex = selectActionWindow.SelectedObject.ID;
             }
 
-            TriggerAction action = editedTrigger.Actions[lbActions.SelectedIndex];
-            action.ActionIndex = selectActionWindow.SelectedObject.ID;
+            EditTrigger(editedTrigger);
+        }
+
+        private TriggerAction CreateTriggerAction(TriggerActionType triggerActionType)
+        {
+            var triggerAction = new TriggerAction();
+            triggerAction.ActionIndex = triggerActionType.ID;
 
             for (int i = 0; i < TriggerActionType.MAX_PARAM_COUNT; i++)
             {
                 if ((int)triggerActionType.Parameters[i].TriggerParamType < 0)
                 {
-                    action.Parameters[i] = Math.Abs((int)triggerActionType.Parameters[i].TriggerParamType).ToString(CultureInfo.InvariantCulture);
+                    triggerAction.Parameters[i] = Math.Abs((int)triggerActionType.Parameters[i].TriggerParamType).ToString(CultureInfo.InvariantCulture);
                     continue;
                 }
 
                 // Special dirty hack for handling for P7Type, defaults to "WaypointZZ"
                 if (i == TriggerActionType.MAX_PARAM_COUNT - 1 && triggerActionType.Parameters[i].TriggerParamType == TriggerParamType.Unused)
                 {
-                    action.Parameters[i] = "A";
+                    triggerAction.Parameters[i] = "A";
                     continue;
                 }
 
                 if (triggerActionType.Parameters[i].TriggerParamType == TriggerParamType.Unused)
                 {
-                    action.Parameters[i] = "0";
+                    triggerAction.Parameters[i] = "0";
                     continue;
                 }
             }
 
-            EditTrigger(editedTrigger);
+            return triggerAction;
         }
 
         private void BtnAddAction_LeftClick(object sender, EventArgs e)

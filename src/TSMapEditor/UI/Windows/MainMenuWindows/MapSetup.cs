@@ -96,6 +96,9 @@ namespace TSMapEditor.UI.Windows.MainMenuWindows
             foreach (string theaterMIXName in theater.ContentMIXName)
                 ccFileManager.LoadPrimaryMixFile(theaterMIXName);
 
+            foreach (string theaterMIXName in theater.OptionalContentMIXName)
+                ccFileManager.LoadSecondaryMixFile(theaterMIXName);
+
             TheaterGraphics theaterGraphics = new TheaterGraphics(windowManager.GraphicsDevice, theater, ccFileManager, LoadedMap.Rules);
             LoadedMap.TheaterInstance = theaterGraphics;
             MapLoader.PostCheckMap(LoadedMap, theaterGraphics);
