@@ -5,6 +5,7 @@ using System.IO;
 using TSMapEditor.Models;
 using TSMapEditor.UI;
 using TSMapEditor.Extensions;
+using System.Linq;
 
 namespace TSMapEditor.CCEngine
 {
@@ -134,10 +135,10 @@ namespace TSMapEditor.CCEngine
             InitLATGround(theaterIni, "PvmntTile", "ClearToPvmntLat", null, null, null, "Pavement");
 
             // TS terrain
-            InitLATGround(theaterIni, "RoughTile", "ClearToRoughLat", null, null, null, "Rough", RoughConnectToTileSets);
-            InitLATGround(theaterIni, "SandTile", "ClearToSandLat", null, null, null, "Sand", SandConnectToTileSets);
-            InitLATGround(theaterIni, "PaveTile", "ClearToPaveLat", null, null, null, "Pavement", PaveConnectToTileSets);
-            InitLATGround(theaterIni, "GreenTile", "ClearToGreenLat", null, null, null, "Green", GreenConnectToTileSets);
+            InitLATGround(theaterIni, "RoughTile", "ClearToRoughLat", null, null, "RoughConnectTo", "Rough", RoughConnectToTileSets);
+            InitLATGround(theaterIni, "SandTile", "ClearToSandLat", null, null, "SandConnectTo", "Sand", SandConnectToTileSets);
+            InitLATGround(theaterIni, "PaveTile", "ClearToPaveLat", null, null, "PaveConnectTo", "Pavement", PaveConnectToTileSets);
+            InitLATGround(theaterIni, "GreenTile", "ClearToGreenLat", null, null, "GreenConnectTo", "Green", GreenConnectToTileSets);
 
             int rampTileSetIndex = theaterIni.GetIntValue("General", "RampBase", -1);
             if (rampTileSetIndex < 0 || rampTileSetIndex >= TileSets.Count)
@@ -183,7 +184,7 @@ namespace TSMapEditor.CCEngine
 
             List<int> indices = new List<int>();
 
-            if (connectedTileSetIndices == null && !string.IsNullOrEmpty(connectToKey))
+            if ((connectedTileSetIndices == null || !connectedTileSetIndices.Any()) && !string.IsNullOrEmpty(connectToKey))
                 connectedTileSetIndices = theaterIni.GetStringValue("General", connectToKey, string.Empty).Split(',', StringSplitOptions.RemoveEmptyEntries);
 
             if (connectedTileSetIndices != null)
