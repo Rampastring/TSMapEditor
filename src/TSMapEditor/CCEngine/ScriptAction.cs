@@ -24,12 +24,12 @@ namespace TSMapEditor.CCEngine
 
     public class ScriptAction
     {
-        public ScriptAction(int index)
+        public ScriptAction(int id)
         {
-            Index = index;
+            ID = id;
         }
 
-        public int Index { get; set; }
+        public int ID { get; set; }
         public string Name { get; set; } = "Unknown action";
         public string Description { get; set; } = "No description";
         public string ParamDescription { get; set; } = "Use 0";
@@ -38,6 +38,7 @@ namespace TSMapEditor.CCEngine
 
         public void ReadIniSection(IniSection iniSection)
         {
+            ID = iniSection.GetIntValue("IDOverride", ID);
             Name = iniSection.GetStringValue(nameof(Name), Name);
             Description = iniSection.GetStringValue(nameof(Description), Description);
             ParamDescription = iniSection.GetStringValue(nameof(ParamDescription), ParamDescription);

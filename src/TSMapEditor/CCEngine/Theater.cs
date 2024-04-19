@@ -5,23 +5,28 @@ using System.IO;
 using TSMapEditor.Models;
 using TSMapEditor.UI;
 using TSMapEditor.Extensions;
+using System.Linq;
 
 namespace TSMapEditor.CCEngine
 {
     public class LATGround
     {
-        public LATGround(string displayName, TileSet groundTileSet, TileSet transitionTileSet, TileSet baseTileSet)
+        public LATGround(string displayName, TileSet groundTileSet, TileSet transitionTileSet, TileSet baseTileSet, IEnumerable<int> connectToTileSetIndices)
         {
             DisplayName = displayName;
             GroundTileSet = groundTileSet;
             TransitionTileSet = transitionTileSet;
             BaseTileSet = baseTileSet;
+
+            if (connectToTileSetIndices != null)
+                ConnectToTileSetIndices.AddRange(connectToTileSetIndices);
         }
 
         public string DisplayName { get; }
         public TileSet GroundTileSet { get; }
         public TileSet TransitionTileSet { get; }
         public TileSet BaseTileSet { get; }
+        public List<int> ConnectToTileSetIndices = new List<int>();
     }
 
     public class TheaterIceTileSets
@@ -77,6 +82,11 @@ namespace TSMapEditor.CCEngine
         public string FileExtension { get; set; }
         public char NewTheaterBuildingLetter { get; set; }
 
+        public List<string> RoughConnectToTileSets { get; set; }
+        public List<string> SandConnectToTileSets { get; set; }
+        public List<string> PaveConnectToTileSets { get; set; }
+        public List<string> GreenConnectToTileSets { get; set; }
+
         public TheaterIceTileSets IceTileSetInfo { get; private set; }
 
         public List<TileSet> TileSets = new List<TileSet>();
@@ -117,20 +127,20 @@ namespace TSMapEditor.CCEngine
             i = 1;
             while (true)
             {
-                if (!InitLATGround(theaterIni, $"Ground{i}Tile", $"Ground{i}Lat", $"Ground{i}Base", $"Ground{i}Name", null))
+                if (!InitLATGround(theaterIni, $"Ground{i}Tile", $"Ground{i}Lat", $"Ground{i}Base", $"Ground{i}Name", $"Ground{i}ConnectTo", null))
                     break;
 
                 i++;
             }
 
             // DTA
-            InitLATGround(theaterIni, "PvmntTile", "ClearToPvmntLat", null, null, "Pavement");
+            InitLATGround(theaterIni, "PvmntTile", "ClearToPvmntLat", null, null, null, "Pavement");
 
             // TS terrain
-            InitLATGround(theaterIni, "RoughTile", "ClearToRoughLat", null, null, "Rough");
-            InitLATGround(theaterIni, "SandTile", "ClearToSandLat", null, null, "Sand");
-            InitLATGround(theaterIni, "PaveTile", "ClearToPaveLat", null, null, "Pavement");
-            InitLATGround(theaterIni, "GreenTile", "ClearToGreenLat", null, null, "Green");
+            InitLATGround(theaterIni, "RoughTile", "ClearToRoughLat", null, null, "RoughConnectTo", "Rough", RoughConnectToTileSets);
+            InitLATGround(theaterIni, "SandTile", "ClearToSandLat", null, null, "SandConnectTo", "Sand", SandConnectToTileSets);
+            InitLATGround(theaterIni, "PaveTile", "ClearToPaveLat", null, null, "PaveConnectTo", "Pavement", PaveConnectToTileSets);
+            InitLATGround(theaterIni, "GreenTile", "ClearToGreenLat", null, null, "GreenConnectTo", "Green", GreenConnectToTileSets);
 
             int rampTileSetIndex = theaterIni.GetIntValue("General", "RampBase", -1);
             if (rampTileSetIndex < 0 || rampTileSetIndex >= TileSets.Count)
@@ -149,7 +159,7 @@ namespace TSMapEditor.CCEngine
             return TileSets[id];
         }
 
-        private bool InitLATGround(IniFile theaterIni, string tileSetKey, string transitionTileSetKey, string baseTileSetKey, string nameKey, string defaultName)
+        private bool InitLATGround(IniFile theaterIni, string tileSetKey, string transitionTileSetKey, string baseTileSetKey, string nameKey, string connectToKey, string defaultName, IEnumerable<string> connectedTileSetIndices = null)
         {
             int groundTileSetIndex = theaterIni.GetIntValue("General", tileSetKey, -1);
             int transitionTileSetIndex = theaterIni.GetIntValue("General", transitionTileSetKey, -1);
@@ -174,11 +184,27 @@ namespace TSMapEditor.CCEngine
                 displayName = groundTileSetName.Substring(0, Math.Min(groundTileSetName.Length, 4));
             }
 
+            List<int> indices = new List<int>();
+
+            if ((connectedTileSetIndices == null || !connectedTileSetIndices.Any()) && !string.IsNullOrEmpty(connectToKey))
+                connectedTileSetIndices = theaterIni.GetStringValue("General", connectToKey, string.Empty).Split(',', StringSplitOptions.RemoveEmptyEntries);
+
+            if (connectedTileSetIndices != null)
+            {
+                foreach (string indexStr in  connectedTileSetIndices)
+                {
+                    int index = Conversions.IntFromString(indexStr, -1);
+
+                    if (index != -1)
+                        indices.Add(index);
+                }
+            }
+
             LATGrounds.Add(new LATGround(
                 displayName,
                 TileSets[groundTileSetIndex],
                 TileSets[transitionTileSetIndex],
-                baseTileSetIndex > -1 ? TileSets[baseTileSetIndex] : TileSets[0]));
+                baseTileSetIndex > -1 ? TileSets[baseTileSetIndex] : TileSets[0], indices));
 
             return true;
         }

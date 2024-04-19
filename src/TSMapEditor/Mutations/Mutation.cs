@@ -134,6 +134,9 @@ namespace TSMapEditor.Mutations
                     // alt. terrain
                     // For example, ~~~Snow shouldn't be auto-LAT'd when it's next to a tile belonging to ~~~Straight Dirt Roads
 
+                    var autoLatGround = latGrounds.Find(g => (g.GroundTileSet.Index == tileSetIndex || g.TransitionTileSet.Index == tileSetIndex) &&
+                        g.TransitionTileSet.Index != baseTileSetId && g.BaseTileSet.Index == baseTileSetId);
+
                     Func<TileSet, bool> miscChecker = null;
                     if (tileSet.SetName.StartsWith("~~~") && latGrounds.Exists(g => g.BaseTileSet == tileSet))
                     {
@@ -143,9 +146,14 @@ namespace TSMapEditor.Mutations
                             return ts.SetName.StartsWith("~~~") && !latGrounds.Exists(g => g.GroundTileSet == ts);
                         };
                     }
-
-                    var autoLatGround = latGrounds.Find(g => (g.GroundTileSet.Index == tileSetIndex || g.TransitionTileSet.Index == tileSetIndex) &&
-                        g.TransitionTileSet.Index != baseTileSetId && g.BaseTileSet.Index == baseTileSetId);
+                    else if (autoLatGround != null && MutationTarget.Map.TheaterInstance.Theater.TileSets.Exists(tSet => autoLatGround.ConnectToTileSetIndices.Contains(tSet.Index)))
+                    {
+                        miscChecker = (ts) =>
+                        {
+                            // On its own line so it's possible to debug this
+                            return autoLatGround != null && autoLatGround.ConnectToTileSetIndices.Contains(ts.Index);
+                        };
+                    }
 
                     if (autoLatGround != null)
                     {

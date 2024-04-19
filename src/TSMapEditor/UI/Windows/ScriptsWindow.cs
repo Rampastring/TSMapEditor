@@ -348,7 +348,7 @@ namespace TSMapEditor.UI.Windows
             if (selectScriptActionWindow.SelectedObject != null)
             {
                 ScriptActionEntry entry = editedScript.Actions[lbActions.SelectedIndex];
-                entry.Action = selectScriptActionWindow.SelectedObject.Index;
+                entry.Action = selectScriptActionWindow.SelectedObject.ID;
                 lbActions.Items[lbActions.SelectedIndex].Text = GetActionEntryText(lbActions.SelectedIndex, entry);
             }
 

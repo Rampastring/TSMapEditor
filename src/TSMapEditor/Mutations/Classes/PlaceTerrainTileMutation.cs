@@ -279,6 +279,15 @@ namespace TSMapEditor.Mutations.Classes
                         return ts.SetName.StartsWith("~~~") && !latGrounds.Exists(g => g.GroundTileSet == ts);
                     };
                 }
+                else if (autoLatGround != null && MutationTarget.Map.TheaterInstance.Theater.TileSets.Exists(tSet => autoLatGround.ConnectToTileSetIndices.Contains(tSet.Index)))
+                {
+                    // Some tilesets connect to LAT types, so transitions should not be applied with them either either.
+                    miscChecker = (ts) =>
+                    {
+                        // On its own line so it's possible to debug this
+                        return autoLatGround != null && autoLatGround.ConnectToTileSetIndices.Contains(ts.Index);
+                    };
+                }
 
                 if (autoLatGround != null)
                 {
