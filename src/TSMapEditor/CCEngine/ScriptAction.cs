@@ -33,18 +33,29 @@ namespace TSMapEditor.CCEngine
         public string Name { get; set; } = "Unknown action";
         public string Description { get; set; } = "No description";
         public string ParamDescription { get; set; } = "Use 0";
+        public string OptionsSectionName { get; set; } = string.Empty;
         public TriggerParamType ParamType { get; set; } = TriggerParamType.Unknown;
         public List<ScriptActionPresetOption> PresetOptions { get; } = new List<ScriptActionPresetOption>(0);
 
-        public void ReadIniSection(IniSection iniSection)
+        public void ReadIniSection(IniFile iniFile, string sectionName)
         {
+            var iniSection = iniFile.GetSection(sectionName);
             ID = iniSection.GetIntValue("IDOverride", ID);
             Name = iniSection.GetStringValue(nameof(Name), Name);
             Description = iniSection.GetStringValue(nameof(Description), Description);
+            OptionsSectionName = iniSection.GetStringValue(nameof(OptionsSectionName), OptionsSectionName);
             ParamDescription = iniSection.GetStringValue(nameof(ParamDescription), ParamDescription);
             if (Enum.TryParse(iniSection.GetStringValue(nameof(ParamType), "Unknown"), out TriggerParamType result))
             {
                 ParamType = result;
+            }
+
+            var optionsSection = iniSection;
+            string extraDesc = string.Empty;
+            if (!string.IsNullOrEmpty(OptionsSectionName) && iniFile.SectionExists(OptionsSectionName))
+            {
+                optionsSection = iniFile.GetSection(OptionsSectionName);
+                extraDesc = $"(Options section: {OptionsSectionName}) ";
             }
 
             int i = 0;
@@ -52,20 +63,20 @@ namespace TSMapEditor.CCEngine
             {
                 string key = "Option" + i;
 
-                if (!iniSection.KeyExists(key))
+                if (!optionsSection.KeyExists(key))
                     break;
 
-                string value = iniSection.GetStringValue(key, null);
+                string value = optionsSection.GetStringValue(key, null);
                 if (string.IsNullOrWhiteSpace(value))
                 {
-                    Logger.Log($"Invalid {key}= in ScriptAction " + iniSection.SectionName);
+                    Logger.Log($"Invalid {key}= in ScriptAction {extraDesc}" + iniSection.SectionName);
                     break;
                 }
 
                 int commaIndex = value.IndexOf(',');
                 if (commaIndex < 0)
                 {
-                    Logger.Log($"Invalid {key}= in ScriptAction " + iniSection.SectionName);
+                    Logger.Log($"Invalid {key}= in ScriptAction {extraDesc}" + iniSection.SectionName);
                     break;
                 }
 

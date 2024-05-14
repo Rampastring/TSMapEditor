@@ -190,9 +190,11 @@ namespace TSMapEditor.Models
 
             for (int i = 0; i < sections.Count; i++)
             {
+                if (sections[i].StartsWith("$"))
+                    continue;
+
                 var scriptAction = new ScriptAction(i);
-                var scriptSection = iniFile.GetSection(sections[i]);
-                scriptAction.ReadIniSection(scriptSection);
+                scriptAction.ReadIniSection(iniFile, sections[i]);
 
                 if (ScriptActions.ContainsKey(scriptAction.ID))
                 {
