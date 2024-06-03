@@ -251,6 +251,8 @@ namespace TSMapEditor.Rendering
             }
         }
 
+        public bool RenderInvisibleInGameObjects { get; set; } = true;
+
         public CopiedMapData CopiedMapData { get; set; }
     }
 }

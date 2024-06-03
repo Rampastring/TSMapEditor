@@ -27,6 +27,8 @@ namespace TSMapEditor.Models
 
         public override Color GetRadialColor() => Owner?.XNAColor ?? Color.White;
 
+        public override bool IsInvisibleInGame() => ObjectType.InvisibleInGame;
+
         public T ObjectType { get; }
     }
 

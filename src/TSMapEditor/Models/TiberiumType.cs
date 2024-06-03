@@ -1,17 +1,17 @@
-﻿using Microsoft.Xna.Framework;
+﻿using System.Collections.Generic;
+using Microsoft.Xna.Framework;
 
 namespace TSMapEditor.Models
 {
-    public class TiberiumType : INIDefineable
+    public class TiberiumType : INIDefineable, INIDefined
     {
-        public TiberiumType(string iniName, int index)
+        public TiberiumType(string iniName)
         {
             ININame = iniName;
-            Index = index;
         }
 
         public string ININame { get; }
-        public int Index { get; }
+        public int Index { get; set; }
         public string Name { get; set; }
         public int Value { get; set; }
         public int Power { get; set; }
@@ -21,6 +21,11 @@ namespace TSMapEditor.Models
         public int Spread { get; set; }
         public int SpreadPercentage { get; set; }
         public string Color { get; set; } = string.Empty;
+
+        [INI(false)]
         public Color XNAColor { get; set; }
+
+        [INI(false)]
+        public List<OverlayType> Overlays { get; set; } = new List<OverlayType>();
     }
 }

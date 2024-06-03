@@ -1,4 +1,5 @@
-﻿using Rampastring.XNAUI;
+﻿using Microsoft.Xna.Framework;
+using Rampastring.XNAUI;
 using Rampastring.XNAUI.XNAControls;
 using System;
 using TSMapEditor.Models;
@@ -39,7 +40,12 @@ namespace TSMapEditor.UI.Windows
 
             foreach (Tag tag in map.Tags)
             {
-                lbObjectList.AddItem(new XNAListBoxItem() { Text = $"{tag.Name} ({tag.ID})", Tag = tag });
+                Color color = lbObjectList.DefaultItemColor;
+                var trigger = tag.Trigger;
+                if (trigger != null && !string.IsNullOrWhiteSpace(trigger.EditorColor))
+                    color = trigger.XNAColor;
+
+                lbObjectList.AddItem(new XNAListBoxItem() { Text = $"{tag.Name} ({tag.ID})", TextColor = color, Tag = tag });
                 if (tag == SelectedObject)
                     lbObjectList.SelectedIndex = lbObjectList.Items.Count - 1;
             }

@@ -69,7 +69,7 @@ namespace TSMapEditor.UI.Windows
             foreach (RulesColor rulesColor in map.Rules.Colors.OrderBy(c => c.Name))
                 ddColor.AddItem(rulesColor.Name, rulesColor.XNAColor);
 
-            if (Constants.UseCountries)
+            if (Constants.IsRA2YR)
             {
                 foreach (var property in typeof(HouseType).GetProperties())
                 {

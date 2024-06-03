@@ -26,7 +26,7 @@ namespace TSMapEditor.UI
             globalConstants.Add("HORIZONTAL_SPACING", Constants.UIHorizontalSpacing);
             globalConstants.Add("VERTICAL_SPACING", Constants.UIVerticalSpacing);
             globalConstants.Add("BUTTON_HEIGHT", Constants.UIButtonHeight);
-            globalConstants.Add("USE_COUNTRIES", Constants.UseCountries ? 1 : 0);
+            globalConstants.Add("IS_RA2YR", Constants.IsRA2YR ? 1 : 0);
             globalConstants.Add("OBJECT_HEALTH_MAX", Constants.ObjectHealthMax);
             globalConstants.Add("IS_FLAT_WORLD", Constants.IsFlatWorld ? 1 : 0);
 

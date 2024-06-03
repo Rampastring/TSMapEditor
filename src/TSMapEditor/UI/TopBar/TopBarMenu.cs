@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Linq;
 using Rampastring.XNAUI;
 using TSMapEditor.Models;
 using TSMapEditor.Mutations;
@@ -11,8 +12,8 @@ using TSMapEditor.UI.CursorActions;
 using TSMapEditor.UI.Windows;
 using TSMapEditor.Models.Enums;
 using Rampastring.Tools;
-
-
+using System.Diagnostics;
+using System.ComponentModel;
 
 #if WINDOWS
 using System.Windows.Forms;
@@ -69,6 +70,8 @@ namespace TSMapEditor.UI.TopBar
             var selectBridgeDarkeningPanel = DarkeningPanel.InitializeAndAddToParentControlWithChild(WindowManager, Parent, selectBridgeWindow);
             selectBridgeDarkeningPanel.Hidden += SelectBridgeDarkeningPanel_Hidden;
 
+            windowController.SelectConnectedTileWindow.ObjectSelected += SelectConnectedTileWindow_ObjectSelected;
+
             var fileContextMenu = new EditorContextMenu(WindowManager);
             fileContextMenu.Name = nameof(fileContextMenu);
             fileContextMenu.AddItem("New", () => windowController.CreateNewMapWindow.Open(), null, null, null);
@@ -84,6 +87,8 @@ namespace TSMapEditor.UI.TopBar
             fileContextMenu.AddItem(" ", null, () => false, null, null);
             fileContextMenu.AddItem("Extract Megamap...", ExtractMegamap);
             fileContextMenu.AddItem("Generate Map Preview...", WriteMapPreview);
+            fileContextMenu.AddItem(" ", null, () => false, null, null, null);
+            fileContextMenu.AddItem("Open With Text Editor", OpenWithTextEditor, () => !string.IsNullOrWhiteSpace(map.LoadedINI.FileName));
             fileContextMenu.AddItem(" ", null, () => false, null, null);
             fileContextMenu.AddItem("Exit", WindowManager.CloseGame);
 
@@ -125,6 +130,22 @@ namespace TSMapEditor.UI.TopBar
                 }
             }
 
+            var theaterMatchingCliffs = map.EditorConfig.Cliffs.Where(cliff => cliff.AllowedTheaters.Exists(
+                theaterName => theaterName.Equals(map.TheaterName, StringComparison.OrdinalIgnoreCase))).ToList();
+            int cliffCount = theaterMatchingCliffs.Count;
+            if (cliffCount > 0)
+            {
+                if (cliffCount == 1)
+                {
+                    editContextMenu.AddItem("Draw Connected Tiles", () => mapView.EditorState.CursorAction =
+                        new DrawCliffCursorAction(mapView, theaterMatchingCliffs[0]), null, null, null);
+                }
+                else
+                {
+                    editContextMenu.AddItem("Draw Connected Tiles...", () => windowController.SelectConnectedTileWindow.Open(), null, null, null, KeyboardCommands.Instance.PlaceConnectedTile.GetKeyDisplayString());
+                }
+            }
+
             editContextMenu.AddItem("Toggle IceGrowth", () => { mapView.EditorState.CursorAction = toggleIceGrowthCursorAction; toggleIceGrowthCursorAction.ToggleIceGrowth = true; mapView.EditorState.HighlightIceGrowth = true; }, null, null, null);
             editContextMenu.AddItem("Clear IceGrowth", () => { mapView.EditorState.CursorAction = toggleIceGrowthCursorAction; toggleIceGrowthCursorAction.ToggleIceGrowth = false; mapView.EditorState.HighlightIceGrowth = true; }, null, null, null);
             editContextMenu.AddItem(" ", null, () => false, null, null);
@@ -156,7 +177,7 @@ namespace TSMapEditor.UI.TopBar
             viewContextMenu.AddItem(" ", null, () => false, null, null);
             viewContextMenu.AddItem("No Lighting", () => mapView.EditorState.LightingPreviewState = LightingPreviewMode.NoLighting);
             viewContextMenu.AddItem("Normal Lighting", () => mapView.EditorState.LightingPreviewState = LightingPreviewMode.Normal);
-            if (Constants.UseCountries)
+            if (Constants.IsRA2YR)
             {
                 viewContextMenu.AddItem("Lightning Storm Lighting", () => mapView.EditorState.LightingPreviewState = LightingPreviewMode.IonStorm);
                 viewContextMenu.AddItem("Dominator Lighting", () => mapView.EditorState.LightingPreviewState = LightingPreviewMode.Dominator);
@@ -236,7 +257,15 @@ namespace TSMapEditor.UI.TopBar
             KeyboardCommands.Instance.GenerateTerrain.Triggered += (s, e) => EnterTerrainGenerator();
             KeyboardCommands.Instance.ConfigureTerrainGenerator.Triggered += (s, e) => windowController.TerrainGeneratorConfigWindow.Open();
             KeyboardCommands.Instance.PlaceTunnel.Triggered += (s, e) => mapView.EditorState.CursorAction = placeTubeCursorAction;
-            KeyboardCommands.Instance.Save.Triggered += (s, e) => SaveMap(); 
+            KeyboardCommands.Instance.PlaceConnectedTile.Triggered += (s, e) => windowController.SelectConnectedTileWindow.Open();
+            KeyboardCommands.Instance.Save.Triggered += (s, e) => SaveMap();
+
+            windowController.TerrainGeneratorConfigWindow.ConfigApplied += TerrainGeneratorConfigWindow_ConfigApplied;
+        }
+
+        private void TerrainGeneratorConfigWindow_ConfigApplied(object sender, EventArgs e)
+        {
+            EnterTerrainGenerator();
         }
 
         private void SaveMap()
@@ -312,6 +341,56 @@ namespace TSMapEditor.UI.TopBar
             messageBox.YesClickedAction = _ => mapView.AddPreviewToMap();
         }
 
+        private void OpenWithTextEditor()
+        {
+            string textEditorPath = UserSettings.Instance.TextEditorPath;
+
+            if (string.IsNullOrWhiteSpace(textEditorPath) || !File.Exists(textEditorPath))
+            {
+                textEditorPath = GetDefaultTextEditorPath();
+
+                if (textEditorPath == null)
+                {
+                    EditorMessageBox.Show(WindowManager, "No text editor found!", "No valid text editor has been configured and no default choice was found.", Windows.MessageBoxButtons.OK);
+                    return;
+                }
+            }
+
+            try
+            {
+                Process.Start(textEditorPath, map.LoadedINI.FileName);
+            }
+            catch (Exception ex) when (ex is Win32Exception || ex is ObjectDisposedException)
+            {
+                Logger.Log("Failed to launch text editor! Message: " + ex.Message);
+                EditorMessageBox.Show(WindowManager, "Failed to launch text editor",
+                    "An error occurred when trying to open the map file with the text editor." + Environment.NewLine + Environment.NewLine +
+                    "Received error was: " + ex.Message, Windows.MessageBoxButtons.OK);
+            }
+        }
+
+        private string GetDefaultTextEditorPath()
+        {
+            string programFiles = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles);
+            string programFilesX86 = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86);
+
+            var pathsToSearch = new[]
+            {
+                Path.Combine(programFiles, "Notepad++", "notepad++.exe"),
+                Path.Combine(programFilesX86, "Notepad++", "notepad++.exe"),
+                Path.Combine(programFiles, "Microsoft VS Code", "vscode.exe"),
+                Path.Combine(Environment.SystemDirectory, "notepad.exe"),
+            };
+
+            foreach (string path in pathsToSearch)
+            {
+                if (File.Exists(path))
+                    return path;
+            }
+
+            return null;
+        }
+
         private void ManageBaseNodes_Selected()
         {
             if (map.Houses.Count == 0)
@@ -340,9 +419,9 @@ namespace TSMapEditor.UI.TopBar
                 return;
             }
 
-            var generateForestCursorAction = new GenerateTerrainCursorAction(mapView);
-            generateForestCursorAction.TerrainGeneratorConfiguration = windowController.TerrainGeneratorConfigWindow.TerrainGeneratorConfig;
-            mapView.CursorAction = generateForestCursorAction;
+            var generateTerrainCursorAction = new GenerateTerrainCursorAction(mapView);
+            generateTerrainCursorAction.TerrainGeneratorConfiguration = windowController.TerrainGeneratorConfigWindow.TerrainGeneratorConfig;
+            mapView.CursorAction = generateTerrainCursorAction;
         }
 
         private void SelectBridge()
@@ -352,8 +431,13 @@ namespace TSMapEditor.UI.TopBar
 
         private void SelectBridgeDarkeningPanel_Hidden(object sender, EventArgs e)
         {
-            if (selectBridgeWindow.Success && selectBridgeWindow.SelectedObject != null)
+            if (selectBridgeWindow.SelectedObject != null)
                 mapView.EditorState.CursorAction = new PlaceBridgeCursorAction(mapView, selectBridgeWindow.SelectedObject);
+        }
+
+        private void SelectConnectedTileWindow_ObjectSelected(object sender, EventArgs e)
+        {
+            mapView.EditorState.CursorAction = new DrawCliffCursorAction(mapView, windowController.SelectConnectedTileWindow.SelectedObject);
         }
 
         private void Open()

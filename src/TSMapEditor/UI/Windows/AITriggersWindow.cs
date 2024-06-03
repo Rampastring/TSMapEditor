@@ -1,4 +1,5 @@
-﻿using Rampastring.XNAUI;
+﻿using Microsoft.Xna.Framework;
+using Rampastring.XNAUI;
 using Rampastring.XNAUI.XNAControls;
 using System;
 using TSMapEditor.Models;
@@ -164,7 +165,7 @@ namespace TSMapEditor.UI.Windows
             EditAITrigger(editedAITrigger);
         }
 
-        private void LbAITriggers_SelectedIndexChanged(object sender, System.EventArgs e)
+        private void LbAITriggers_SelectedIndexChanged(object sender, EventArgs e)
         {
             if (lbAITriggers.SelectedItem == null)
             {
@@ -252,38 +253,40 @@ namespace TSMapEditor.UI.Windows
             chkEnabledOnHard.CheckedChanged += ChkEnabledOnHard_CheckedChanged;
         }
 
-        private void TbName_TextChanged(object sender, System.EventArgs e)
+        private void TbName_TextChanged(object sender, EventArgs e)
         {
             editedAITrigger.Name = tbName.Text;
             lbAITriggers.SelectedItem.Text = tbName.Text;
         }
 
-        private void DdSide_SelectedIndexChanged(object sender, System.EventArgs e)
+        private void DdSide_SelectedIndexChanged(object sender, EventArgs e)
         {
             editedAITrigger.Side = ddSide.SelectedIndex;
+            lbAITriggers.SelectedItem.TextColor = GetAITriggerUIColor(editedAITrigger);
         }
 
-        private void DdHouse_SelectedIndexChanged(object sender, System.EventArgs e)
+        private void DdHouse_SelectedIndexChanged(object sender, EventArgs e)
         {
             editedAITrigger.OwnerName = ddHouseType.SelectedItem.Text;
+            lbAITriggers.SelectedItem.TextColor = GetAITriggerUIColor(editedAITrigger);
         }
 
-        private void DdConditionType_SelectedIndexChanged(object sender, System.EventArgs e)
+        private void DdConditionType_SelectedIndexChanged(object sender, EventArgs e)
         {
             editedAITrigger.ConditionType = (AITriggerConditionType)(ddConditionType.SelectedIndex - 1);
         }
 
-        private void DdComparator_SelectedIndexChanged(object sender, System.EventArgs e)
+        private void DdComparator_SelectedIndexChanged(object sender, EventArgs e)
         {
             editedAITrigger.Comparator = new AITriggerComparator((AITriggerComparatorOperator)ddComparator.SelectedIndex, editedAITrigger.Comparator.Quantity);
         }
 
-        private void TbQuantity_TextChanged(object sender, System.EventArgs e)
+        private void TbQuantity_TextChanged(object sender, EventArgs e)
         {
             editedAITrigger.Comparator = new AITriggerComparator(editedAITrigger.Comparator.ComparatorOperator, tbQuantity.Value);
         }
 
-        private void TbComparisonObjectType_TextChanged(object sender, System.EventArgs e)
+        private void TbComparisonObjectType_TextChanged(object sender, EventArgs e)
         {
             if (string.IsNullOrWhiteSpace(tbComparisonObjectType.Text))
                 editedAITrigger.ConditionObjectString = Constants.NoneValue1;
@@ -303,32 +306,32 @@ namespace TSMapEditor.UI.Windows
             selectTeamTypeWindow.Open(editedAITrigger.SecondaryTeam);
         }
 
-        private void TbInitial_TextChanged(object sender, System.EventArgs e)
+        private void TbInitial_TextChanged(object sender, EventArgs e)
         {
             editedAITrigger.InitialWeight = (double)tbInitial.Value;
         }
 
-        private void TbMinimum_TextChanged(object sender, System.EventArgs e)
+        private void TbMinimum_TextChanged(object sender, EventArgs e)
         {
             editedAITrigger.MinimumWeight = (double)tbMinimum.Value;
         }
 
-        private void TbMaximum_TextChanged(object sender, System.EventArgs e)
+        private void TbMaximum_TextChanged(object sender, EventArgs e)
         {
             editedAITrigger.MaximumWeight = (double)tbMaximum.Value;
         }
 
-        private void ChkEnabledOnEasy_CheckedChanged(object sender, System.EventArgs e)
+        private void ChkEnabledOnEasy_CheckedChanged(object sender, EventArgs e)
         {
             editedAITrigger.Easy = chkEnabledOnEasy.Checked;
         }
 
-        private void ChkEnabledOnMedium_CheckedChanged(object sender, System.EventArgs e)
+        private void ChkEnabledOnMedium_CheckedChanged(object sender, EventArgs e)
         {
             editedAITrigger.Medium = chkEnabledOnMedium.Checked;
         }
 
-        private void ChkEnabledOnHard_CheckedChanged(object sender, System.EventArgs e)
+        private void ChkEnabledOnHard_CheckedChanged(object sender, EventArgs e)
         {
             editedAITrigger.Hard = chkEnabledOnHard.Checked;
         }
@@ -347,7 +350,7 @@ namespace TSMapEditor.UI.Windows
 
             map.AITriggerTypes.ForEach(aitt =>
             {
-                lbAITriggers.AddItem(new XNAListBoxItem() { Text = aitt.Name, Tag = aitt });
+                lbAITriggers.AddItem(new XNAListBoxItem() { Text = aitt.Name, Tag = aitt, TextColor = GetAITriggerUIColor(aitt) });
             });
 
             ddSide.AddItem("0 all sides");
@@ -360,6 +363,34 @@ namespace TSMapEditor.UI.Windows
             map.GetHouseTypes().ForEach(houseType => ddHouseType.AddItem(houseType.ININame, Helpers.GetHouseTypeUITextColor(houseType)));
 
             LbAITriggers_SelectedIndexChanged(this, EventArgs.Empty);
+        }
+
+        private Color GetAITriggerUIColor(AITriggerType aitt)
+        {
+            if (!string.IsNullOrWhiteSpace(aitt.OwnerName))
+            {
+                var houseType = map.FindHouseType(aitt.OwnerName);
+                if (houseType != null)
+                {
+                    return Helpers.GetHouseTypeUITextColor(houseType);
+                }
+            }
+
+            if (aitt.Side > 0)
+            {
+                string sideName = aitt.Side > 0 && aitt.Side - 1 < map.Rules.Sides.Count ? map.Rules.Sides[aitt.Side - 1] : null;
+                if (sideName != null)
+                {
+                    var houseTypeFromSide = map.GetHouseTypes().Find(ht => ht.Side == sideName);
+
+                    if (houseTypeFromSide != null)
+                    {
+                        return Helpers.GetHouseTypeUITextColor(houseTypeFromSide);
+                    }
+                }
+            }
+
+            return UISettings.ActiveSettings.AltColor;
         }
     }
 }

@@ -39,7 +39,9 @@ namespace TSMapEditor.Settings
                 MultithreadedTextureLoading,
 
                 GameDirectory,
-                LastScenarioPath
+                LastScenarioPath,
+
+                TextEditorPath
             };
 
             foreach (var setting in settings)
@@ -86,5 +88,7 @@ namespace TSMapEditor.Settings
 
         public StringSetting GameDirectory = new StringSetting(General, "GameDirectory", string.Empty);
         public StringSetting LastScenarioPath = new StringSetting(General, nameof(LastScenarioPath), "Maps/Custom/");
+
+        public StringSetting TextEditorPath = new StringSetting(General, "TextEditorPath", string.Empty);
     }
 }

@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 
 namespace TSMapEditor.Misc
 {
@@ -16,12 +17,24 @@ namespace TSMapEditor.Misc
         /// Fetches an element at the given index.
         /// If the element is out of bounds, returns null.
         /// </summary>
-        public static T GetElementIfInRange<T>(this List<T> list, int index)
+        public static T GetElementIfInRange<T>(this IList<T> list, int index)
         {
             if (index < 0 || index >= list.Count)
                 return default;
 
             return list[index];
+        }
+
+        /// <summary>
+        /// Fetches a random element from the list using the provided Random instance.
+        /// </summary>
+        public static int GetRandomElementIndex<T>(this List<T> list, Random random, int disallowedIndex)
+        {
+            int randomIndex = random.Next(0, list.Count);
+            if (randomIndex == disallowedIndex)
+                randomIndex = (randomIndex + 1) % list.Count;
+
+            return randomIndex;
         }
     }
 

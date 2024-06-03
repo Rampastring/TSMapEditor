@@ -49,10 +49,20 @@ namespace TSMapEditor.UI.Windows
 
             scriptPath = filePath;
 
-            string confirmation = ScriptRunner.GetDescriptionFromScript(map, filePath);
+            (string error, string confirmation) = ScriptRunner.GetDescriptionFromScript(map, filePath);
+
+            if (error != null)
+            {
+                Logger.Log("Compilation error when attempting to run fetch script description: " + error);
+                EditorMessageBox.Show(WindowManager, "Error",
+                    "Compiling the script failed! Check its syntax, or contact its author for support." + Environment.NewLine + Environment.NewLine +
+                    "Returned error was: " + error, MessageBoxButtons.OK);
+                return;
+            }
+
             if (confirmation == null)
             {
-                EditorMessageBox.Show(WindowManager, "Error", "Compiling the script failed! Check its syntax, or contact its author for support.", MessageBoxButtons.OK);
+                EditorMessageBox.Show(WindowManager, "Error", "The script provides no description!", MessageBoxButtons.OK);
                 return;
             }
 

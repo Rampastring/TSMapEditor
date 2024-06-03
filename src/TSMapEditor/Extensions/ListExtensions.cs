@@ -100,21 +100,18 @@ namespace TSMapEditor.Extensions
                 string taskForceId = teamTypeSection.GetStringValue("TaskForce", string.Empty);
                 string tagId = teamTypeSection.GetStringValue("Tag", string.Empty);
 
-                teamType.HouseType = houseTypeFinder(houseTypeIniName);
+                if (!Helpers.IsStringNoneValue(houseTypeIniName))
+                {
+                    teamType.HouseType = houseTypeFinder(houseTypeIniName);
+
+                    if (teamType.HouseType == null)
+                    {
+                        errorLogger($"TeamType {teamType.ININame} has an invalid owner ({houseTypeIniName}) specified!");
+                    }
+                }
+
                 teamType.Script = scriptFinder(scriptId);
                 teamType.TaskForce = taskForceFinder(taskForceId);
-                teamType.Tag = tagFinder == null ? null : tagFinder(tagId);
-
-                teamTypeFlags.ForEach(ttflag =>
-                {
-                    if (teamTypeSection.GetBooleanValue(ttflag.Name, false))
-                        teamType.EnableFlag(ttflag.Name);
-                });
-
-                if (teamType.HouseType == null)
-                {
-                    errorLogger($"TeamType {teamType.ININame} has an invalid owner ({houseTypeIniName}) specified!");
-                }
 
                 if (teamType.Script == null)
                 {
@@ -125,6 +122,22 @@ namespace TSMapEditor.Extensions
                 {
                     errorLogger($"TeamType {teamType.ININame} has an invalid TaskForce ({taskForceId}) specified!");
                 }
+
+                if (tagFinder != null && !string.IsNullOrWhiteSpace(tagId))
+                {
+                    teamType.Tag = tagFinder(tagId);
+
+                    if (teamType.Tag == null)
+                    {
+                        errorLogger($"TeamType {teamType.ININame} has an invalid tag ({tagId}) specified!");
+                    }
+                }
+
+                teamTypeFlags.ForEach(ttflag =>
+                {
+                    if (teamTypeSection.GetBooleanValue(ttflag.Name, false))
+                        teamType.EnableFlag(ttflag.Name);
+                });
 
                 teamTypeList.Add(teamType);
             }

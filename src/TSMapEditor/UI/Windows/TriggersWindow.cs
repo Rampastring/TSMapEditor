@@ -88,6 +88,8 @@ namespace TSMapEditor.UI.Windows
         private SelectTechnoTypeWindow selectTechnoTypeWindow;
         private SelectTagWindow selectTagWindow;
         private SelectStringWindow selectStringWindow;
+        private SelectSpeechWindow selectSpeechWindow;
+        private SelectSoundWindow selectSoundWindow;
 
         private XNAContextMenu actionContextMenu;
         private XNAContextMenu eventContextMenu;
@@ -181,7 +183,7 @@ namespace TSMapEditor.UI.Windows
             ddActions.AddItem(new XNADropDownItem() { Text = "Attach to Objects", Tag = new Action(AttachTagToObjects) });
             ddActions.AddItem(new XNADropDownItem() { Text = "View Attached Objects", Tag = new Action(ShowAttachedObjects) });
 
-            if (!Constants.UseCountries)
+            if (!Constants.IsRA2YR)
             {
                 ddActions.AddItem(new XNADropDownItem() { Text = string.Empty, Selectable = false });
                 ddActions.AddItem(new XNADropDownItem() { Text = "Wrap in EVA disable/enable actions", Tag = new Action(WrapInEVADisableAndEnableActions) });
@@ -190,6 +192,7 @@ namespace TSMapEditor.UI.Windows
             ddActions.AddItem(new XNADropDownItem() { Text = string.Empty, Selectable = false });
             ddActions.AddItem(new XNADropDownItem() { Text = "Re-generate Trigger IDs", Tag = new Action(RegenerateIDs) });
             ddActions.AddItem(new XNADropDownItem() { Text = "Clone for Easier Difficulties", Tag = new Action(CloneForEasierDifficulties) });
+            ddActions.AddItem(new XNADropDownItem() { Text = "Clone (no dependencies)", Tag = new Action(CloneForEasierDifficultiesWithoutDependencies) });
 
             ddActions.SelectedIndex = 0;
             ddActions.SelectedIndexChanged += DdActions_SelectedIndexChanged;
@@ -262,6 +265,14 @@ namespace TSMapEditor.UI.Windows
             selectStringWindow = new SelectStringWindow(WindowManager, map);
             var stringDarkeningPanel = DarkeningPanel.InitializeAndAddToParentControlWithChild(WindowManager, Parent, selectStringWindow);
             stringDarkeningPanel.Hidden += StringDarkeningPanel_Hidden;
+
+            selectSpeechWindow = new SelectSpeechWindow(WindowManager, map);
+            var speechDarkeningPanel = DarkeningPanel.InitializeAndAddToParentControlWithChild(WindowManager, Parent, selectSpeechWindow);
+            speechDarkeningPanel.Hidden += SpeechDarkeningPanel_Hidden;
+
+            selectSoundWindow = new SelectSoundWindow(WindowManager, map);
+            var soundDarkeningPanel = DarkeningPanel.InitializeAndAddToParentControlWithChild(WindowManager, Parent, selectSoundWindow);
+            soundDarkeningPanel.Hidden += SoundDarkeningPanel_Hidden;
 
             eventContextMenu = new XNAContextMenu(WindowManager);
             eventContextMenu.Name = nameof(eventContextMenu);
@@ -433,6 +444,18 @@ namespace TSMapEditor.UI.Windows
                             throw new NotImplementedException("Unknown RTTI type encountered when listing linked objects for a trigger.");
                     }
                 });
+
+                stringBuilder.Append(Environment.NewLine);
+            }
+
+            var teamTypes = map.TeamTypes.FindAll(tt => tt.Tag == tag);
+            if (teamTypes.Count > 0)
+            {
+                foreach (var teamType in teamTypes)
+                {
+                    stringBuilder.Append($"The trigger is linked to TeamType '{teamType.Name}' ({teamType.ININame}).");
+                    stringBuilder.Append(Environment.NewLine);
+                }
             }
 
             var celltag = map.CellTags.Find(ct => ct.Tag == tag);
@@ -559,15 +582,56 @@ namespace TSMapEditor.UI.Windows
                 "and their TaskForces are also created for the easier-difficulty triggers." + Environment.NewLine + Environment.NewLine +
                 "No un-do is available. Do you want to continue?", MessageBoxButtons.YesNo);
 
-            messageBox.YesClickedAction = _ => DoCloneForEasierDifficulties();
+            messageBox.YesClickedAction = _ => DoCloneForEasierDifficulties(true);
         }
 
-        private void DoCloneForEasierDifficulties()
+        private void CloneForEasierDifficultiesWithoutDependencies()
+        {
+            if (editedTrigger == null)
+                return;
+
+            var messageBox = EditorMessageBox.Show(WindowManager,
+                "Are you sure?",
+                "Cloning this trigger for easier difficulties will create duplicate instances" + Environment.NewLine +
+                "of this trigger for Medium and Easy difficulties, replacing Hard-mode globals" + Environment.NewLine +
+                "with respective globals of easier difficulties." + Environment.NewLine + Environment.NewLine +
+                "No un-do is available. Do you want to continue?", MessageBoxButtons.YesNo);
+
+            messageBox.YesClickedAction = _ => DoCloneForEasierDifficulties(false);
+        }
+
+        private void DoCloneForEasierDifficulties(bool cloneDependencies)
         {
             var originalTag = map.Tags.Find(t => t.Trigger == editedTrigger);
 
             var mediumDifficultyTrigger = editedTrigger.Clone(map.GetNewUniqueInternalId());
+            mediumDifficultyTrigger.Hard = false;
+            mediumDifficultyTrigger.Normal = true;
+            mediumDifficultyTrigger.Easy = false;
             map.AddTrigger(mediumDifficultyTrigger);
+
+            var easyDifficultyTrigger = editedTrigger.Clone(map.GetNewUniqueInternalId());
+            easyDifficultyTrigger.Hard = false;
+            easyDifficultyTrigger.Normal = false;
+            easyDifficultyTrigger.Easy = true;
+            map.AddTrigger(easyDifficultyTrigger);
+
+            if (editedTrigger.Name.Contains("Hard"))
+            {
+                mediumDifficultyTrigger.Name = editedTrigger.Name.Replace("Hard", "Medium");
+                easyDifficultyTrigger.Name = editedTrigger.Name.Replace("Hard", "Easy");
+            }
+            else if (editedTrigger.Name.StartsWith("H "))
+            {
+                mediumDifficultyTrigger.Name = "M " + editedTrigger.Name[2..];
+                easyDifficultyTrigger.Name = "E " + editedTrigger.Name[2..];
+            }
+            else if (editedTrigger.Name.EndsWith(" H"))
+            {
+                mediumDifficultyTrigger.Name = editedTrigger.Name[..^2] + " M";
+                easyDifficultyTrigger.Name = editedTrigger.Name[..^2] + " E";
+            }
+
             map.Tags.Add(new Tag()
             {
                 ID = map.GetNewUniqueInternalId(),
@@ -576,8 +640,6 @@ namespace TSMapEditor.UI.Windows
                 Repeating = originalTag == null ? 0 : originalTag.Repeating
             });
 
-            var easyDifficultyTrigger = editedTrigger.Clone(map.GetNewUniqueInternalId());
-            map.AddTrigger(easyDifficultyTrigger);
             map.Tags.Add(new Tag()
             {
                 ID = map.GetNewUniqueInternalId(),
@@ -585,18 +647,6 @@ namespace TSMapEditor.UI.Windows
                 Trigger = easyDifficultyTrigger,
                 Repeating = originalTag == null ? 0 : originalTag.Repeating
             });
-
-            mediumDifficultyTrigger.Name = editedTrigger.Name.Replace("Hard", "Medium");
-            if (editedTrigger.Name.StartsWith("H "))
-                mediumDifficultyTrigger.Name = "M " + editedTrigger.Name[2..];
-            else if (editedTrigger.Name.EndsWith(" H"))
-                mediumDifficultyTrigger.Name = editedTrigger.Name[..^2] + " M";
-
-            easyDifficultyTrigger.Name = editedTrigger.Name.Replace("Hard", "Easy");
-            if (editedTrigger.Name.StartsWith("H "))
-                easyDifficultyTrigger.Name = "E " + editedTrigger.Name[2..];
-            else if (editedTrigger.Name.EndsWith(" H"))
-                easyDifficultyTrigger.Name = editedTrigger.Name[..^2] + " E";
 
             int mediumDiffGlobalVariableIndex = map.Rules.GlobalVariables.FindIndex(gv => gv.Name == "Difficulty Medium");
             int easyDiffGlobalVariableIndex = map.Rules.GlobalVariables.FindIndex(gv => gv.Name == "Difficulty Easy");
@@ -639,47 +689,66 @@ namespace TSMapEditor.UI.Windows
                 }
             }
 
-            // Go through used actions. If they refer to any TeamTypes, clone the
-            // TeamTypes and replace the references
-            for (int i = 0; i < editedTrigger.Actions.Count; i++)
+            if (cloneDependencies)
             {
-                TriggerAction action = editedTrigger.Actions[i];
+                // Go through used actions and their parameters.
+                // If they refer to any TeamTypes, clone the TeamTypes and replace the references.
 
-                TriggerActionType triggerActionType = map.EditorConfig.TriggerActionTypes[action.ActionIndex];
+                var clonedTeamTypes = new List<(TeamType Hard, TeamType Medium, TeamType Easy)>();
 
-                for (int j = 0; j < triggerActionType.Parameters.Length; j++)
+                for (int i = 0; i < editedTrigger.Actions.Count; i++)
                 {
-                    var param = triggerActionType.Parameters[j];
+                    TriggerAction action = editedTrigger.Actions[i];
 
-                    if (param != null && param.TriggerParamType == TriggerParamType.TeamType)
+                    TriggerActionType triggerActionType = map.EditorConfig.TriggerActionTypes[action.ActionIndex];
+
+                    for (int j = 0; j < triggerActionType.Parameters.Length; j++)
                     {
-                        TeamType teamType = map.TeamTypes.Find(tt => tt.ININame == action.ParamToString(j));
+                        var param = triggerActionType.Parameters[j];
 
-                        if (teamType != null && teamType.TaskForce != null)
+                        if (param != null && param.TriggerParamType == TriggerParamType.TeamType)
                         {
-                            TaskForce mediumTaskForce = teamType.TaskForce.Clone(map.GetNewUniqueInternalId());
-                            map.AddTaskForce(mediumTaskForce);
+                            TeamType teamType = map.TeamTypes.Find(tt => tt.ININame == action.ParamToString(j));
 
-                            TaskForce easyTaskForce = teamType.TaskForce.Clone(map.GetNewUniqueInternalId());
-                            map.AddTaskForce(easyTaskForce);
+                            if (teamType != null && teamType.TaskForce != null)
+                            {
+                                var existingEntry = clonedTeamTypes.Find(entry => entry.Hard == teamType);
 
-                            mediumTaskForce.Name = teamType.TaskForce.Name.Replace("H ", "M ").Replace(" H", " M").Replace("Hard", "Medium");
-                            easyTaskForce.Name = teamType.TaskForce.Name.Replace("H ", "E ").Replace(" H", " E").Replace("Hard", "Easy");
+                                // Do not clone the same team multiple times if it's used in multiple actions or multiple parameters
+                                if (existingEntry.Hard != null)
+                                {
+                                    mediumDifficultyTrigger.Actions[i].Parameters[j] = existingEntry.Medium.ININame;
+                                    easyDifficultyTrigger.Actions[i].Parameters[j] = existingEntry.Easy.ININame;
+                                }
+                                else
+                                {
+                                    TaskForce mediumTaskForce = teamType.TaskForce.Clone(map.GetNewUniqueInternalId());
+                                    map.AddTaskForce(mediumTaskForce);
 
-                            TeamType mediumTeamType = teamType.Clone(map.GetNewUniqueInternalId());
-                            map.AddTeamType(mediumTeamType);
+                                    TaskForce easyTaskForce = teamType.TaskForce.Clone(map.GetNewUniqueInternalId());
+                                    map.AddTaskForce(easyTaskForce);
 
-                            TeamType easyTeamType = teamType.Clone(map.GetNewUniqueInternalId());
-                            map.AddTeamType(easyTeamType);
+                                    mediumTaskForce.Name = teamType.TaskForce.Name.Replace("H ", "M ").Replace(" H", " M").Replace("Hard", "Medium");
+                                    easyTaskForce.Name = teamType.TaskForce.Name.Replace("H ", "E ").Replace(" H", " E").Replace("Hard", "Easy");
 
-                            mediumTeamType.Name = teamType.Name.Replace("H ", "M ").Replace(" H", " M").Replace("Hard", "Medium");
-                            easyTeamType.Name = teamType.Name.Replace("H ", "E ").Replace(" H", " E").Replace("Hard", "Easy");
+                                    TeamType mediumTeamType = teamType.Clone(map.GetNewUniqueInternalId());
+                                    map.AddTeamType(mediumTeamType);
 
-                            mediumTeamType.TaskForce = mediumTaskForce;
-                            easyTeamType.TaskForce = easyTaskForce;
+                                    TeamType easyTeamType = teamType.Clone(map.GetNewUniqueInternalId());
+                                    map.AddTeamType(easyTeamType);
 
-                            mediumDifficultyTrigger.Actions[i].Parameters[j] = mediumTeamType.ININame;
-                            easyDifficultyTrigger.Actions[i].Parameters[j] = easyTeamType.ININame;
+                                    mediumTeamType.Name = teamType.Name.Replace("H ", "M ").Replace(" H", " M").Replace("Hard", "Medium");
+                                    easyTeamType.Name = teamType.Name.Replace("H ", "E ").Replace(" H", " E").Replace("Hard", "Easy");
+
+                                    mediumTeamType.TaskForce = mediumTaskForce;
+                                    easyTeamType.TaskForce = easyTaskForce;
+
+                                    mediumDifficultyTrigger.Actions[i].Parameters[j] = mediumTeamType.ININame;
+                                    easyDifficultyTrigger.Actions[i].Parameters[j] = easyTeamType.ININame;
+
+                                    clonedTeamTypes.Add(new (teamType, mediumTeamType, easyTeamType));
+                                }
+                            }
                         }
                     }
                 }
@@ -817,6 +886,11 @@ namespace TSMapEditor.UI.Windows
                     map.Rules.SuperWeaponTypes.ForEach(sw => ctxEventParameterPresetValues.AddItem(sw.GetDisplayString()));
                     ctxEventParameterPresetValues.Open(GetCursorPoint());
                     break;
+                case TriggerParamType.TeamType:
+                    TeamType existingTeamType = map.TeamTypes.Find(tt => tt.ININame == triggerEvent.Parameters[paramIndex]);
+                    selectTeamTypeWindow.IsForEvent = true;
+                    selectTeamTypeWindow.Open(existingTeamType);
+                    break;
                 default:
                     break;
             }
@@ -907,7 +981,7 @@ namespace TSMapEditor.UI.Windows
                     selectTutorialLineWindow.Open(new TutorialLine(Conversions.IntFromString(triggerAction.Parameters[paramIndex], -1), string.Empty));
                     break;
                 case TriggerParamType.Theme:
-                    selectThemeWindow.Open(map.Rules.Themes.GetByIndex(Conversions.IntFromString(triggerAction.Parameters[paramIndex], -1)));
+                    selectThemeWindow.Open(map.Rules.Themes.Get(Conversions.IntFromString(triggerAction.Parameters[paramIndex], -1)));
                     break;
                 case TriggerParamType.Tag:
                     Tag existingTag = map.Tags.Find(tag => tag.ID == triggerAction.Parameters[paramIndex]);
@@ -932,6 +1006,20 @@ namespace TSMapEditor.UI.Windows
                     ctxActionParameterPresetValues.Width = 250;
                     map.Rules.SuperWeaponTypes.ForEach(sw => ctxActionParameterPresetValues.AddItem(sw.GetDisplayString()));
                     ctxActionParameterPresetValues.Open(GetCursorPoint());
+                    break;
+                case TriggerParamType.Speech:
+                    selectSpeechWindow.IsForEvent = false;
+                    EvaSpeech speech = Constants.IsRA2YR
+                        ? map.Rules.Speeches.Get(triggerAction.Parameters[paramIndex])
+                        : map.EditorConfig.Speeches.Get(Conversions.IntFromString(triggerAction.Parameters[paramIndex], -1));
+                    selectSpeechWindow.Open(speech);
+                    break;
+                case TriggerParamType.Sound:
+                    selectSoundWindow.IsForEvent = false;
+                    Sound sound = Constants.IsRA2YR
+                        ? map.Rules.Sounds.Get(triggerAction.Parameters[paramIndex])
+                        : map.Rules.Sounds.Get(Conversions.IntFromString(triggerAction.Parameters[paramIndex], -1));
+                    selectSoundWindow.Open(sound);
                     break;
                 default:
                     break;
@@ -1030,6 +1118,24 @@ namespace TSMapEditor.UI.Windows
             AssignParamValue(selectStringWindow.IsForEvent, selectStringWindow.SelectedObject.ID);
         }
 
+        private void SpeechDarkeningPanel_Hidden(object sender, EventArgs e)
+        {
+            if (selectSpeechWindow.SelectedObject == null)
+                return;
+
+            var speech = selectSpeechWindow.SelectedObject;
+            AssignParamValue(selectSpeechWindow.IsForEvent, Constants.IsRA2YR ? speech.Name : speech.Index.ToString(CultureInfo.InvariantCulture));
+        }
+
+        private void SoundDarkeningPanel_Hidden(object sender, EventArgs e)
+        {
+            if (selectSoundWindow.SelectedObject == null)
+                return;
+
+            var sound = selectSoundWindow.SelectedObject;
+            AssignParamValue(selectSoundWindow.IsForEvent, Constants.IsRA2YR ? sound.Name : sound.Index.ToString(CultureInfo.InvariantCulture));
+        }
+
         private void AssignParamValue(bool isForEvent, int paramValue)
         {
             if (isForEvent)
@@ -1084,9 +1190,8 @@ namespace TSMapEditor.UI.Windows
             if (selectTeamTypeWindow.SelectedObject == null)
                 return;
 
-            GetTriggerActionAndParamIndex(out TriggerAction triggerAction, out int paramIndex);
-            triggerAction.Parameters[paramIndex] = selectTeamTypeWindow.SelectedObject.ININame;
-            EditTrigger(editedTrigger);
+            var teamType = selectTeamTypeWindow.SelectedObject;
+            AssignParamValue(selectTeamTypeWindow.IsForEvent, teamType.ININame);
         }
 
         private void GetTriggerActionAndParamIndex(out TriggerAction triggerAction, out int paramIndex)
@@ -1231,6 +1336,7 @@ namespace TSMapEditor.UI.Windows
 
                 TriggerAction existingAction = editedTrigger.Actions[lbActions.SelectedIndex];
                 existingAction.ActionIndex = selectActionWindow.SelectedObject.ID;
+                SetTriggerActionHardcodedParameters(existingAction);
             }
 
             EditTrigger(editedTrigger);
@@ -1240,6 +1346,18 @@ namespace TSMapEditor.UI.Windows
         {
             var triggerAction = new TriggerAction();
             triggerAction.ActionIndex = triggerActionType.ID;
+            SetTriggerActionHardcodedParameters(triggerAction);
+
+            return triggerAction;
+        }
+
+        private void SetTriggerActionHardcodedParameters(TriggerAction triggerAction)
+        {
+            if (!map.EditorConfig.TriggerActionTypes.TryGetValue(triggerAction.ActionIndex, out var triggerActionType))
+            {
+                Logger.Log($"{nameof(TriggersWindow)}.{nameof(SetTriggerActionHardcodedParameters)}: Unknown action type {triggerAction.ActionIndex}");
+                return;
+            }
 
             for (int i = 0; i < TriggerActionType.MAX_PARAM_COUNT; i++)
             {
@@ -1262,8 +1380,6 @@ namespace TSMapEditor.UI.Windows
                     continue;
                 }
             }
-
-            return triggerAction;
         }
 
         private void BtnAddAction_LeftClick(object sender, EventArgs e)
@@ -1794,7 +1910,13 @@ namespace TSMapEditor.UI.Windows
                         return houses[intValue].XNAColor;
                     }
                     goto case TriggerParamType.Unused;
-
+                case TriggerParamType.TeamType:
+                    var teamType = map.TeamTypes.Find(tt => tt.ININame == paramValue);
+                    if (teamType != null)
+                    {
+                        return Helpers.GetHouseTypeUITextColor(teamType.HouseType);
+                    }
+                    goto case TriggerParamType.Unused;
                 case TriggerParamType.Unused:
                 default:
                     return UISettings.ActiveSettings.AltColor;
@@ -1899,11 +2021,11 @@ namespace TSMapEditor.UI.Windows
                     if (!intParseSuccess)
                         return paramValue;
 
-                    Theme theme = map.Rules.Themes.GetByIndex(intValue);
+                    Theme theme = map.Rules.Themes.Get(intValue);
                     if (theme == null)
                         return paramValue + " - nonexistent theme";
 
-                    return paramValue + " " + theme.Name;
+                    return theme.ToString();
                 case TriggerParamType.Tag:
                     Tag tag = map.Tags.Find(t => t.ID == paramValue);
 
@@ -1919,6 +2041,54 @@ namespace TSMapEditor.UI.Windows
                         return intValue + " - nonexistent super weapon";
 
                     return intValue + " " + map.Rules.SuperWeaponTypes[intValue].GetDisplayStringWithoutIndex();
+                case TriggerParamType.Speech:
+                    EvaSpeech speech;
+
+                    if (Constants.IsRA2YR)
+                    {
+                        speech = map.Rules.Speeches.Get(paramValue);
+
+                        if (speech == null)
+                            return paramValue + " - unknown speech";
+
+                        return speech.Name;
+                    }
+                    else
+                    {
+                        if (!intParseSuccess)
+                            return paramValue;
+
+                        speech = map.EditorConfig.Speeches.Get(intValue);
+
+                        if (speech == null)
+                            return intValue + " - unknown speech";
+
+                        return $"{intValue} {speech.Name}";
+                    }
+                case TriggerParamType.Sound:
+                    Sound sound;
+
+                    if (Constants.IsRA2YR)
+                    {
+                        sound = map.Rules.Sounds.Get(paramValue);
+
+                        if (sound == null)
+                            return paramValue + " - unknown sound";
+
+                        return sound.Name;
+                    }
+                    else
+                    {
+                        if (!intParseSuccess)
+                            return paramValue;
+
+                        sound = map.Rules.Sounds.Get(intValue);
+
+                        if (sound == null)
+                            return intValue + " - unknown sound";
+
+                        return $"{intValue} {sound.Name}";
+                    }
                 case TriggerParamType.Float:
                     if (!intParseSuccess)
                         return paramValue;

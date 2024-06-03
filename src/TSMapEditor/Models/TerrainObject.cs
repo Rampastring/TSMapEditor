@@ -21,6 +21,8 @@ namespace TSMapEditor.Models
 
         public TerrainType TerrainType { get; private set; }
 
+        public override bool IsInvisibleInGame() => TerrainType.InvisibleInGame;
+
         public override int GetYDrawOffset()
         {
             if (TerrainType.SpawnsTiberium)

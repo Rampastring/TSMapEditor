@@ -91,7 +91,8 @@ namespace TSMapEditor.Rendering.ObjectRenderers
 
         protected override void Render(Structure gameObject, int heightOffset, Point2D drawPoint, in CommonDrawParams drawParams)
         {
-            DrawFoundationLines(gameObject);
+            if (RenderDependencies.EditorState.RenderInvisibleInGameObjects)
+                DrawFoundationLines(gameObject);
 
             bool affectedByLighting = RenderDependencies.EditorState.IsLighting && (drawParams.ShapeImage != null && drawParams.ShapeImage.SubjectToLighting);
 

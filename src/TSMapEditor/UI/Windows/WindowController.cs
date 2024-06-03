@@ -66,6 +66,7 @@ namespace TSMapEditor.UI.Windows
         public DeletionModeConfigurationWindow DeletionModeConfigurationWindow { get; private set; }
         public RenderedObjectsConfigurationWindow RenderedObjectsConfigurationWindow { get; private set; }
         public ConfigureAlliesWindow ConfigureAlliesWindow { get; private set; }
+        public SelectConnectedTileWindow SelectConnectedTileWindow { get; private set; }
         public AboutWindow AboutWindow { get; private set; }
 
         private IWindowParentControl windowParentControl;
@@ -196,6 +197,11 @@ namespace TSMapEditor.UI.Windows
 
             ConfigureAlliesWindow = new ConfigureAlliesWindow(windowParentControl.WindowManager, map);
             Windows.Add(ConfigureAlliesWindow);
+
+            SelectConnectedTileWindow = new SelectConnectedTileWindow(windowParentControl.WindowManager, map);
+            // TODO add a way for WindowController windows to use DarkeningPanels
+            // DarkeningPanel.InitializeAndAddToParentControlWithChild(windowParentControl.WindowManager, windowParentControl, SelectConnectedTileWindow);
+            Windows.Add(SelectConnectedTileWindow);
 
             AboutWindow = new AboutWindow(windowParentControl.WindowManager);
             Windows.Add(AboutWindow);

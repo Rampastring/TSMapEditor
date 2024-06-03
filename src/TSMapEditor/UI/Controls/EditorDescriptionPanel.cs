@@ -1,5 +1,6 @@
 ﻿using Rampastring.XNAUI;
 using Rampastring.XNAUI.XNAControls;
+using System;
 
 namespace TSMapEditor.UI.Controls
 {
@@ -14,7 +15,7 @@ namespace TSMapEditor.UI.Controls
         public override string Text
         {
             get => lblDescription.Text;
-            set => lblDescription.Text = Renderer.FixText(value, lblDescription.FontIndex, Width - (Constants.UIEmptySideSpace * 2)).Text;
+            set => lblDescription.Text = string.Join(Environment.NewLine, Renderer.GetFixedTextLines(value, lblDescription.FontIndex, Width - (Constants.UIEmptySideSpace * 2), true, true));
         }
 
         public override void Initialize()

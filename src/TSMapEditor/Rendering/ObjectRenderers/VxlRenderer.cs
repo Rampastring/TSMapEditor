@@ -228,7 +228,7 @@ namespace TSMapEditor.Rendering.ObjectRenderers
 
         private static byte[] PreCalculateLighting(Vector3[] normalsTable, int normalsMode, float rotation)
         {
-            Vector3 light = Constants.UseCountries ?
+            Vector3 light = Constants.IsRA2YR ?
                 Vector3.Transform(YRLight, Matrix.CreateRotationZ(rotation - MathHelper.ToRadians(45))) : 
                 Vector3.Transform(TSLight, Matrix.CreateRotationZ(rotation - MathHelper.ToRadians(45)));
 

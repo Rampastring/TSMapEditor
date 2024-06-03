@@ -46,6 +46,7 @@ namespace TSMapEditor.UI
                 ToggleFullscreen,
                 AdjustTileHeightUp,
                 AdjustTileHeightDown,
+                PlaceConnectedTile,
 
                 AircraftMenu,
                 BuildingMenu,
@@ -127,7 +128,7 @@ namespace TSMapEditor.UI
         public KeyboardCommand ToggleFullscreen { get; } = new KeyboardCommand("ToggleFullscreen", "Toggle Full Screen", new KeyboardCommandInput(Keys.F11, KeyboardModifiers.None));
         public KeyboardCommand AdjustTileHeightUp { get; } = new KeyboardCommand("AdjustTileHeightUp", "Adjust Tile Height Up", new KeyboardCommandInput(Keys.PageUp, KeyboardModifiers.None), forActionsOnly:true);
         public KeyboardCommand AdjustTileHeightDown { get; } = new KeyboardCommand("AdjustTileHeightDown", "Adjust Tile Height Down", new KeyboardCommandInput(Keys.PageDown, KeyboardModifiers.None), forActionsOnly:true);
-
+        public KeyboardCommand PlaceConnectedTile { get; } = new KeyboardCommand("PlaceConnectedTile", "Place Connected Tile", new KeyboardCommandInput(Keys.D, KeyboardModifiers.Ctrl));
 
         public KeyboardCommand AircraftMenu { get; } = new KeyboardCommand("AircraftMenu", "Aircraft Menu", new KeyboardCommandInput(Keys.D1, KeyboardModifiers.None));
         public KeyboardCommand BuildingMenu { get; } = new KeyboardCommand("BuildingMenu", "Building Menu", new KeyboardCommandInput(Keys.D2, KeyboardModifiers.None));

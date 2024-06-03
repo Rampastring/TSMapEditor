@@ -54,6 +54,7 @@ namespace TSMapEditor.UI
 
             tbGameDirectory = new EditorTextBox(WindowManager);
             tbGameDirectory.Name = nameof(tbGameDirectory);
+            tbGameDirectory.AllowSemicolon = true;
             tbGameDirectory.X = Constants.UIEmptySideSpace;
             tbGameDirectory.Y = lblGameDirectory.Bottom + Constants.UIVerticalSpacing;
             tbGameDirectory.Width = Width - Constants.UIEmptySideSpace * 3 - BrowseButtonWidth;
@@ -94,6 +95,7 @@ namespace TSMapEditor.UI
 
             tbMapPath = new EditorTextBox(WindowManager);
             tbMapPath.Name = nameof(tbMapPath);
+            tbMapPath.AllowSemicolon = true;
             tbMapPath.X = Constants.UIEmptySideSpace;
             tbMapPath.Y = lblMapPath.Bottom + Constants.UIVerticalSpacing;
             tbMapPath.Width = Width - Constants.UIEmptySideSpace * 3 - BrowseButtonWidth;

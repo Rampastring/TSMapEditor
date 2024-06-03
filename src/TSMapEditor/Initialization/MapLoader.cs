@@ -6,9 +6,11 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Text;
+using TSMapEditor.CCEngine;
 using TSMapEditor.Extensions;
 using TSMapEditor.GameMath;
 using TSMapEditor.Models;
+using TSMapEditor.Models.Enums;
 using TSMapEditor.Models.MapFormat;
 using TSMapEditor.Rendering;
 
@@ -813,6 +815,62 @@ namespace TSMapEditor.Initialization
             }
 
             Logger.Log("Triggers read successfully.");
+
+            TriggerFix(map);
+        }
+
+        /// <summary>
+        /// Checks for triggers having invalid values for uncustomizable parameters.
+        /// Some earlier versions of WAE could set these parameters wrong, so we are
+        /// cleaning up any potential mess we caused.
+        /// </summary>
+        private static void TriggerFix(IMap map)
+        {
+            Logger.Log("Checking for bugged triggers.");
+
+            // Check for mismatched uncustomizable trigger action parameters
+            foreach (var trigger in map.Triggers)
+            {
+                foreach (var action in trigger.Actions)
+                {
+                    if (!map.EditorConfig.TriggerActionTypes.TryGetValue(action.ActionIndex, out var triggerActionType))
+                        continue;
+
+                    for (int i = 0; i < triggerActionType.Parameters.Length - 1; i++)
+                    {
+                        var paramType = triggerActionType.Parameters[i].TriggerParamType;
+
+                        string valueToSet = null;
+
+                        if ((int)paramType < 0 && Conversions.IntFromString(action.Parameters[i], 0) != Math.Abs((int)paramType))
+                        {
+                            valueToSet = Math.Abs((int)paramType).ToString(CultureInfo.InvariantCulture);
+                        }
+
+                        if (paramType == TriggerParamType.Unused && action.Parameters[i] != "0")
+                        {
+                            valueToSet = "0";
+                        }
+
+                        if (valueToSet != null)
+                        {
+                            AddMapLoadError($"Trigger \"{trigger.Name}\" had action \"{triggerActionType.Name}\" with invalid value for uncustomizable parameter #{i}: \"{action.Parameters[i]}\". It has been automatically corrected to \"{valueToSet}\".");
+                            action.Parameters[i] = valueToSet;
+                        }
+                    }
+
+                    const int lastParamIndex = TriggerActionType.MAX_PARAM_COUNT - 1;
+                    // Handle P7 separately due to WaypointZZ hardcoding
+                    if (triggerActionType.Parameters[lastParamIndex].TriggerParamType == TriggerParamType.Unused && action.Parameters[lastParamIndex] != "A")
+                    {
+                        string valueToSet = "A";
+                        AddMapLoadError($"Trigger '{trigger.Name}' had action \"{triggerActionType.Name}\" with invalid value for uncustomizable parameter #{lastParamIndex}: \"{action.Parameters[lastParamIndex]}\". It has been automatically corrected to \"{valueToSet}\".");
+                        action.Parameters[lastParamIndex] = valueToSet;
+                    }
+                }
+            }
+
+            Logger.Log("Checking for bugged triggers completed.");
         }
 
         public static void ReadTags(IMap map, IniFile mapIni)
@@ -977,9 +1035,9 @@ namespace TSMapEditor.Initialization
 
         public static void ReadHouseTypes(IMap map, IniFile mapIni)
         {
-            Logger.Log("Reading HouseTypes. Using countries: " + Constants.UseCountries);
+            Logger.Log("Reading HouseTypes. Using countries: " + Constants.IsRA2YR);
 
-            var section = mapIni.GetSection(Constants.UseCountries ? "Countries" : "Houses");
+            var section = mapIni.GetSection(Constants.IsRA2YR ? "Countries" : "Houses");
             if (section == null)
                 return;
 
@@ -990,7 +1048,7 @@ namespace TSMapEditor.Initialization
 
                 // HouseTypes can't be redefined, check if the HouseType already exists.
                 // If it does and we are using countries, still read the HouseType's properties.
-                if (Constants.UseCountries)
+                if (Constants.IsRA2YR)
                 {
                     var existingHouseType = map.FindHouseType(kvp.Value);
                     if (existingHouseType != null)
@@ -1011,7 +1069,7 @@ namespace TSMapEditor.Initialization
                 }
 
                 var houseType = new HouseType(kvp.Value);
-                houseType.Index = id + (Constants.UseCountries ? map.Rules.RulesHouseTypes.Count : 0);
+                houseType.Index = id + (Constants.IsRA2YR ? map.Rules.RulesHouseTypes.Count : 0);
                 id++;
 
                 if (houseTypeSection != null)
@@ -1079,7 +1137,7 @@ namespace TSMapEditor.Initialization
                     house.BaseNodes.Remove(bn);
                 });
 
-                if (Constants.UseCountries)
+                if (Constants.IsRA2YR)
                 {
                     if (house.Country != null)
                         houseType = map.FindHouseType(house.Country);

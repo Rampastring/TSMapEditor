@@ -120,7 +120,7 @@ namespace TSMapEditor.Models
         public List<HouseType> HouseTypes { get; protected set; } = new List<HouseType>();
         public List<HouseType> GetHouseTypes()
         {
-            if (Constants.UseCountries)
+            if (Constants.IsRA2YR)
             {
                 if (HouseTypes.Count > 0)
                     return Rules.RulesHouseTypes.Concat(HouseTypes).ToList();
@@ -842,7 +842,7 @@ namespace TSMapEditor.Models
             if (HouseTypes.Remove(houseType))
             {
                 for (int i = 0; i < HouseTypes.Count; i++)
-                    HouseTypes[i].Index = i + (Constants.UseCountries ? Rules.RulesHouseTypes.Count : 0);
+                    HouseTypes[i].Index = i + (Constants.IsRA2YR ? Rules.RulesHouseTypes.Count : 0);
 
                 return true;
             }
@@ -1602,7 +1602,7 @@ namespace TSMapEditor.Models
             var house = new House(houseType.ININame, houseType);
             house.XNAColor = houseType.XNAColor;
 
-            if (!Constants.UseCountries)
+            if (!Constants.IsRA2YR)
                 house.ActsLike = houseType.Index;
             else
                 house.Country = houseType.ININame;
@@ -1835,8 +1835,10 @@ namespace TSMapEditor.Models
             // Check for triggers using an object-specific event (like "destroyed" or "damaged") without
             // being linked to any object
             var objectSpecificEventIndexes = new List<int>() {
+                4,  // Discovered by player
                 6,  // Attacked by any house
                 7,  // Destroyed by any house
+                29, // Destroyed by anything (not infiltrate)
                 33, // Selected by player
                 34, // Comes near waypoint
                 38, // First damaged (combat only)
@@ -1847,8 +1849,10 @@ namespace TSMapEditor.Models
                 43, // Quarter health (any source)
                 44, // Attacked by (house)
                 48  // Destroyed by anything
-                /*55 Limpet Attached - need to think how to handle YR*/
             };
+
+            if (!Constants.IsRA2YR)
+                objectSpecificEventIndexes.Add(55); // Limpet attached - Firestorm only, not in RA2/YR
 
             foreach (var trigger in Triggers)
             {

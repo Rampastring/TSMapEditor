@@ -37,7 +37,7 @@ namespace TSMapEditor.UI.Windows
             ddParentCountry.SelectedIndexChanged += DdParentCountry_SelectedIndexChanged;
             btnAdd.LeftClick += BtnAdd_LeftClick;
 
-            if (!Constants.UseCountries)
+            if (!Constants.IsRA2YR)
             {
                 ddParentCountry.Visible = false;
                 FindChild<XNALabel>("lblParentCountry").Visible = false;
@@ -118,7 +118,7 @@ namespace TSMapEditor.UI.Windows
 
         public void Open()
         {
-            if (!Constants.UseCountries)
+            if (!Constants.IsRA2YR)
                 throw new NotSupportedException(nameof(NewHouseWindow) + " should only be used with Countries.");
 
             Show();

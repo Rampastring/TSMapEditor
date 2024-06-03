@@ -105,7 +105,7 @@ namespace TSMapEditor.UI.Windows
             var configureAlliesWindowDarkeningPanel = DarkeningPanel.InitializeAndAddToParentControlWithChild(WindowManager, Parent, configureAlliesWindow);
             configureAlliesWindow.AlliesUpdated += (s, e) => RefreshHouseInfo();
 
-            if (Constants.UseCountries)
+            if (Constants.IsRA2YR)
             {
                 btnEditHouseType.Text = "Edit Country";
                 newHouseWindow = new NewHouseWindow(WindowManager, map);
@@ -133,7 +133,7 @@ namespace TSMapEditor.UI.Windows
 
         private void BtnAddHouse_LeftClick(object sender, System.EventArgs e)
         {
-            if (Constants.UseCountries)
+            if (Constants.IsRA2YR)
             {
                 newHouseWindow.Open();
                 return;
@@ -169,7 +169,7 @@ namespace TSMapEditor.UI.Windows
             {
                 if (map.DeleteHouse(editedHouse))
                 {
-                    if (Constants.UseCountries)
+                    if (Constants.IsRA2YR)
                     {
                         // Also delete the associated HouseType if the HouseType is non-standard and is not used by any other House
                         if (map.HouseTypes.Contains(editedHouse.HouseType) && !map.Houses.Exists(h => h.HouseType == editedHouse.HouseType))
@@ -307,7 +307,7 @@ namespace TSMapEditor.UI.Windows
             else
                 ddCountry.SelectedIndex = -1;
 
-            ddSide.AllowDropDown = !Constants.UseCountries;
+            ddSide.AllowDropDown = !Constants.IsRA2YR;
 
             ddColor.SelectedIndex = ddColor.Items.FindIndex(item => item.Text == editedHouse.Color);
             ddTechnologyLevel.SelectedIndex = ddTechnologyLevel.Items.FindIndex(item => Conversions.IntFromString(item.Text, -1) == editedHouse.TechLevel);
@@ -334,7 +334,7 @@ namespace TSMapEditor.UI.Windows
         {
             editedHouse.ININame = tbName.Text;
 
-            if (!Constants.UseCountries)
+            if (!Constants.IsRA2YR)
                 editedHouse.HouseType.ININame = editedHouse.ININame;
 
             if (!string.IsNullOrWhiteSpace(editedHouse.ININame))
@@ -366,7 +366,7 @@ namespace TSMapEditor.UI.Windows
 
         private void DdActsLike_SelectedIndexChanged(object sender, System.EventArgs e)
         {
-            if (Constants.UseCountries)
+            if (Constants.IsRA2YR)
                 return;
 
             editedHouse.ActsLike = ddActsLike.SelectedIndex;
@@ -374,7 +374,7 @@ namespace TSMapEditor.UI.Windows
 
         private void DdCountry_SelectedIndexChanged(object sender, EventArgs e)
         {
-            if (!Constants.UseCountries)
+            if (!Constants.IsRA2YR)
                 return;
 
             var ddItem = ddCountry.SelectedItem;
@@ -387,7 +387,7 @@ namespace TSMapEditor.UI.Windows
             editedHouse.Color = ddColor.SelectedItem.Text;
             editedHouse.XNAColor = ddColor.SelectedItem.TextColor.Value;
 
-            if (!Constants.UseCountries)
+            if (!Constants.IsRA2YR)
             {
                 editedHouse.HouseType.Color = editedHouse.Color;
                 editedHouse.HouseType.XNAColor = editedHouse.XNAColor;

@@ -7,6 +7,8 @@ using TSMapEditor.Initialization;
 using TSMapEditor.Models;
 using TSMapEditor.Rendering;
 using TSMapEditor.Extensions;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace TSMapEditor.UI.Windows.MainMenuWindows
 {
@@ -38,6 +40,8 @@ namespace TSMapEditor.UI.Windows.MainMenuWindows
 
             var tutorialLines = new TutorialLines(Path.Combine(gameDirectory, Constants.TutorialIniPath), a => windowManager.AddCallback(a, null));
             var themes = new Themes(IniFileEx.FromPathOrMix(Constants.ThemeIniPath, gameDirectory, ccFileManager));
+            var evaSpeeches = new EvaSpeeches(IniFileEx.FromPathOrMix(Constants.EvaIniPath, gameDirectory, ccFileManager));
+            var sounds = new Sounds(IniFileEx.FromPathOrMix(Constants.SoundIniPath, gameDirectory, ccFileManager));
 
             Map map = new Map(ccFileManager);
 
@@ -70,6 +74,8 @@ namespace TSMapEditor.UI.Windows.MainMenuWindows
 
             map.Rules.TutorialLines = tutorialLines;
             map.Rules.Themes = themes;
+            map.Rules.Speeches = evaSpeeches;
+            map.Rules.Sounds = sounds;
 
             Console.WriteLine();
             Console.WriteLine("Map created.");
@@ -94,13 +100,15 @@ namespace TSMapEditor.UI.Windows.MainMenuWindows
             theater.ReadConfigINI(gameDirectory, ccFileManager);
 
             foreach (string theaterMIXName in theater.ContentMIXName)
-                ccFileManager.LoadPrimaryMixFile(theaterMIXName);
+                ccFileManager.LoadRequiredMixFile(theaterMIXName);
 
             foreach (string theaterMIXName in theater.OptionalContentMIXName)
-                ccFileManager.LoadSecondaryMixFile(theaterMIXName);
+                ccFileManager.LoadOptionalMixFile(theaterMIXName);
 
             TheaterGraphics theaterGraphics = new TheaterGraphics(windowManager.GraphicsDevice, theater, ccFileManager, LoadedMap.Rules);
             LoadedMap.TheaterInstance = theaterGraphics;
+            FillConnectedTileFoundations(theaterGraphics);
+
             MapLoader.PostCheckMap(LoadedMap, theaterGraphics);
 
             EditorGraphics editorGraphics = new EditorGraphics();
@@ -121,6 +129,50 @@ namespace TSMapEditor.UI.Windows.MainMenuWindows
             {
                 EditorMessageBox.Show(windowManager, "Errors while loading map",
                     "One or more errors were encountered while loading the map:\r\n\r\n" + errorList, MessageBoxButtons.OK);
+            }
+        }
+
+        /// <summary>
+        /// Automatically fills the foundations of all connected tiles
+        /// for which the foundation has not been specified in the config.
+        /// </summary>
+        private static void FillConnectedTileFoundations(TheaterGraphics theaterGraphics)
+        {
+            foreach (var cliffType in LoadedMap.EditorConfig.Cliffs)
+            {
+                if (!cliffType.AllowedTheaters.Select(at => at.ToUpperInvariant()).Contains(LoadedMap.LoadedTheaterName.ToUpperInvariant()))
+                    continue;
+
+                var tiles = cliffType.Tiles;
+                if (tiles.Count == 0)
+                    throw new INIConfigException($"Connected terrain type {cliffType.IniName} has 0 tiles!");
+
+                foreach (var cliffTypeTile in cliffType.Tiles)
+                {
+                    if (cliffTypeTile.IndicesInTileSet.Count == 0)
+                        continue;
+
+                    if (cliffTypeTile.Foundation != null)
+                        continue;
+
+                    cliffTypeTile.Foundation = new HashSet<GameMath.Point2D>();
+
+                    int firstTileIndexWithinSet = cliffTypeTile.IndicesInTileSet[0];
+                    var tileSet = theaterGraphics.Theater.TileSets.Find(ts => ts.SetName == cliffTypeTile.TileSetName);
+                    int totalFirstTileIndex = tileSet.StartTileIndex + firstTileIndexWithinSet;
+
+                    var tile = theaterGraphics.GetTile(totalFirstTileIndex);
+
+                    for (int i = 0; i < tile.SubTileCount; i++)
+                    {
+                        var subTile = tile.GetSubTile(i);
+                        if (subTile == null || subTile.TmpImage == null)
+                            continue;
+
+                        var offset = tile.GetSubTileCoordOffset(i).Value;
+                        cliffTypeTile.Foundation.Add(offset);
+                    }
+                }
             }
         }
     }

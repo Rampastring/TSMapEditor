@@ -36,13 +36,9 @@ namespace TSMapEditor.UI.Windows
         {
             lbObjectList.Clear();
 
-            List<Theme> themes = map.Rules.Themes.GetThemes();
-
-            for (int i = 0; i < themes.Count; i++)
+            foreach (var theme in map.Rules.Themes.List)
             {
-                Theme theme = themes[i];
-
-                lbObjectList.AddItem(new XNAListBoxItem() { Text = $"{i} {theme.Name}", Tag = theme });
+                lbObjectList.AddItem(new XNAListBoxItem() { Text = theme.ToString(), Tag = theme });
                 if (theme == SelectedObject)
                     lbObjectList.SelectedIndex = lbObjectList.Items.Count - 1;
             }

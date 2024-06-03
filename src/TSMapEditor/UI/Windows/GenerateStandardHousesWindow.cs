@@ -53,7 +53,7 @@ namespace TSMapEditor.UI.Windows
                 house.Allies = house.ININame;
                 house.TechLevel = 7;
 
-                if (!Constants.UseCountries)
+                if (!Constants.IsRA2YR)
                 {
                     var houseType = new HouseType(house.ININame);
                     houseType.Index = i;

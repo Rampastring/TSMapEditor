@@ -86,11 +86,10 @@ namespace TSMapEditor.UI.CursorActions
                     if (cell.Overlay == null || cell.Overlay.OverlayType == null || !cell.Overlay.OverlayType.Tiberium)
                         continue;
 
-                    int tiberiumIndex = cell.Overlay.OverlayType.GetTiberiumIndex(Constants.UseCountries);
-                    if (tiberiumIndex > -1)
+                    TiberiumType tiberiumType = cell.Overlay.OverlayType.TiberiumType;
+                    if (tiberiumType != null)
                     {
-                        int tiberiumTypeValue = Map.Rules.TiberiumTypes[tiberiumIndex].Value;
-                        tiberiumValue += tiberiumTypeValue * (cell.Overlay.FrameIndex + 1);
+                        tiberiumValue += cell.Overlay.FrameIndex * tiberiumType.Value;
                     }
                 }
             }

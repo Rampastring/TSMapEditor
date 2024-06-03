@@ -92,6 +92,8 @@ namespace TSMapEditor.UI
             TileSet tileSet = theaterGraphics.Theater.TileSets[tileGraphics.TileSetId];
             textRenderer.AddTextLine(new XNATextPart("TileSet: ", Constants.UIDefaultFont, subtleTextColor));
             textRenderer.AddTextPart(new XNATextPart(tileSet.SetName + " (" + tileGraphics.TileSetId + ")", Constants.UIDefaultFont, baseTextColor));
+            textRenderer.AddTextPart(new XNATextPart("Tile #: ", Constants.UIDefaultFont, subtleTextColor));
+            textRenderer.AddTextPart(new XNATextPart((MapTile.TileIndex - tileSet.StartTileIndex).ToString(CultureInfo.InvariantCulture), Constants.UIDefaultFont, baseTextColor));
 
             MGTMPImage subCellImage = MapTile.SubTileIndex < tileGraphics.TMPImages.Length ? tileGraphics.TMPImages[MapTile.SubTileIndex] : null;
             string terrainType = subCellImage != null && subCellImage.TmpImage != null ? Helpers.LandTypeToString(subCellImage.TmpImage.TerrainType) : "Unknown";

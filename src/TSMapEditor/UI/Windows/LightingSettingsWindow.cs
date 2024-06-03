@@ -92,7 +92,7 @@ namespace TSMapEditor.UI.Windows
             tbGreenIS.Text = map.Lighting.IonGreen.ToString(format);
             tbBlueIS.Text = map.Lighting.IonBlue.ToString(format);
 
-            if (Constants.UseCountries)
+            if (Constants.IsRA2YR)
             {
                 tbAmbientDominator.Text = (map.Lighting.DominatorAmbient ?? 0).ToString(format);
                 tbAmbientChangeRateDominator.Text = (map.Lighting.DominatorAmbientChangeRate ?? 0).ToString(format);
@@ -124,7 +124,7 @@ namespace TSMapEditor.UI.Windows
             map.Lighting.IonGreen = tbGreenIS.DoubleValue;
             map.Lighting.IonBlue = tbBlueIS.DoubleValue;
 
-            if (Constants.UseCountries)
+            if (Constants.IsRA2YR)
             {
                 map.Lighting.DominatorAmbient = tbAmbientDominator.DoubleValue;
                 map.Lighting.DominatorAmbientChangeRate = tbAmbientChangeRateDominator.DoubleValue;

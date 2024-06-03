@@ -52,7 +52,7 @@ namespace TSMapEditor.Mutations.Classes.HeightMutations
 
         protected void RegisterCell(Point2D cellCoords)
         {
-            if (processedCellsThisIteration.Contains(cellCoords) || cellsToProcess.Contains(cellCoords))
+            if (processedCellsThisIteration.Contains(cellCoords) || cellsToProcess.Contains(cellCoords) || totalProcessedCells.Contains(cellCoords))
                 return;
 
             cellsToProcess.Add(cellCoords);

@@ -23,11 +23,9 @@ namespace TSMapEditor.Rendering.ObjectRenderers
 
         protected override void Render(Overlay gameObject, int heightOffset, Point2D drawPoint, in CommonDrawParams drawParams)
         {
-            int tiberiumIndex = gameObject.OverlayType.GetTiberiumIndex(Constants.UseCountries);
-
             Color remapColor = Color.White;
-            if (tiberiumIndex > -1 && tiberiumIndex < Map.Rules.TiberiumTypes.Count)
-                remapColor = Map.Rules.TiberiumTypes[tiberiumIndex].XNAColor;
+            if (gameObject.OverlayType.TiberiumType != null)
+                remapColor = gameObject.OverlayType.TiberiumType.XNAColor;
 
             int overlayIndex = gameObject.OverlayType.Index;
 

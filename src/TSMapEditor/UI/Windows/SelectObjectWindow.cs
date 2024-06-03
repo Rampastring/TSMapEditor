@@ -13,6 +13,8 @@ namespace TSMapEditor.UI.Windows
             HasCloseButton = true;
         }
 
+        public event EventHandler ObjectSelected;
+
         protected EditorSuggestionTextBox tbSearch;
         protected EditorListBox lbObjectList;
 
@@ -48,14 +50,14 @@ namespace TSMapEditor.UI.Windows
             lbObjectList = FindChild<EditorListBox>(nameof(lbObjectList));
 
             lbObjectList.AllowRightClickUnselect = false;
-            lbObjectList.DoubleLeftClick += (s, e) => Hide();
+            lbObjectList.DoubleLeftClick += (s, e) => ConfirmSelection();
             lbObjectList.SelectedIndexChanged += LbObjectList_SelectedIndexChanged;
             lbObjectList.HoveredIndexChanged += LbObjectList_HoveredIndexChanged;
 
-            FindChild<EditorButton>("btnSelect").LeftClick += (s, e) => Hide();
+            FindChild<EditorButton>("btnSelect").LeftClick += (s, e) => ConfirmSelection();
 
             tbSearch.TextChanged += TbSearch_TextChanged;
-            tbSearch.EnterPressed += (s, e) => { if (lbObjectList.SelectedItem != null) Hide(); };
+            tbSearch.EnterPressed += (s, e) => { ConfirmSelection(); };
 
             // Make pressing X not save changes
             if (btnClose != null)
@@ -66,6 +68,15 @@ namespace TSMapEditor.UI.Windows
 
             EnabledChanged += SelectObjectWindow_EnabledChanged;
             WindowManager.WindowSizeChangedByUser += WindowManager_WindowSizeChangedByUser;
+        }
+
+        private void ConfirmSelection()
+        {
+            if (lbObjectList.SelectedItem != null)
+            {
+                ObjectSelected?.Invoke(this, EventArgs.Empty);
+                Hide();
+            }
         }
 
         private void WindowManager_WindowSizeChangedByUser(object sender, EventArgs e)

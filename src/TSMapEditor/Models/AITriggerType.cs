@@ -63,7 +63,7 @@ namespace TSMapEditor.Models
         public TeamType PrimaryTeam { get; set; }
         public string OwnerName { get; set; }
         public int TechLevel { get; set; }
-        public AITriggerConditionType ConditionType { get; set; }
+        public AITriggerConditionType ConditionType { get; set; } = AITriggerConditionType.None;
         public string ConditionObjectString { get; set; }
 
         /// <summary>
@@ -73,9 +73,9 @@ namespace TSMapEditor.Models
         /// </summary>
         public string LoadedComparatorString { get; set; }
         public AITriggerComparator Comparator { get; set; }
-        public double InitialWeight { get; set; }
-        public double MinimumWeight { get; set; }
-        public double MaximumWeight { get; set; }
+        public double InitialWeight { get; set; } = 50.0;
+        public double MinimumWeight { get; set; } = 30.0;
+        public double MaximumWeight { get; set; } = 70.0;
         public bool EnabledInMultiplayer { get; set; }
         public bool Unused { get; set; }
 
@@ -85,14 +85,14 @@ namespace TSMapEditor.Models
         public int Side { get; set; }
         public bool IsBaseDefense { get; set; }
         public TeamType SecondaryTeam { get; set; }
-        public bool Easy { get; set; }
-        public bool Medium { get; set; }
-        public bool Hard { get; set; }
+        public bool Easy { get; set; } = true;
+        public bool Medium { get; set; } = true;
+        public bool Hard { get; set; } = true;
 
         public AITriggerType Clone(string newUniqueId)
         {
             var clonedAITrigger = (AITriggerType)MemberwiseClone();
-            clonedAITrigger.Name = "Clone of " + Name;
+            clonedAITrigger.Name = Name + " (Clone)";
             clonedAITrigger.ININame = newUniqueId;
             return clonedAITrigger;
         }

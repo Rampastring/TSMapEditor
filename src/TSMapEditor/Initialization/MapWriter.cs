@@ -359,7 +359,7 @@ namespace TSMapEditor.Initialization
         {
             var houseTypes = map.HouseTypes;
 
-            string sectionName = Constants.UseCountries ? "Countries" : "Houses";
+            string sectionName = Constants.IsRA2YR ? "Countries" : "Houses";
             mapIni.RemoveSection(sectionName);
 
             if (map.HouseTypes.Count == 0)
@@ -380,7 +380,7 @@ namespace TSMapEditor.Initialization
                 houseType.WriteToIniSection(houseTypeSection);
             }
 
-            if (Constants.UseCountries)
+            if (Constants.IsRA2YR)
             {
                 // Write Rules house types that have been modified in the map
                 for (int i = 0; i < map.Rules.RulesHouseTypes.Count; i++)
@@ -413,7 +413,7 @@ namespace TSMapEditor.Initialization
                 housesSection.SetStringValue(house.ID > -1 ? house.ID.ToString() : i.ToString(), house.ININame);
 
                 // When countries are not in use, the section is already removed by WriteHouseTypes
-                if (Constants.UseCountries)
+                if (Constants.IsRA2YR)
                 {
                     // Only remove the section if no similarly-named modified HouseType exists - if one does,
                     // the section was possibly already removed by WriteHouseTypes

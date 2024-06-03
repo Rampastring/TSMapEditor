@@ -21,6 +21,8 @@ namespace TSMapEditor.Models
         public string EditorCategory { get; set; }
         public bool EditorVisible { get; set; } = true;
 
+        public bool InvisibleInGame { get; set; }
+
         /// <summary>
         /// Specifies which theaters this terrain object type can be placed down in.
         /// If empty, it is considered valid for all theaters.

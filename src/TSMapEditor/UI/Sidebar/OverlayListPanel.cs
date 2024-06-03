@@ -208,9 +208,8 @@ namespace TSMapEditor.UI.Sidebar
                     {
                         remapTexture = GetSidebarTextureForOverlay(firstEntry.OverlayType, renderTarget, firstEntry.Frame, remap: true);
 
-                        int tiberiumIndex = firstEntry.OverlayType.GetTiberiumIndex(Constants.UseCountries);
-                        if (tiberiumIndex > -1)
-                            remapColor = Map.Rules.TiberiumTypes[tiberiumIndex].XNAColor;
+                        if (firstEntry.OverlayType.TiberiumType != null)
+                            remapColor = firstEntry.OverlayType.TiberiumType.XNAColor;
                     }
 
                     collectionsCategory.Nodes.Add(new TreeViewNode()
@@ -291,9 +290,8 @@ namespace TSMapEditor.UI.Sidebar
                 {
                     remapTexture = GetSidebarTextureForOverlay(overlayType, renderTarget, frameNumber, remap: true);
 
-                    int tiberiumIndex = overlayType.GetTiberiumIndex(Constants.UseCountries);
-                    if (tiberiumIndex > -1)
-                        remapColor = Map.Rules.TiberiumTypes[tiberiumIndex].XNAColor;
+                    if (overlayType.TiberiumType != null)
+                        remapColor = overlayType.TiberiumType.XNAColor;
                 }
 
                 category.Nodes.Add(new TreeViewNode()

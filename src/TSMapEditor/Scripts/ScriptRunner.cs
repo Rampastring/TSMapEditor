@@ -29,20 +29,20 @@ namespace TSMapEditor.Scripts
             }
         }
 
-        public static string GetDescriptionFromScript(Map map, string scriptPath)
+        public static (string error, string description) GetDescriptionFromScript(Map map, string scriptPath)
         {
             if (!File.Exists(scriptPath))
-                return null;
+                return ("The script file does not exist!", null);
 
             var sourceCode = File.ReadAllText(scriptPath);
-            bool compileSuccess = CompileSource(map, sourceCode);
-            if (!compileSuccess)
-                return null;
+            string error = CompileSource(map, sourceCode);
+            if (error != null)
+                return (error, null);
 
-            return (string)getDescriptionMethod.Invoke(scriptClassInstance, null);
+            return (null, (string)getDescriptionMethod.Invoke(scriptClassInstance, null));
         }
 
-        private static bool CompileSource(Map map, string source)
+        private static string CompileSource(Map map, string source)
         {
             var script = new CSharpScriptExecution() { SaveGeneratedCode = true };
             script.AddLoadedReferences();
@@ -56,8 +56,11 @@ namespace TSMapEditor.Scripts
             getSuccessMessageMethod = null;
 
             object instance = script.CompileClass(source);
+
             if (script.Error)
-                return false;
+            {
+                return script.ErrorMessage;
+            }
 
             scriptClassInstance = instance;
             Type classType = instance.GetType();
@@ -69,7 +72,7 @@ namespace TSMapEditor.Scripts
                     getDescriptionMethod = method;
 
                     if (getDescriptionMethod.ReturnType != typeof(string))
-                        return false;
+                        return "GetDescription does not return a string!";
                 }
                 else if (method.Name == "Perform")
                 {
@@ -80,11 +83,16 @@ namespace TSMapEditor.Scripts
                     getSuccessMessageMethod = method;
 
                     if (getSuccessMessageMethod.ReturnType != typeof(string))
-                        return false;
+                        return "GetSuccessMessage does not return a string!";
                 }
             }
 
-            return getDescriptionMethod != null && performMethod != null && getSuccessMessageMethod != null;
+            if (getDescriptionMethod == null || performMethod == null || getSuccessMessageMethod == null)
+            {
+                return "The script does not declare one or more required methods.";
+            }
+
+            return null;
         }
     }
 }

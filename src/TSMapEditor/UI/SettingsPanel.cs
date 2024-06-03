@@ -4,9 +4,11 @@ using Rampastring.XNAUI.XNAControls;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.IO;
 using System.Windows.Forms;
 using TSMapEditor.GameMath;
 using TSMapEditor.Settings;
+using TSMapEditor.UI.Controls;
 
 namespace TSMapEditor.UI
 {
@@ -79,6 +81,7 @@ namespace TSMapEditor.UI
         private XNADropDown ddTheme;
         private XNADropDown ddScrollRate;
         private XNACheckBox chkUseBoldFont;
+        private EditorTextBox tbTextEditorPath;
 
         public override void Initialize()
         {
@@ -170,6 +173,21 @@ namespace TSMapEditor.UI
             chkUseBoldFont.Text = "Use Bold Font";
             AddChild(chkUseBoldFont);
 
+            var lblTextEditorPath = new XNALabel(WindowManager);
+            lblTextEditorPath.Name = nameof(lblTextEditorPath);
+            lblTextEditorPath.Text = "Text Editor Path:";
+            lblTextEditorPath.X = Constants.UIEmptySideSpace;
+            lblTextEditorPath.Y = chkUseBoldFont.Bottom + Constants.UIVerticalSpacing * 2;
+            AddChild(lblTextEditorPath);
+
+            tbTextEditorPath = new EditorTextBox(WindowManager);
+            tbTextEditorPath.Name = nameof(tbTextEditorPath);
+            tbTextEditorPath.AllowSemicolon = true;
+            tbTextEditorPath.X = Constants.UIEmptySideSpace;
+            tbTextEditorPath.Y = lblTextEditorPath.Bottom + Constants.UIVerticalSpacing;
+            tbTextEditorPath.Width = Width - tbTextEditorPath.X - Constants.UIEmptySideSpace;
+            AddChild(tbTextEditorPath);
+
             LoadSettings();
 
             base.Initialize();
@@ -189,13 +207,13 @@ namespace TSMapEditor.UI
 
             chkBorderless.Checked = userSettings.Borderless;
             chkUseBoldFont.Checked = userSettings.UseBoldFont;
+
+            tbTextEditorPath.Text = userSettings.TextEditorPath;
         }
 
         public void ApplySettings()
         {
             var userSettings = UserSettings.Instance;
-
-            ScreenResolution dispRes = null;
 
             userSettings.UseBoldFont.UserDefinedValue = chkUseBoldFont.Checked;
 
@@ -210,29 +228,8 @@ namespace TSMapEditor.UI
             {
                 userSettings.RenderScale.UserDefinedValue = (double)ddRenderScale.SelectedItem.Tag;
             }
-        }
 
-        private List<ScreenResolution> GetResolutions(int minWidth, int minHeight, int maxWidth, int maxHeight)
-        {
-            var screenResolutions = new List<ScreenResolution>();
-
-            foreach (DisplayMode dm in GraphicsAdapter.DefaultAdapter.SupportedDisplayModes)
-            {
-                if (dm.Width < minWidth || dm.Height < minHeight || dm.Width > maxWidth || dm.Height > maxHeight)
-                    continue;
-
-                var resolution = new ScreenResolution(dm.Width, dm.Height);
-
-                // SupportedDisplayModes can include the same resolution multiple times
-                // because it takes the refresh rate into consideration.
-                // Which means that we have to check if the resolution is already listed
-                if (screenResolutions.Find(res => res.Equals(resolution)) != null)
-                    continue;
-
-                screenResolutions.Add(resolution);
-            }
-
-            return screenResolutions;
+            userSettings.TextEditorPath.UserDefinedValue = tbTextEditorPath.Text;
         }
     }
 }

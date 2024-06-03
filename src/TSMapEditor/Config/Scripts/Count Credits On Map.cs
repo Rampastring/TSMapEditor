@@ -44,11 +44,10 @@ namespace WAEScript
                 if (cell.Overlay?.OverlayType == null || !cell.Overlay.OverlayType.Tiberium)
                     return;
 
-                int tiberiumIndex = cell.Overlay.OverlayType.GetTiberiumIndex(Constants.UseCountries);
-                if (tiberiumIndex > -1)
+                TiberiumType tiberiumType = cell.Overlay.OverlayType.TiberiumType;
+                if (tiberiumType != null)
                 {
-                    int tiberiumTypeValue = map.Rules.TiberiumTypes[tiberiumIndex].Value;
-                    count += tiberiumTypeValue * (cell.Overlay.FrameIndex + 1);
+                    count += cell.Overlay.FrameIndex * tiberiumType.Value;
                 }
             });
         }

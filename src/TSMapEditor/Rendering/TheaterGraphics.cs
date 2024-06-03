@@ -408,8 +408,7 @@ namespace TSMapEditor.Rendering
             theaterPalette = GetPaletteOrFail(theater.TerrainPaletteName, false);
             unitPalette = GetPaletteOrFail(Theater.UnitPaletteName, true);
             animPalette = GetPaletteOrFail("anim.pal", true);
-            if (!string.IsNullOrEmpty(Theater.TiberiumPaletteName))
-                tiberiumPalette = GetPaletteOrFail(Theater.TiberiumPaletteName, false);
+            tiberiumPalette = string.IsNullOrEmpty(Theater.TiberiumPaletteName) ? theaterPalette : GetPaletteOrFail(Theater.TiberiumPaletteName, false);
             vplFile = GetVplFile();
 
             if (UserSettings.Instance.MultithreadedTextureLoading)
@@ -1295,17 +1294,11 @@ namespace TSMapEditor.Rendering
                     var shpFile = new ShpFile(loadedShpName);
                     shpFile.ParseFromBuffer(shpData);
                     XNAPalette palette = theaterPalette;
-
-                    if (overlayType.Tiberium)
-                    {
+                    
+                    if (overlayType.Wall || overlayType.IsVeinholeMonster)
                         palette = unitPalette;
-
-                        if (Constants.TheaterPaletteForTiberium)
-                            palette = tiberiumPalette ?? theaterPalette;
-                    }
-
-                    if (overlayType.Wall || overlayType.IsVeins)
-                        palette = unitPalette;
+                    else if (overlayType.Tiberium || overlayType.IsVeins)
+                        palette = Constants.TheaterPaletteForTiberium ? tiberiumPalette : unitPalette;
 
                     // Palette override for wall overlays in Phobos
                     if (overlayType.Wall && !string.IsNullOrWhiteSpace(overlayType.ArtConfig.Palette))
@@ -1454,7 +1447,13 @@ namespace TSMapEditor.Rendering
 
             TerrainObjectTextures = null;
             BuildingTextures = null;
+            BuildingTurretModels = null;
+            BuildingBarrelModels = null;
             UnitTextures = null;
+            UnitModels = null;
+            UnitTurretModels = null;
+            UnitBarrelModels = null;
+            AircraftModels = null;
             InfantryTextures = null;
             OverlayTextures = null;
             SmudgeTextures = null;

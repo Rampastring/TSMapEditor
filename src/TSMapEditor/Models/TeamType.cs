@@ -30,7 +30,7 @@ namespace TSMapEditor.Models
         public string TransportWaypoint { get; set; }
         public int? MindControlDecision { get; set; }
         public int TechLevel { get; set; }
-        public int VeteranLevel { get; set; }
+        public int VeteranLevel { get; set; } = 1;
 
         [INI(false)]
         public List<string> EnabledTeamTypeFlags { get; private set; } = new List<string>();
@@ -73,7 +73,7 @@ namespace TSMapEditor.Models
 
             stringBuilder.Append("Waypoint: " + (string.IsNullOrWhiteSpace(Waypoint) ? Constants.NoneValue2 : Helpers.GetWaypointNumberFromAlphabeticalString(Waypoint)));
 
-            if (Constants.UseCountries)
+            if (Constants.IsRA2YR)
             {
                 stringBuilder.Append("TransportWaypoint: " + (string.IsNullOrWhiteSpace(TransportWaypoint) ? Constants.NoneValue2 : Helpers.GetWaypointNumberFromAlphabeticalString(TransportWaypoint)));
             }
@@ -128,7 +128,7 @@ namespace TSMapEditor.Models
         {
             var clone = MemberwiseClone() as TeamType;
             clone.ININame = iniName;
-            clone.Name = "Clone of " + Name;
+            clone.Name = Name + " (Clone)";
 
             clone.EnabledTeamTypeFlags = new List<string>(EnabledTeamTypeFlags);
 
@@ -142,10 +142,15 @@ namespace TSMapEditor.Models
 
             if (HouseType != null)
                 iniSection.SetStringValue("House", HouseType.ININame);
+            else
+                iniSection.SetStringValue("House", Constants.NoneValue1);
+
             if (Script != null)
                 iniSection.SetStringValue("Script", Script.ININame);
+
             if (TaskForce != null)
                 iniSection.SetStringValue("TaskForce", TaskForce.ININame);
+
             if (Tag != null)
                 iniSection.SetStringValue("Tag", Tag.ID);
 
