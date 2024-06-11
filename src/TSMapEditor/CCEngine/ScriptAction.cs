@@ -1,24 +1,34 @@
-﻿using Rampastring.Tools;
+﻿using Microsoft.Xna.Framework;
+using Rampastring.Tools;
 using System;
 using System.Collections.Generic;
 using TSMapEditor.Models.Enums;
 
 namespace TSMapEditor.CCEngine
 {
-    public struct ScriptActionPresetOption
+    public class ScriptActionPresetOption
     {
         public int Value;
         public string Text;
+        public Color? Color;
 
-        public ScriptActionPresetOption(int value, string text)
+        public ScriptActionPresetOption()
+        {
+        }
+
+        public ScriptActionPresetOption(int value, string text, Color? color = null)
         {
             Value = value;
             Text = text;
+            Color = color;
         }
 
         public string GetOptionText()
         {
-            return Value + " - " + Text;
+            if (string.IsNullOrEmpty(Text))
+                return Value.ToString();
+            else
+                return Value + " - " + Text;
         }
     }
 
@@ -35,6 +45,7 @@ namespace TSMapEditor.CCEngine
         public string ParamDescription { get; set; } = "Use 0";
         public TriggerParamType ParamType { get; set; } = TriggerParamType.Unknown;
         public List<ScriptActionPresetOption> PresetOptions { get; } = new List<ScriptActionPresetOption>(0);
+        public bool UseWindowSelection { get; set; } = false;
 
         public void ReadIniSection(IniSection iniSection)
         {
@@ -42,6 +53,7 @@ namespace TSMapEditor.CCEngine
             Name = iniSection.GetStringValue(nameof(Name), Name);
             Description = iniSection.GetStringValue(nameof(Description), Description);
             ParamDescription = iniSection.GetStringValue(nameof(ParamDescription), ParamDescription);
+            UseWindowSelection = iniSection.GetBooleanValue(nameof(UseWindowSelection), UseWindowSelection);
             if (Enum.TryParse(iniSection.GetStringValue(nameof(ParamType), "Unknown"), out TriggerParamType result))
             {
                 ParamType = result;
