@@ -90,6 +90,7 @@ namespace TSMapEditor.UI.Windows
         private SelectStringWindow selectStringWindow;
         private SelectSpeechWindow selectSpeechWindow;
         private SelectSoundWindow selectSoundWindow;
+        private SelectSuperWeaponTypeWindow selectSuperWeaponTypeWindow;
 
         private XNAContextMenu actionContextMenu;
         private XNAContextMenu eventContextMenu;
@@ -273,6 +274,10 @@ namespace TSMapEditor.UI.Windows
             selectSoundWindow = new SelectSoundWindow(WindowManager, map);
             var soundDarkeningPanel = DarkeningPanel.InitializeAndAddToParentControlWithChild(WindowManager, Parent, selectSoundWindow);
             soundDarkeningPanel.Hidden += SoundDarkeningPanel_Hidden;
+
+            selectSuperWeaponTypeWindow = new SelectSuperWeaponTypeWindow(WindowManager, map);
+            var swDarkeningPanel = DarkeningPanel.InitializeAndAddToParentControlWithChild(WindowManager, Parent, selectSuperWeaponTypeWindow);
+            swDarkeningPanel.Hidden += SuperWeaponDarkeningPanel_Hidden;
 
             eventContextMenu = new XNAContextMenu(WindowManager);
             eventContextMenu.Name = nameof(eventContextMenu);
@@ -881,10 +886,17 @@ namespace TSMapEditor.UI.Windows
                     ctxEventParameterPresetValues.Open(GetCursorPoint());
                     break;
                 case TriggerParamType.SuperWeapon:
-                    ctxEventParameterPresetValues.ClearItems();
-                    ctxEventParameterPresetValues.Width = 250;
-                    map.Rules.SuperWeaponTypes.ForEach(sw => ctxEventParameterPresetValues.AddItem(sw.GetDisplayString()));
-                    ctxEventParameterPresetValues.Open(GetCursorPoint());
+                    int swTypeIndex = Conversions.IntFromString(triggerEvent.Parameters[paramIndex], -1);
+                    selectSuperWeaponTypeWindow.IsForEvent = true;
+                    selectSuperWeaponTypeWindow.UseININameAsValue = false;
+                    if (swTypeIndex > -1 && swTypeIndex < map.Rules.SuperWeaponTypes.Count)
+                        selectSuperWeaponTypeWindow.Open(map.Rules.SuperWeaponTypes[swTypeIndex]);
+                    break;
+                case TriggerParamType.SuperWeaponID:
+                    string swTypeID = triggerEvent.Parameters[paramIndex];
+                    selectSuperWeaponTypeWindow.IsForEvent = true;
+                    selectSuperWeaponTypeWindow.UseININameAsValue = true;
+                    selectSuperWeaponTypeWindow.Open(map.Rules.SuperWeaponTypes.Find(swType => swType.ININame.Equals(swTypeID, StringComparison.Ordinal)));
                     break;
                 case TriggerParamType.TeamType:
                     TeamType existingTeamType = map.TeamTypes.Find(tt => tt.ININame == triggerEvent.Parameters[paramIndex]);
@@ -1002,10 +1014,18 @@ namespace TSMapEditor.UI.Windows
                     selectStringWindow.Open(existingString);
                     break;
                 case TriggerParamType.SuperWeapon:
-                    ctxActionParameterPresetValues.ClearItems();
-                    ctxActionParameterPresetValues.Width = 250;
-                    map.Rules.SuperWeaponTypes.ForEach(sw => ctxActionParameterPresetValues.AddItem(sw.GetDisplayString()));
-                    ctxActionParameterPresetValues.Open(GetCursorPoint());
+                    int swTypeIndex = Conversions.IntFromString(triggerAction.Parameters[paramIndex], -1);
+                    selectSuperWeaponTypeWindow.IsForEvent = false;
+                    selectSuperWeaponTypeWindow.UseININameAsValue = false;
+                    if (swTypeIndex > -1 && swTypeIndex < map.Rules.SuperWeaponTypes.Count)
+                        selectSuperWeaponTypeWindow.Open(map.Rules.SuperWeaponTypes[swTypeIndex]);
+                    break;
+                case TriggerParamType.SuperWeaponID:
+                    string swTypeID = triggerAction.Parameters[paramIndex];
+                    selectSuperWeaponTypeWindow.IsForEvent = false;
+                    selectSuperWeaponTypeWindow.UseININameAsValue = true;
+                    if (!string.IsNullOrEmpty(swTypeID))
+                        selectSuperWeaponTypeWindow.Open(map.Rules.SuperWeaponTypes.Find(swType => swType.ININame.Equals(swTypeID, StringComparison.Ordinal)));
                     break;
                 case TriggerParamType.Speech:
                     selectSpeechWindow.IsForEvent = false;
@@ -1134,6 +1154,19 @@ namespace TSMapEditor.UI.Windows
 
             var sound = selectSoundWindow.SelectedObject;
             AssignParamValue(selectSoundWindow.IsForEvent, Constants.IsRA2YR ? sound.Name : sound.Index.ToString(CultureInfo.InvariantCulture));
+        }
+
+        private void SuperWeaponDarkeningPanel_Hidden(object sender, EventArgs e)
+        {
+            if (selectSuperWeaponTypeWindow.SelectedObject == null)
+                return;
+
+            var swType = selectSuperWeaponTypeWindow.SelectedObject;
+
+            if (selectSuperWeaponTypeWindow.UseININameAsValue)
+                AssignParamValue(selectSuperWeaponTypeWindow.IsForEvent, swType.ININame);
+            else
+                AssignParamValue(selectSuperWeaponTypeWindow.IsForEvent, swType.Index);
         }
 
         private void AssignParamValue(bool isForEvent, int paramValue)
@@ -2041,6 +2074,13 @@ namespace TSMapEditor.UI.Windows
                         return intValue + " - nonexistent super weapon";
 
                     return intValue + " " + map.Rules.SuperWeaponTypes[intValue].GetDisplayStringWithoutIndex();
+                case TriggerParamType.SuperWeaponID:
+                    var swType = map.Rules.SuperWeaponTypes.Find(sw => sw.ININame.Equals(paramValue, StringComparison.Ordinal));
+
+                    if (swType == null)
+                        return paramValue;
+
+                    return swType.GetDisplayStringWithoutIndex();
                 case TriggerParamType.Speech:
                     EvaSpeech speech;
 

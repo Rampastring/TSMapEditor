@@ -37,6 +37,7 @@
         SpotlightBehaviour,
         RadarEvent,
         VoxelAnim,
-        StringTableEntry
+        StringTableEntry,
+        SuperWeaponID
     }
 }
