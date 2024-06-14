@@ -69,7 +69,7 @@ namespace TSMapEditor.UI.Windows
             var newHouseType = new HouseType(houseTypeName)
             {
                 ParentCountry = ParentCountry.ININame,
-                Index = map.GetHouseTypes().Count,
+                Index = map.Rules.RulesHouseTypes.Count + map.HouseTypes.Count,
                 Side = ParentCountry.Side,
                 Color = ParentCountry.Color,
                 XNAColor = ParentCountry.XNAColor

@@ -107,9 +107,9 @@ namespace TSMapEditor.Models
             extendedStringBuilder.Append((int)ConditionType);
             extendedStringBuilder.Append(string.IsNullOrWhiteSpace(ConditionObjectString) ? Constants.NoneValue1 : ConditionObjectString);
             extendedStringBuilder.Append(Comparator.ToStringValue());
-            extendedStringBuilder.Append(InitialWeight.ToString(".######", CultureInfo.InvariantCulture));
-            extendedStringBuilder.Append(MinimumWeight.ToString(".######", CultureInfo.InvariantCulture));
-            extendedStringBuilder.Append(MaximumWeight.ToString(".######", CultureInfo.InvariantCulture));
+            extendedStringBuilder.Append(InitialWeight.ToString("0.######", CultureInfo.InvariantCulture));
+            extendedStringBuilder.Append(MinimumWeight.ToString("0.######", CultureInfo.InvariantCulture));
+            extendedStringBuilder.Append(MaximumWeight.ToString("0.######", CultureInfo.InvariantCulture));
             extendedStringBuilder.Append("1"); // EnabledInForMultiplayer, no reason not to enable this
             extendedStringBuilder.Append("0"); // unused
             extendedStringBuilder.Append(Side);

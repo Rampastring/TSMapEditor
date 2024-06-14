@@ -36,7 +36,7 @@ namespace TSMapEditor.Models
         public event EventHandler LocalSizeChanged;
         public event EventHandler MapResized;
         public event EventHandler MapHeightChanged;
-        public event EventHandler CellLightingModified;
+        public event EventHandler<CellLightingEventArgs> CellLightingModified;
         public event EventHandler MapManuallySaved;
         public event EventHandler MapAutoSaved;
         public event EventHandler PreSave;
@@ -99,10 +99,15 @@ namespace TSMapEditor.Models
 
         /// <summary>
         /// The list of standard house types loaded from EditorRules.ini, or Rules.ini as a fallback.
-        /// Relevant when the map itself has no house types specified.
+        /// Relevant only when the map itself has no house types specified.
+        ///
         /// New house types might be added to this list if the map has
         /// objects whose owner does not exist in the map's list of house types
-        /// or in the Rules.ini standard house type list.
+        /// or in the Rules.ini house type list.
+        ///
+        /// In Yuri's Revenge mode, this only contains "bonus house types" defined in EditorRules.ini
+        /// that do not exist in Rules. In YR, this list must be appended into the Rules house type
+        /// list for most use cases (if the map itself has no houses defined; see <see cref="HouseTypes"/>).
         /// </summary>
         public List<HouseType> StandardHouseTypes { get; set; }
         public List<House> StandardHouses { get; set; }
@@ -125,7 +130,7 @@ namespace TSMapEditor.Models
                 if (HouseTypes.Count > 0)
                     return Rules.RulesHouseTypes.Concat(HouseTypes).ToList();
                 else
-                    return StandardHouseTypes;
+                    return Rules.RulesHouseTypes.Concat(StandardHouseTypes).ToList();
             }
             else
             {
@@ -882,26 +887,23 @@ namespace TSMapEditor.Models
             });
             
             Structures.Add(structure);
-            CheckForLightingChange(structure);
+            if (structure.ObjectType.LightVisibility > 0)
+            {
+                structure.LightTiles(Tiles);
+                CellLightingModified?.Invoke(this, new CellLightingEventArgs() {AffectedTiles = structure.LitTiles});
+            }
         }
 
         public void RemoveBuildingsFrom(Point2D cellCoords)
         {
             var cell = GetTile(cellCoords);
-
-            bool refreshLighting = false;
-
             while (cell.Structures.Count > 0)
             {
-                refreshLighting = cell.Structures[0].ObjectType.LightVisibility > 0;
-                RemoveBuilding(cell.Structures[0], false);
+                RemoveBuilding(cell.Structures[0]);
             }
-
-            if (refreshLighting)
-                CheckForLightingChange(null);
         }
 
-        public void RemoveBuilding(Structure structure, bool updateLighting = true)
+        public void RemoveBuilding(Structure structure)
         {
             structure.ObjectType.ArtConfig.DoForFoundationCoordsOrOrigin(offset =>
             {
@@ -914,34 +916,19 @@ namespace TSMapEditor.Models
             });
 
             Structures.Remove(structure);
-
-            if (updateLighting)
-                CheckForLightingChange(structure);
+            if (structure.ObjectType.LightVisibility > 0)
+            {
+                List<MapTile> affectedTiles = new List<MapTile>(structure.LitTiles);
+                structure.ClearLitTiles();
+                CellLightingModified?.Invoke(this, new CellLightingEventArgs() { AffectedTiles = affectedTiles });
+            }
         }
 
         public void MoveBuilding(Structure structure, Point2D newCoords)
         {
-            RemoveBuilding(structure, false);
+            RemoveBuilding(structure);
             structure.Position = newCoords;
             PlaceBuilding(structure);
-        }
-
-        private void CheckForLightingChange(GameObject gameObject)
-        {
-            if (gameObject == null)
-            {
-                CellLightingModified?.Invoke(this, EventArgs.Empty);
-                return;
-            }
-
-            if (gameObject.WhatAmI() == RTTIType.Building)
-            {
-                var structure = (Structure)gameObject;
-                if (structure.ObjectType.LightVisibility > 0)
-                {
-                    CellLightingModified?.Invoke(this, EventArgs.Empty);
-                }
-            }
         }
 
         public void PlaceUnit(Unit unit)
@@ -1312,93 +1299,29 @@ namespace TSMapEditor.Models
             return -1;
         }
 
-        public void RefreshCellLighting(LightingPreviewMode lightingPreviewMode)
+        public void RefreshCellLighting(LightingPreviewMode lightingPreviewMode, List<MapTile> affectedTiles)
         {
-            if (lightingPreviewMode == LightingPreviewMode.NoLighting)
+            if (affectedTiles == null)
             {
-                DoForAllValidTiles(cell => cell.CellLighting = new MapColor(1.0, 1.0, 1.0));
-                return;
+                if (lightingPreviewMode == LightingPreviewMode.NoLighting)
+                {
+                    DoForAllValidTiles(cell => cell.CellLighting = new MapColor(1.0, 1.0, 1.0));
+                    return;
+                }
+
+                DoForAllValidTiles(cell => cell.RefreshLighting(Lighting, lightingPreviewMode));
             }
-
-            const double LeptonsPerCell = 256.0;
-
-            var lightSources = Structures.FindAll(s => s.ObjectType.LightVisibility > 0 && s.ObjectType.LightIntensity != 0 && s.Powered);
-
-            double globalAmbient = Lighting.GetAmbientComponent(lightingPreviewMode);
-            double globalLevel = Lighting.GetLevelComponent(lightingPreviewMode);
-            double globalGround = Lighting.GetGroundComponent(lightingPreviewMode);
-            double globalRed = Lighting.GetRedComponent(lightingPreviewMode);
-            double globalGreen = Lighting.GetGreenComponent(lightingPreviewMode);
-            double globalBlue = Lighting.GetBlueComponent(lightingPreviewMode);
-
-            double redDivisor = globalRed >= 1.0 ? globalRed : 1.0;
-            double greenDivisor = globalGreen >= 1.0 ? globalGreen : 1.0;
-            double blueDivisor = globalBlue >= 1.0 ? globalBlue : 1.0;
-
-            DoForAllValidTiles(cell =>
+            else
             {
-                double cellAmbient = globalAmbient;
-                double cellR = globalRed;
-                double cellG = globalGreen;
-                double cellB = globalBlue;
-
-                // Apply Ground
-                cellAmbient *= (1.0 - globalGround);
-
-                // Apply Level
-                cellAmbient += globalLevel * cell.Level;
-
-                // Check all the light sources and how they affect this light
-                foreach (var building in lightSources)
+                if (lightingPreviewMode == LightingPreviewMode.NoLighting)
                 {
-                    int xDifference = cell.X - building.Position.X;
-                    int yDifference = cell.Y - building.Position.Y;
-
-                    double distanceInCells = Math.Sqrt(xDifference * xDifference + yDifference * yDifference);
-                    double distanceInLeptons = distanceInCells * LeptonsPerCell;
-
-                    if (distanceInLeptons > building.ObjectType.LightVisibility)
-                        continue;
-
-                    double distanceRatio = 1.0 - (distanceInLeptons / building.ObjectType.LightVisibility);
-
-                    // Intensity modifies the cell ambient value.
-                    // For example, if Ambient=0.5 and LightIntensity=1.0, in a cell that is fully
-                    // lit by the light post, the overall ambient level becomes 0.5 + 1.0 = 1.5
-                    cellAmbient += building.ObjectType.LightIntensity * distanceRatio;
-
-                    // Apply tint. Tint does NOT depend on LightIntensity, but is independent of it
-                    // (as long as LightIntensity != 0).
-                    // Strength of tint depends on strength of global tint. For example, adding local red of 1.0
-                    // to global red of 1.5 leads to a much smaller change than if the local red was added to global red of 0.5.
-                    double redStrength = (building.ObjectType.LightRedTint / redDivisor) * distanceRatio;
-                    double greenStrength = (building.ObjectType.LightGreenTint / greenDivisor) * distanceRatio;
-                    double blueStrength = (building.ObjectType.LightBlueTint / blueDivisor) * distanceRatio;
-
-                    cellR += redStrength;
-                    cellG += greenStrength;
-                    cellB += blueStrength;
+                    affectedTiles.ForEach(cell => cell.CellLighting = new MapColor(1.0, 1.0, 1.0));
+                    return;
                 }
 
-                const double LightingComponentMax = 2.0;
-
-                // Apply Ambient to all components
-                cellR *= cellAmbient;
-                cellG *= cellAmbient;
-                cellB *= cellAmbient;
-
-                // In case the components exceed 2.0, they are all scaled down to fit within 0.0 to 2.0
-                double highestComponentValue = Math.Max(cellR, Math.Max(cellG, cellB));
-                if (highestComponentValue > LightingComponentMax)
-                {
-                    double scale = LightingComponentMax / highestComponentValue;
-                    cellR *= scale;
-                    cellG *= scale;
-                    cellB *= scale;
-                }
-
-                cell.CellLighting = new MapColor(cellR, cellG, cellB);
-            });
+                affectedTiles.ForEach(cell => cell.RefreshLighting(Lighting, lightingPreviewMode));
+            }
+            
         }
 
         /// <summary>
@@ -1594,7 +1517,14 @@ namespace TSMapEditor.Models
             if (StandardHouseTypes.Count == 0 && firestormIni != null)
                 StandardHouseTypes = Rules.GetStandardHouseTypes(firestormIni);
 
-            StandardHouses = StandardHouseTypes.Select(ht => HouseFromHouseType(ht)).ToList();
+            if (Constants.IsRA2YR)
+            {
+                StandardHouses = Rules.RulesHouseTypes.Concat(StandardHouseTypes).Select(ht => HouseFromHouseType(ht)).ToList();
+            }
+            else
+            {
+                StandardHouses = StandardHouseTypes.Select(ht => HouseFromHouseType(ht)).ToList();
+            }
         }
 
         public House HouseFromHouseType(HouseType houseType)

@@ -159,6 +159,12 @@ namespace TSMapEditor.UI.Windows.MainMenuWindows
 
                     int firstTileIndexWithinSet = cliffTypeTile.IndicesInTileSet[0];
                     var tileSet = theaterGraphics.Theater.TileSets.Find(ts => ts.SetName == cliffTypeTile.TileSetName);
+                    if (tileSet == null)
+                    {
+                        throw new INIConfigException($"Unable to find TileSet \"{cliffTypeTile.TileSetName}\" " +
+                            $"for connected terrain type \"{cliffType.IniName}\", tile index {cliffTypeTile.Index}");
+                    }
+
                     int totalFirstTileIndex = tileSet.StartTileIndex + firstTileIndexWithinSet;
 
                     var tile = theaterGraphics.GetTile(totalFirstTileIndex);

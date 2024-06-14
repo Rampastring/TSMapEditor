@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace TSMapEditor.UI
+namespace TSMapEditor
 {
     /// <summary>
     /// The exception that is thrown when INI data is invalid.

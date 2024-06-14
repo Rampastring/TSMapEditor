@@ -1297,8 +1297,10 @@ namespace TSMapEditor.Rendering
                     
                     if (overlayType.Wall || overlayType.IsVeinholeMonster)
                         palette = unitPalette;
-                    else if (overlayType.Tiberium || overlayType.IsVeins)
+                    else if (overlayType.Tiberium)
                         palette = Constants.TheaterPaletteForTiberium ? tiberiumPalette : unitPalette;
+                    else if (overlayType.IsVeins)
+                        palette = Constants.TheaterPaletteForVeins ? tiberiumPalette : unitPalette;
 
                     // Palette override for wall overlays in Phobos
                     if (overlayType.Wall && !string.IsNullOrWhiteSpace(overlayType.ArtConfig.Palette))

@@ -229,9 +229,9 @@ namespace TSMapEditor.UI.Windows
             selPrimaryTeam.Tag = aiTriggerType.PrimaryTeam;
             selSecondaryTeam.Text = aiTriggerType.SecondaryTeam != null ? aiTriggerType.SecondaryTeam.GetDisplayName() : string.Empty;
             selSecondaryTeam.Tag = aiTriggerType.SecondaryTeam;
-            tbInitial.Value = (int)aiTriggerType.InitialWeight;
-            tbMinimum.Value = (int)aiTriggerType.MinimumWeight;
-            tbMaximum.Value = (int)aiTriggerType.MaximumWeight;
+            tbInitial.DoubleValue = aiTriggerType.InitialWeight;
+            tbMinimum.DoubleValue = aiTriggerType.MinimumWeight;
+            tbMaximum.DoubleValue = aiTriggerType.MaximumWeight;
             chkEnabledOnEasy.Checked = aiTriggerType.Easy;
             chkEnabledOnMedium.Checked = aiTriggerType.Medium;
             chkEnabledOnHard.Checked = aiTriggerType.Hard;
@@ -308,17 +308,17 @@ namespace TSMapEditor.UI.Windows
 
         private void TbInitial_TextChanged(object sender, EventArgs e)
         {
-            editedAITrigger.InitialWeight = (double)tbInitial.Value;
+            editedAITrigger.InitialWeight = tbInitial.DoubleValue;
         }
 
         private void TbMinimum_TextChanged(object sender, EventArgs e)
         {
-            editedAITrigger.MinimumWeight = (double)tbMinimum.Value;
+            editedAITrigger.MinimumWeight = tbMinimum.DoubleValue;
         }
 
         private void TbMaximum_TextChanged(object sender, EventArgs e)
         {
-            editedAITrigger.MaximumWeight = (double)tbMaximum.Value;
+            editedAITrigger.MaximumWeight = tbMaximum.DoubleValue;
         }
 
         private void ChkEnabledOnEasy_CheckedChanged(object sender, EventArgs e)

@@ -158,7 +158,7 @@ namespace TSMapEditor.Models
                         continue;
                 }
                 
-                var possibleDirections = GetDirectionsInMask((byte)(cp.ReversedConnectionMask & Exit.ConnectionMask));
+                var possibleDirections = Helpers.GetDirectionsInMask((byte)(cp.ReversedConnectionMask & Exit.ConnectionMask));
                 if (possibleDirections.Count == 0)
                     continue;
 
@@ -189,22 +189,18 @@ namespace TSMapEditor.Models
             return neighbors;
         }
 
-        public List<CliffAStarNode> GetNextNodes(List<CliffTile> tiles)
+        public List<CliffAStarNode> GetNextNodes(List<CliffTile> tiles, bool allowTurn)
         {
-            return tiles.SelectMany(GetNextNodes).ToList();
-        }
-
-        private List<Direction> GetDirectionsInMask(byte mask)
-        {
-            List<Direction> directions = new List<Direction>();
-
-            for (int direction = 0; direction < (int)Direction.Count; direction++)
+            List <CliffAStarNode > nextNodes = new List<CliffAStarNode>();
+            foreach (var tile in tiles)
             {
-                if ((mask & (byte)(0b10000000 >> direction)) > 0)
-                    directions.Add((Direction)direction);
+                if (!allowTurn && tile.ConnectionPoints[0].Side != tile.ConnectionPoints[1].Side)
+                    continue;
+
+                nextNodes.AddRange(GetNextNodes(tile));
             }
 
-            return directions;
+            return nextNodes;
         }
     }
 
@@ -291,8 +287,8 @@ namespace TSMapEditor.Models
                 Foundation = foundationString.Split("|").Select(Point2D.FromString).ToHashSet();
             }
 
-            ExtraPriority = -iniSection.GetIntValue("ExtraPriority", 0); // negated because sorting is in ascending order by default, but it's more intuitive to have larger numbers be more important
-            DistanceModifier = iniSection.GetIntValue("DistanceModifier", 0);
+            ExtraPriority = -iniSection.GetIntValue("ExtraPriority", IsStraight(ConnectionPoints) ? -1 : 0); // negated because sorting is in ascending order by default, but it's more intuitive to have larger numbers be more important
+            DistanceModifier = iniSection.GetIntValue("DistanceModifier", IsDiagonal(ConnectionPoints) ? -3 : 0);
         }
 
         /// <summary>
@@ -333,6 +329,23 @@ namespace TSMapEditor.Models
         public CliffConnectionPoint GetExit(int entryIndex)
         {
             return ConnectionPoints[0].Index == entryIndex ? ConnectionPoints[1] : ConnectionPoints[0];
+        }
+
+        private bool IsStraight(CliffConnectionPoint[] connectionPoints)
+        {
+            int mask = connectionPoints[0].ConnectionMask & connectionPoints[1].ReversedConnectionMask;
+            return mask > 0;
+        }
+
+        private bool IsDiagonal(CliffConnectionPoint[] connectionPoints)
+        {
+            var directions = Helpers.GetDirectionsInMask((byte)(connectionPoints[0].ConnectionMask &
+                                                                connectionPoints[1].ReversedConnectionMask));
+
+            return directions.Contains(Direction.E) ||
+                   directions.Contains(Direction.S) ||
+                   directions.Contains(Direction.W) ||
+                   directions.Contains(Direction.N);
         }
     }
 

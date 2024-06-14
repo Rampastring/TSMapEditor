@@ -273,6 +273,7 @@ namespace TSMapEditor.UI
                 Height = WindowManager.RenderResolutionY;
 
                 Parser.Instance.RefreshResolutionConstants(WindowManager);
+                SetNotificationManagerSizeAndPosition();
             }
         }
 
@@ -329,6 +330,14 @@ namespace TSMapEditor.UI
         private void InitNotificationManager()
         {
             notificationManager = new NotificationManager(WindowManager);
+            SetNotificationManagerSizeAndPosition();
+        }
+
+        private void SetNotificationManagerSizeAndPosition()
+        {
+            if (notificationManager == null)
+                return;
+
             notificationManager.X = editorSidebar.X + Constants.UIEmptySideSpace;
             notificationManager.Width = WindowManager.RenderResolutionX - (notificationManager.X * 2);
             notificationManager.Y = 100;

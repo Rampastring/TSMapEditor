@@ -1,11 +1,17 @@
 ﻿using Rampastring.Tools;
 using System;
+using System.Collections.Generic;
 using Microsoft.Xna.Framework;
 using TSMapEditor.CCEngine;
 using TSMapEditor.Models.Enums;
 
 namespace TSMapEditor.Models
 {
+    public class CellLightingEventArgs : EventArgs
+    {
+        public List<MapTile> AffectedTiles { get; set; }
+    }
+
     public struct MapColor
     {
         public MapColor(double red, double green, double blue)

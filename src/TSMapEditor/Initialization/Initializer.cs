@@ -217,8 +217,6 @@ namespace TSMapEditor.Initialization
 
         private static void InitOverlayType(INIDefineable obj, IniFile rulesIni, IniSection section)
         {
-            var overlayType = (OverlayType)obj;
-            overlayType.Land = (LandType)Enum.Parse(typeof(LandType), section.GetStringValue("Land", LandType.Clear.ToString()));
         }
 
         private static void InitTerrainType(INIDefineable obj, IniFile rulesIni, IniSection section)

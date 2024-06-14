@@ -406,6 +406,7 @@ namespace TSMapEditor.Initialization
                 {
                     var tile = map.GetTile(building.Position + offset);
                     tile.Structures.Add(building);
+                    building.LightTiles(map.Tiles);
                 });
             }
 
@@ -1046,8 +1047,11 @@ namespace TSMapEditor.Initialization
             {
                 IniSection houseTypeSection = mapIni.GetSection(kvp.Value);
 
-                // HouseTypes can't be redefined, check if the HouseType already exists.
-                // If it does and we are using countries, still read the HouseType's properties.
+                // HouseTypes can't be redefined, so check if the HouseType already exists.
+                // If it does, in Tiberian Sun we can skip it.
+                // In RA2/YR we need to search for the HouseType from Rules as well as the map itself.
+                // In case it exists in either, we still need to read the HouseType's properties,
+                // but skip adding the HouseType to the list of map-specific HouseTypes.
                 if (Constants.IsRA2YR)
                 {
                     var existingHouseType = map.FindHouseType(kvp.Value);

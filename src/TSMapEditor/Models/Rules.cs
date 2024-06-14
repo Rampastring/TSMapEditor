@@ -253,27 +253,49 @@ namespace TSMapEditor.Models
             foreach (var kvp in houseTypesSection.Keys)
             {
                 string houseTypeName = kvp.Value;
-                var houseType = new HouseType(houseTypeName);
-                houseType.Index = Conversions.IntFromString(kvp.Key, -1);
+                HouseType houseType = null;
+                bool existsInRules = true;
+                if (Constants.IsRA2YR)
+                {
+                    // Since RA2/YR maps _always_ utilize HouseTypes from Rules,
+                    // if we are in RA2/YR mode, we need to first search for the HouseType from Rules
+                    // to prevent duplicate object instances for the same HouseType in both
+                    // StandardHouseTypes as well as RulesHouseTypes.
+                    houseType = RulesHouseTypes.Find(ht => ht.ININame == houseTypeName);
+                }
 
-                if (houseType.Index < 0 || houseTypes.Exists(ht => ht.Index == houseType.Index))
-                    throw new INIConfigException($"Invalid index for HouseType in standard houses. Section: {sectionName}, HouseType name: {houseTypeName}");
+                if (houseType == null)
+                {
+                    existsInRules = false;
+                    houseType = new HouseType(houseTypeName);
+                    houseType.Index = Conversions.IntFromString(kvp.Key, -1);
 
-                InitHouseType(iniFile, houseType);
-                houseTypes.Add(houseType);
+                    if (houseType.Index < 0 || houseTypes.Exists(ht => ht.Index == houseType.Index))
+                        throw new INIConfigException($"Invalid index for HouseType in standard houses. Section: {sectionName}, HouseType name: {houseTypeName}");
+                }
+
+                // Always initialize the HouseType and read its properties,
+                // regardless of whether it was found from Rules or created above.
+                InitHouseType(iniFile, houseType, existsInRules);
+
+                if (!existsInRules)
+                    houseTypes.Add(houseType);
             }
 
             return houseTypes;
         }
 
-        private void InitHouseType(IniFile iniFile, HouseType houseType)
+        private void InitHouseType(IniFile iniFile, HouseType houseType, bool isRulesHouseType)
         {
-            // Fetch some default properties from Rules so they don't need to be duplicated in EditorRules.
-            // Aside from the color most of these aren't used, but maybe they might be useful one day.
-            var rulesHouseType = RulesHouseTypes.Find(ht => ht.ININame == houseType.ININame);
-            if (rulesHouseType != null)
+            if (!isRulesHouseType)
             {
-                houseType.CopyBasicPropertiesFrom(rulesHouseType);
+                // Fetch some default properties from Rules so they don't need to be duplicated in EditorRules.
+                // Aside from the color most of these aren't used, but maybe they might be useful one day.
+                var rulesHouseType = RulesHouseTypes.Find(ht => ht.ININame == houseType.ININame);
+                if (rulesHouseType != null)
+                {
+                    houseType.CopyBasicPropertiesFrom(rulesHouseType);
+                }
             }
 
             var section = iniFile.GetSection(houseType.ININame);

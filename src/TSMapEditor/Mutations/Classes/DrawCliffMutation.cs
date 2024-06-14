@@ -58,7 +58,7 @@ namespace TSMapEditor.Mutations.Classes
 
             for (int i = 0; i < cliffPath.Count - 1; i++)
             {
-                FindCliffPath(cliffPath[i], cliffPath[i + 1]);
+                FindCliffPath(cliffPath[i], cliffPath[i + 1], i != 0);
             }
 
             PlaceCliffs(lastNode);
@@ -66,7 +66,7 @@ namespace TSMapEditor.Mutations.Classes
             MutationTarget.InvalidateMap();
         }
 
-        private void FindCliffPath(Point2D start, Point2D end)
+        private void FindCliffPath(Point2D start, Point2D end, bool allowInstantTurn)
         {
             PriorityQueue<CliffAStarNode, (float FScore, int ExtraPriority)> openSet = new();
 
@@ -92,7 +92,7 @@ namespace TSMapEditor.Mutations.Classes
             while (openSet.Count > 0)
             {
                 CliffAStarNode currentNode = openSet.Dequeue();
-                openSet.EnqueueRange(currentNode.GetNextNodes(cliffType.Tiles).Select(node => (node, (node.FScore, node.Tile?.ExtraPriority ?? 0))));
+                openSet.EnqueueRange(currentNode.GetNextNodes(cliffType.Tiles, allowInstantTurn).Select(node => (node, (node.FScore, node.Tile?.ExtraPriority ?? 0))));
                 
                 if (currentNode.HScore < bestDistance)
                 {

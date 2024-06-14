@@ -165,7 +165,7 @@ namespace TSMapEditor.UI.TopBar
 
             var viewContextMenu = new EditorContextMenu(WindowManager);
             viewContextMenu.Name = nameof(viewContextMenu);
-            viewContextMenu.AddItem("Edit Drawn Objects...", () => windowController.RenderedObjectsConfigurationWindow.Open());
+            viewContextMenu.AddItem("Configure Rendered Objects...", () => windowController.RenderedObjectsConfigurationWindow.Open());
             viewContextMenu.AddItem(" ", null, () => false, null, null);
             viewContextMenu.AddItem("Toggle Impassable Cells", () => mapView.EditorState.HighlightImpassableCells = !mapView.EditorState.HighlightImpassableCells, null, null, null);
             viewContextMenu.AddItem("Toggle IceGrowth Preview", () => mapView.EditorState.HighlightIceGrowth = !mapView.EditorState.HighlightIceGrowth, null, null, null);
@@ -358,7 +358,7 @@ namespace TSMapEditor.UI.TopBar
 
             try
             {
-                Process.Start(textEditorPath, map.LoadedINI.FileName);
+                Process.Start(textEditorPath, "\"" + map.LoadedINI.FileName + "\"");
             }
             catch (Exception ex) when (ex is Win32Exception || ex is ObjectDisposedException)
             {

@@ -155,6 +155,74 @@ namespace TSMapEditor.Models
         /// </summary>
         public bool IsBaseNodeDummy { get; set; }
 
+        public List<MapTile> LitTiles { get; set; } = new();
+
+        public void LightTiles(MapTile[][] tiles)
+        {
+            Dictionary<MapTile, double> litTiles = new();
+            int foundationWidth = ObjectType.ArtConfig.Foundation.Width;
+            int foundationHeight = ObjectType.ArtConfig.Foundation.Height;
+            
+            List<int> xCenter = foundationWidth % 2 == 0 ? new List<int> { foundationWidth / 2 - 1, foundationWidth / 2 } : new List<int> { foundationWidth / 2 };
+            List<int> yCenter = foundationHeight % 2 == 0 ? new List<int> { foundationHeight / 2 - 1, foundationHeight / 2 } : new List<int> { foundationHeight / 2 };
+            Point2D[] centers = xCenter.SelectMany(item1 => yCenter, (item1, item2) => new Point2D(item1, item2)).ToArray();
+
+            int radius = (int)Math.Ceiling((double)ObjectType.LightVisibility / Constants.CellSizeInLeptons) - 1;
+
+            foreach (Point2D center in centers)
+            {
+                Point2D centerPosition = Position + center;
+
+                int startX = Math.Max(centerPosition.X - radius, 0);
+                int endX = Math.Min(centerPosition.X + radius, tiles[0].Length - 1);
+                int startY = Math.Max(centerPosition.Y - radius, 0);
+                int endY = Math.Min(centerPosition.Y + radius, tiles.Length - 1);
+
+                for (int y = startY; y <= endY; y++)
+                {
+                    for (int x = startX; x <= endX; x++)
+                    {
+                        MapTile tile = tiles[y][x];
+
+                        if (tile == null)
+                            continue;
+
+                        int xDifference = centerPosition.X - x;
+                        int yDifference = centerPosition.Y - y;
+
+                        double distanceInCells = Math.Sqrt(xDifference * xDifference + yDifference * yDifference);
+                        double distanceInLeptons = distanceInCells * Constants.CellSizeInLeptons;
+
+                        if (distanceInLeptons > ObjectType.LightVisibility)
+                            continue;
+
+                        if (!litTiles.ContainsKey(tile) ||
+                            (litTiles.ContainsKey(tile) && litTiles[tile] > distanceInLeptons))
+                        {
+                            litTiles[tile] = distanceInLeptons;
+                        }
+                    }
+                }
+            }
+
+            foreach (var kvp in litTiles)
+            {
+                kvp.Key.LightSources.Add((this, kvp.Value));
+            }
+
+            LitTiles = litTiles.Keys.ToList();
+        }
+
+        public void ClearLitTiles()
+        {
+            foreach (var tile in LitTiles)
+            {
+                tile.LightSources.RemoveAll(source => source.Source == this);
+            }
+
+            LitTiles.Clear();
+        }
+
         public void UpdatePowerUpAnims()
         {
             var anims = new List<Animation>();

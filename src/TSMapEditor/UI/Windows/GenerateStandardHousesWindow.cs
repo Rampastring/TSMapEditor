@@ -68,6 +68,15 @@ namespace TSMapEditor.UI.Windows
                     map.AddHouseType(houseType);
                     house.HouseType = houseType;
                 }
+                else
+                {
+                    var houseTypes = map.GetHouseTypes();
+
+                    // Try to set a meaningful default country value
+                    house.HouseType = houseTypes.Find(ht => ht.ININame == house.ININame);
+                    if (house.HouseType == null)
+                        house.HouseType = houseTypes[0];
+                }
             }
 
             map.AddHouses(houses);

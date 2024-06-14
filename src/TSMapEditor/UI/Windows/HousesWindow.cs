@@ -5,7 +5,6 @@ using Rampastring.XNAUI.XNAControls;
 using System;
 using System.Globalization;
 using System.Linq;
-using TSMapEditor.Initialization;
 using TSMapEditor.Models;
 using TSMapEditor.UI.Controls;
 

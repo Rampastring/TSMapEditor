@@ -50,7 +50,7 @@ namespace TSMapEditor.UI.CursorActions
                 "Backspace to go back one step\r\n";
 
             const string tabText = "TAB to toggle between front and back sides\r\n";
-            const string pageUpDownText = "PageUp to raise the cliff, PageDown to lower it\r\n";
+            const string pageUpDownText = "PageUp to raise the tiles, PageDown to lower them\r\n";
             const string exitText = "Right-click or ESC to exit";
 
             string text = (Constants.IsFlatWorld, cliffType.FrontOnly) switch
