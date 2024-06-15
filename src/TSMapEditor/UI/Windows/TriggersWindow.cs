@@ -20,7 +20,8 @@ namespace TSMapEditor.UI.Windows
     {
         ID,
         Name,
-        Color
+        Color,
+        ColorThenName,
     }
 
     public class TriggersWindow : INItializableWindow
@@ -304,6 +305,7 @@ namespace TSMapEditor.UI.Windows
             triggerListContextMenu.AddItem("Sort by ID", () => TriggerSortMode = TriggerSortMode.ID);
             triggerListContextMenu.AddItem("Sort by Name", () => TriggerSortMode = TriggerSortMode.Name);
             triggerListContextMenu.AddItem("Sort by Color", () => TriggerSortMode = TriggerSortMode.Color);
+            triggerListContextMenu.AddItem("Sort by Color, then by Name", () => TriggerSortMode = TriggerSortMode.ColorThenName);
             AddChild(triggerListContextMenu);
 
             lbTriggers.AllowRightClickUnselect = false;
@@ -1454,6 +1456,9 @@ namespace TSMapEditor.UI.Windows
                     break;
                 case TriggerSortMode.Name:
                     sortedTriggers = sortedTriggers.OrderBy(t => t.Name).ThenBy(t => t.ID).ToList();
+                    break;                
+                case TriggerSortMode.ColorThenName:
+                    sortedTriggers = sortedTriggers.OrderBy(t => t.EditorColor).ThenBy(t => t.Name).ToList();
                     break;
                 case TriggerSortMode.ID:
                 default:
