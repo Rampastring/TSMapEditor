@@ -109,11 +109,11 @@ namespace TSMapEditor.UI.Windows
             selTag = FindChild<EditorPopUpSelector>(nameof(selTag));
             ddTeamTypeColor = FindChild<XNADropDown>(nameof(ddTeamTypeColor));
 
-            ddTeamTypeColor.AddItem("None");
+            ddTeamTypeColor.AddItem("House Color");
             foreach (var supportedColor in TeamType.SupportedColors)
             {
                 ddTeamTypeColor.AddItem(supportedColor.Name, supportedColor.Value);
-            }            
+            }
             ddTeamTypeColor.SelectedIndexChanged += DdTeamTypeColor_SelectedIndexChanged;
 
             tbFilter.TextChanged += TbFilter_TextChanged;
