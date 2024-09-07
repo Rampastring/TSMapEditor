@@ -1,5 +1,9 @@
 ﻿using Rampastring.Tools;
 using System.Collections.Generic;
+using static TSMapEditor.Misc.NamedColors;
+using TSMapEditor.Misc;
+using System;
+using Microsoft.Xna.Framework;
 
 namespace TSMapEditor.Models
 {
@@ -46,6 +50,38 @@ namespace TSMapEditor.Models
             ININame = iniName;
         }
 
+        private string _editorColor;
+        /// <summary>
+        /// Editor-only. The color of the script in the UI.
+        /// If null, the script should be displayed with the default UI text color.
+        /// </summary>
+        public string EditorColor
+        {
+            get => _editorColor;
+            set
+            {
+                _editorColor = value;
+
+                if (_editorColor != null)
+                {
+                    int index = Array.FindIndex(SupportedColors, c => c.Name == value);
+                    if (index > -1)
+                    {
+                        XNAColor = SupportedColors[index].Value;
+                    }
+                    else
+                    {
+                        // Only allow assigning colors that actually exist in the color table
+                        _editorColor = null;
+                    }
+                }
+            }
+        }
+
+        public static NamedColor[] SupportedColors = NamedColors.GenericSupportedNamedColors;
+
+        public Color XNAColor;
+
         public string GetInternalID() => ININame;
         public void SetInternalID(string id) => ININame = id;
 
@@ -77,7 +113,7 @@ namespace TSMapEditor.Models
             return script;
         }
 
-        public void WriteToIniSection(IniSection scriptSection)
+        public void WriteToIniSection(IniFile iniFile, IniSection scriptSection)
         {
             for (int i = 0; i < Actions.Count; i++)
             {
@@ -85,6 +121,9 @@ namespace TSMapEditor.Models
             }
 
             scriptSection.SetStringValue("Name", Name);
+
+            if (EditorColor != null)
+                iniFile.SetStringValue("EditorScriptInfo", ININame, EditorColor);
         }
 
         public static Script ParseScript(string id, IniSection scriptSection)

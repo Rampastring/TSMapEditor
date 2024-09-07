@@ -46,6 +46,7 @@ namespace TSMapEditor.UI.Windows
 
         // Trigger list
         private EditorListBox lbTriggers;
+        private EditorSuggestionTextBox tbFilter;
 
         // General trigger settings
         private EditorTextBox tbName;
@@ -128,6 +129,9 @@ namespace TSMapEditor.UI.Windows
             tbName = FindChild<EditorTextBox>(nameof(tbName));
             tbName.AllowComma = false;
 
+            tbFilter = FindChild<EditorSuggestionTextBox>(nameof(tbFilter));            
+            tbFilter.TextChanged += TbFilter_TextChanged;            
+
             ddHouseType = FindChild<XNADropDown>(nameof(ddHouseType));
             ddType = FindChild<XNADropDown>(nameof(ddType));
             selAttachedTrigger = FindChild<EditorPopUpSelector>(nameof(selAttachedTrigger));
@@ -201,9 +205,11 @@ namespace TSMapEditor.UI.Windows
 
             FindChild<EditorButton>("btnAddEvent").LeftClick += BtnAddEvent_LeftClick;
             FindChild<EditorButton>("btnDeleteEvent").LeftClick += BtnDeleteEvent_LeftClick;
+            FindChild<EditorButton>("btnCloneEvent").LeftClick += BtnCloneEvent_LeftClick;
 
             FindChild<EditorButton>("btnAddAction").LeftClick += BtnAddAction_LeftClick;
             FindChild<EditorButton>("btnDeleteAction").LeftClick += BtnDeleteAction_LeftClick;
+            FindChild<EditorButton>("btnCloneAction").LeftClick += BtnCloneAction_LeftClick;
 
             FindChild<EditorButton>("btnActionParameterValuePreset").LeftClick += BtnActionParameterValuePreset_LeftClick;
             FindChild<EditorButton>("btnEventParameterValuePreset").LeftClick += BtnEventParameterValuePreset_LeftClick;
@@ -1417,6 +1423,14 @@ namespace TSMapEditor.UI.Windows
             EditTrigger(editedTrigger);
         }
 
+        private void BtnCloneAction_LeftClick(object sender, EventArgs e)
+        {
+            if (editedTrigger == null || lbActions.SelectedItem == null)
+                return;
+
+            CloneEventOrAction(lbActions, editedTrigger.Actions);
+        }
+
         private void BtnAddEvent_LeftClick(object sender, EventArgs e)
         {
             if (editedTrigger == null)
@@ -1434,6 +1448,14 @@ namespace TSMapEditor.UI.Windows
             editedTrigger.Conditions.RemoveAt(lbEvents.SelectedIndex);
             EditTrigger(editedTrigger);
         }
+
+        private void BtnCloneEvent_LeftClick(object sender, EventArgs e)
+        {
+            if (editedTrigger == null || lbEvents.SelectedItem == null)
+                return;
+
+            CloneEventOrAction(lbEvents, editedTrigger.Conditions);
+        }        
 
         private void LbTriggers_SelectedIndexChanged(object sender, EventArgs e)
         {
@@ -1464,6 +1486,14 @@ namespace TSMapEditor.UI.Windows
             lbTriggers.Clear();
 
             List<Trigger> sortedTriggers = map.Triggers;
+
+            var shouldViewTop = false; // when filtering the scroll bar should update so we use a flag here
+            if (tbFilter.Text != string.Empty && tbFilter.Text != tbFilter.Suggestion)
+            {
+                sortedTriggers = sortedTriggers.Where(sortedTrigger => sortedTrigger.Name.Contains(tbFilter.Text, StringComparison.CurrentCultureIgnoreCase)).ToList();
+                shouldViewTop = true;
+            }
+
             switch (TriggerSortMode)
             {
                 case TriggerSortMode.Color:
@@ -1487,11 +1517,14 @@ namespace TSMapEditor.UI.Windows
                 { 
                     Text = trigger.Name, 
                     Tag = trigger, 
-                    TextColor = trigger.EditorColor == null ? lbTriggers.DefaultItemColor : trigger.XNAColor 
+                    TextColor = trigger.EditorColor == null ? lbTriggers.DefaultItemColor : trigger.XNAColor
                 });
             }
 
             LbTriggers_SelectedIndexChanged(this, EventArgs.Empty);
+
+            if (shouldViewTop)
+                lbTriggers.TopIndex = 0;
         }
 
         private void EditTrigger(Trigger trigger)
@@ -1647,6 +1680,11 @@ namespace TSMapEditor.UI.Windows
             lbTriggers.SelectedItem.Text = tbName.Text;
         }
 
+        private void TbFilter_TextChanged(object sender, EventArgs e)
+        {
+            ListTriggers();
+        }
+        
         private void LbActions_SelectedIndexChanged(object sender, EventArgs e)
         {
             lbActionParameters.SelectedIndexChanged -= LbActionParameters_SelectedIndexChanged;

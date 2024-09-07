@@ -44,6 +44,8 @@ namespace TSMapEditor.Extensions
             if (section == null)
                 return;
 
+            var editorInfoSection = iniFile.GetSection("EditorScriptInfo");
+
             foreach (var kvp in section.Keys)
             {
                 var script = Script.ParseScript(kvp.Value, iniFile.GetSection(kvp.Value));
@@ -53,6 +55,11 @@ namespace TSMapEditor.Extensions
                     errorLogger($"Failed to load Script {kvp.Value}. It might be missing a section or be otherwise invalid.");
 
                     continue;
+                }
+
+                if (editorInfoSection != null)
+                {
+                    script.EditorColor = editorInfoSection.GetStringValue(script.ININame, null);
                 }
 
                 int existingIndex = scriptList.FindIndex(tf => tf.ININame == kvp.Value);
@@ -137,6 +144,12 @@ namespace TSMapEditor.Extensions
                     if (teamTypeSection.GetBooleanValue(ttflag.Name, false))
                         teamType.EnableFlag(ttflag.Name);
                 });
+
+                var editorSectionName = iniFile.GetSection("EditorTeamTypeInfo");
+                if (editorSectionName != null)
+                {
+                    teamType.EditorColor = editorSectionName.GetStringValue(teamType.ININame, null);
+                }
 
                 teamTypeList.Add(teamType);
             }

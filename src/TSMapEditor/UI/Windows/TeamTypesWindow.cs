@@ -2,11 +2,20 @@
 using Rampastring.XNAUI.XNAControls;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using TSMapEditor.Models;
 using TSMapEditor.UI.Controls;
 
 namespace TSMapEditor.UI.Windows
 {
+    public enum TeamTypeSortMode
+    {
+        ID,
+        Name,
+        Color,
+        ColorThenName,
+    }
+
     public class TaskForceEventArgs : EventArgs
     {
         public TaskForceEventArgs(TaskForce taskForce)
@@ -40,6 +49,7 @@ namespace TSMapEditor.UI.Windows
         public event EventHandler<ScriptEventArgs> ScriptOpened;
         public event EventHandler<TagEventArgs> TagOpened;
 
+        private EditorSuggestionTextBox tbFilter;
         private EditorListBox lbTeamTypes;
         private EditorTextBox tbName;
         private XNADropDown ddVeteranLevel;
@@ -49,6 +59,7 @@ namespace TSMapEditor.UI.Windows
         private EditorNumberTextBox tbTechLevel;
         private XNADropDown ddMindControlDecision;
         private EditorNumberTextBox tbTransportWaypoint;
+        private XNADropDown ddTeamTypeColor;
         private EditorNumberTextBox tbGroup;
         private EditorNumberTextBox tbWaypoint;
         private EditorPopUpSelector selTaskForce;
@@ -62,11 +73,26 @@ namespace TSMapEditor.UI.Windows
         private SelectScriptWindow selectScriptWindow;
         private SelectTagWindow selectTagWindow;
 
+        private TeamTypeSortMode _teamTypeSortMode;
+        private TeamTypeSortMode TeamTypeSortMode
+        {
+            get => _teamTypeSortMode;
+            set
+            {
+                if (value != _teamTypeSortMode)
+                {
+                    _teamTypeSortMode = value;
+                    ListTeamTypes();
+                }
+            }
+        }
+
         public override void Initialize()
         {
             Name = nameof(TeamTypesWindow);
             base.Initialize();
 
+            tbFilter = FindChild<EditorSuggestionTextBox>(nameof(tbFilter));
             lbTeamTypes = FindChild<EditorListBox>(nameof(lbTeamTypes));
             tbName = FindChild<EditorTextBox>(nameof(tbName));
             ddVeteranLevel = FindChild<XNADropDown>(nameof(ddVeteranLevel));
@@ -81,6 +107,16 @@ namespace TSMapEditor.UI.Windows
             selTaskForce = FindChild<EditorPopUpSelector>(nameof(selTaskForce));
             selScript = FindChild<EditorPopUpSelector>(nameof(selScript));
             selTag = FindChild<EditorPopUpSelector>(nameof(selTag));
+            ddTeamTypeColor = FindChild<XNADropDown>(nameof(ddTeamTypeColor));
+
+            ddTeamTypeColor.AddItem("None");
+            foreach (var supportedColor in TeamType.SupportedColors)
+            {
+                ddTeamTypeColor.AddItem(supportedColor.Name, supportedColor.Value);
+            }            
+            ddTeamTypeColor.SelectedIndexChanged += DdTeamTypeColor_SelectedIndexChanged;
+
+            tbFilter.TextChanged += TbFilter_TextChanged;
 
             var panelBooleans = FindChild<EditorPanel>("panelBooleans");
             AddBooleanProperties(panelBooleans);
@@ -138,6 +174,18 @@ namespace TSMapEditor.UI.Windows
             FindChild<EditorButton>("btnOpenTag").LeftClick += (s, e) => OpenTag();
 
             selTag.LeftClick += (s, e) => { if (editedTeamType != null) selectTagWindow.Open(editedTeamType.Tag); };
+
+            var teamTypesContextMenu = new XNAContextMenu(WindowManager);
+            teamTypesContextMenu.Name = nameof(teamTypesContextMenu);
+            teamTypesContextMenu.Width = lbTeamTypes.Width;
+            teamTypesContextMenu.AddItem("Sort by ID", () => TeamTypeSortMode = TeamTypeSortMode.ID);
+            teamTypesContextMenu.AddItem("Sort by Name", () => TeamTypeSortMode = TeamTypeSortMode.Name);
+            teamTypesContextMenu.AddItem("Sort by Color", () => TeamTypeSortMode = TeamTypeSortMode.Color);
+            teamTypesContextMenu.AddItem("Sort by Color, then by Name", () => TeamTypeSortMode = TeamTypeSortMode.ColorThenName);            
+            AddChild(teamTypesContextMenu);
+
+            lbTeamTypes.AllowRightClickUnselect = false;
+            lbTeamTypes.RightClick += (s, e) => teamTypesContextMenu.Open(GetCursorPoint());
         }
 
         private void OpenTaskForce()
@@ -238,12 +286,18 @@ namespace TSMapEditor.UI.Windows
             lbTeamTypes.ScrollToBottom();
         }
 
+        private void TbFilter_TextChanged(object sender, EventArgs e)
+        {
+            ListTeamTypes();
+        }
+
         private void LbTeamTypes_SelectedIndexChanged(object sender, EventArgs e) => RefreshSelectedTeamType();
 
         private void RefreshSelectedTeamType()
         {
             if (lbTeamTypes.SelectedItem == null)
             {
+                lbTeamTypes.SelectedIndex = -1;
                 editedTeamType = null;
                 EditTeamType(null);
                 return;
@@ -308,11 +362,45 @@ namespace TSMapEditor.UI.Windows
         private void ListTeamTypes()
         {
             lbTeamTypes.Clear();
+            
+            var sortedTeamTypes = map.TeamTypes;
 
-            foreach (var teamType in map.TeamTypes)
+            var shouldViewTop = false; // when filtering the scroll bar should update so we use a flag here
+            if (tbFilter.Text != string.Empty && tbFilter.Text != tbFilter.Suggestion)
             {
-                lbTeamTypes.AddItem(new XNAListBoxItem() { Text = teamType.Name, Tag = teamType, TextColor = teamType.GetXNAColor() });
+                sortedTeamTypes = sortedTeamTypes.Where(teamType => teamType.Name.Contains(tbFilter.Text, StringComparison.CurrentCultureIgnoreCase)).ToList();
+                shouldViewTop = true;
             }
+
+            switch (TeamTypeSortMode)
+            {
+                case TeamTypeSortMode.Color:
+                    sortedTeamTypes = sortedTeamTypes.OrderBy(teamType => teamType.GetXNAColor().ToString()).ThenBy(teamType => teamType.ININame).ToList();
+                    break;
+                case TeamTypeSortMode.Name:
+                    sortedTeamTypes = sortedTeamTypes.OrderBy(teamType => teamType.Name).ThenBy(teamType => teamType.ININame).ToList();
+                    break;
+                case TeamTypeSortMode.ColorThenName:
+                    sortedTeamTypes = sortedTeamTypes.OrderBy(teamType => teamType.GetXNAColor().ToString()).ThenBy(teamType => teamType.Name).ToList();
+                    break;
+                case TeamTypeSortMode.ID:
+                default:
+                    sortedTeamTypes = sortedTeamTypes.OrderBy(teamType => teamType.ININame).ToList();
+                    break;
+            }
+
+            foreach (var teamType in sortedTeamTypes)
+            {
+                lbTeamTypes.AddItem(new XNAListBoxItem() 
+                { 
+                    Text = teamType.Name,
+                    Tag = teamType,
+                    TextColor = teamType.GetXNAColor() 
+                });
+            }
+            
+            if (shouldViewTop)
+                lbTeamTypes.TopIndex = 0;
         }
 
         public void SelectTeamType(TeamType teamType)
@@ -332,6 +420,7 @@ namespace TSMapEditor.UI.Windows
             tbMax.TextChanged -= TbMax_TextChanged;
             tbTechLevel.TextChanged -= TbTechLevel_TextChanged;
             ddMindControlDecision.SelectedIndexChanged -= DdMindControlDecision_SelectedIndexChanged;
+            ddTeamTypeColor.SelectedIndexChanged -= DdTeamTypeColor_SelectedIndexChanged;
             tbGroup.TextChanged -= TbGroup_TextChanged;
             tbWaypoint.TextChanged -= TbWaypoint_TextChanged;
             tbTransportWaypoint.TextChanged -= TbTransportWaypoint_TextChanged;
@@ -349,6 +438,7 @@ namespace TSMapEditor.UI.Windows
                 tbTechLevel.Text = string.Empty;
                 ddMindControlDecision.SelectedIndex = -1;
 
+                ddTeamTypeColor.SelectedIndex = -1;
                 tbGroup.Text = string.Empty;
                 tbWaypoint.Text = string.Empty;
                 tbTransportWaypoint.Text = string.Empty;
@@ -373,6 +463,11 @@ namespace TSMapEditor.UI.Windows
             tbPriority.Value = editedTeamType.Priority;
             tbMax.Value = editedTeamType.Max;
             tbTechLevel.Value = editedTeamType.TechLevel;
+
+            ddTeamTypeColor.SelectedIndex = ddTeamTypeColor.Items.FindIndex(item => item.Text == editedTeamType.EditorColor);
+            if (ddTeamTypeColor.SelectedIndex == -1)
+                ddTeamTypeColor.SelectedIndex = 0;
+
             tbGroup.Value = editedTeamType.Group;
             tbWaypoint.Value = Helpers.GetWaypointNumberFromAlphabeticalString(editedTeamType.Waypoint);
 
@@ -406,6 +501,7 @@ namespace TSMapEditor.UI.Windows
             tbMax.TextChanged += TbMax_TextChanged;
             tbTechLevel.TextChanged += TbTechLevel_TextChanged;
             ddMindControlDecision.SelectedIndexChanged += DdMindControlDecision_SelectedIndexChanged;
+            ddTeamTypeColor.SelectedIndexChanged += DdTeamTypeColor_SelectedIndexChanged;
             tbGroup.TextChanged += TbGroup_TextChanged;
             tbWaypoint.TextChanged += TbWaypoint_TextChanged;
             tbTransportWaypoint.TextChanged += TbTransportWaypoint_TextChanged;
@@ -432,6 +528,12 @@ namespace TSMapEditor.UI.Windows
             {
                 editedTeamType.TransportWaypoint = Helpers.WaypointNumberToAlphabeticalString(tbTransportWaypoint.Value);
             }
+        }
+
+        private void DdTeamTypeColor_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            editedTeamType.EditorColor = ddTeamTypeColor.SelectedIndex < 1 ? null : ddTeamTypeColor.SelectedItem.Text;
+            lbTeamTypes.SelectedItem.TextColor = editedTeamType.GetXNAColor();
         }
 
         private void TbGroup_TextChanged(object sender, EventArgs e)
@@ -466,7 +568,7 @@ namespace TSMapEditor.UI.Windows
                 editedTeamType.HouseType = map.GetHouseTypes()[ddHouse.SelectedIndex - 1];
             }
 
-            lbTeamTypes.SelectedItem.TextColor = Helpers.GetHouseTypeUITextColor(editedTeamType.HouseType);
+            lbTeamTypes.SelectedItem.TextColor = editedTeamType.GetXNAColor();
         }
 
         private void DdVeteranLevel_SelectedIndexChanged(object sender, EventArgs e)

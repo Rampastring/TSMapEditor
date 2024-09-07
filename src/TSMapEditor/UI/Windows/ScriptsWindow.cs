@@ -3,6 +3,7 @@ using Rampastring.XNAUI.XNAControls;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using TSMapEditor.CCEngine;
 using TSMapEditor.Misc;
 using TSMapEditor.Models;
@@ -14,6 +15,14 @@ using TSMapEditor.UI.Notifications;
 
 namespace TSMapEditor.UI.Windows
 {
+    public enum ScriptSortMode
+    {
+        ID,
+        Name,
+        Color,
+        ColorThenName,
+    }
+
     /// <summary>
     /// A window that allows the user to edit map scripts.
     /// </summary>
@@ -34,6 +43,7 @@ namespace TSMapEditor.UI.Windows
         private SelectCellCursorAction selectCellCursorAction;
 
         private EditorListBox lbScriptTypes;
+        private EditorSuggestionTextBox tbFilter;
         private EditorTextBox tbName;
         private EditorListBox lbActions;
         private EditorPopUpSelector selTypeOfAction;
@@ -41,13 +51,29 @@ namespace TSMapEditor.UI.Windows
         private EditorNumberTextBox tbParameterValue;
         private MenuButton btnEditorPresetValues;
         private XNALabel lblActionDescriptionValue;
+        private XNADropDown ddScriptColor;
 
         private SelectScriptActionWindow selectScriptActionWindow;
         private XNAContextMenu actionListContextMenu;
+        private XNAContextMenu scriptListContextMenu;
 
         private SelectBuildingTargetWindow selectBuildingTargetWindow;
 
         private Script editedScript;
+
+        private ScriptSortMode _scriptSortMode;
+        private ScriptSortMode ScriptSortMode
+        {
+            get => _scriptSortMode;
+            set
+            {
+                if (value != _scriptSortMode)
+                {
+                    _scriptSortMode = value;
+                    ListScripts();
+                }
+            }
+        }
 
         public override void Initialize()
         {
@@ -55,6 +81,7 @@ namespace TSMapEditor.UI.Windows
             base.Initialize();
 
             lbScriptTypes = FindChild<EditorListBox>(nameof(lbScriptTypes));
+            tbFilter = FindChild<EditorSuggestionTextBox>(nameof(tbFilter));            
             tbName = FindChild<EditorTextBox>(nameof(tbName));
             lbActions = FindChild<EditorListBox>(nameof(lbActions));
             selTypeOfAction = FindChild<EditorPopUpSelector>(nameof(selTypeOfAction));
@@ -62,6 +89,15 @@ namespace TSMapEditor.UI.Windows
             tbParameterValue = FindChild<EditorNumberTextBox>(nameof(tbParameterValue));
             btnEditorPresetValues = FindChild<MenuButton>(nameof(btnEditorPresetValues));
             lblActionDescriptionValue = FindChild<XNALabel>(nameof(lblActionDescriptionValue));
+            ddScriptColor = FindChild<XNADropDown>(nameof(ddScriptColor));            
+
+            ddScriptColor.AddItem("None");
+            Array.ForEach(Script.SupportedColors, supportedColor =>
+            {
+                ddScriptColor.AddItem(supportedColor.Name, supportedColor.Value);
+            });
+
+            tbFilter.TextChanged += TbFilter_TextChanged;
 
             var presetValuesContextMenu = new XNAContextMenu(WindowManager);
             presetValuesContextMenu.Width = 250;
@@ -73,6 +109,18 @@ namespace TSMapEditor.UI.Windows
             tbParameterValue.TextChanged += TbParameterValue_TextChanged;
             lbScriptTypes.SelectedIndexChanged += LbScriptTypes_SelectedIndexChanged;
             lbActions.SelectedIndexChanged += LbActions_SelectedIndexChanged;
+
+            scriptListContextMenu = new XNAContextMenu(WindowManager);
+            scriptListContextMenu.Name = nameof(scriptListContextMenu);
+            scriptListContextMenu.Width = lbScriptTypes.Width;
+            scriptListContextMenu.AddItem("Sort by ID", () => ScriptSortMode = ScriptSortMode.ID);
+            scriptListContextMenu.AddItem("Sort by Name", () => ScriptSortMode = ScriptSortMode.Name);
+            scriptListContextMenu.AddItem("Sort by Color", () => ScriptSortMode = ScriptSortMode.Color);
+            scriptListContextMenu.AddItem("Sort by Color, then by Name", () => ScriptSortMode = ScriptSortMode.ColorThenName);
+            AddChild(scriptListContextMenu);
+
+            lbScriptTypes.AllowRightClickUnselect = false;
+            lbScriptTypes.RightClick += (s, e) => scriptListContextMenu.Open(GetCursorPoint());
 
             selectScriptActionWindow = new SelectScriptActionWindow(WindowManager, map.EditorConfig);
             var selectScriptActionDarkeningPanel = DarkeningPanel.InitializeAndAddToParentControlWithChild(WindowManager, Parent, selectScriptActionWindow);
@@ -304,6 +352,24 @@ namespace TSMapEditor.UI.Windows
             lbScriptTypes.SelectedItem.Text = tbName.Text;
         }
 
+        private void TbFilter_TextChanged(object sender, EventArgs e)
+        {
+            ListScripts();
+        }
+
+        private void DdScriptColor_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            if (ddScriptColor.SelectedIndex < 1)
+            {
+                editedScript.EditorColor = null;
+                lbScriptTypes.SelectedItem.TextColor = lbScriptTypes.DefaultItemColor;
+                return;
+            }
+
+            editedScript.EditorColor = ddScriptColor.SelectedItem.Text;
+            lbScriptTypes.SelectedItem.TextColor = ddScriptColor.SelectedItem.TextColor.Value;
+        }
+
         private void TbParameterValue_TextChanged(object sender, EventArgs e)
         {
             if (lbActions.SelectedItem == null || editedScript == null)
@@ -515,15 +581,49 @@ namespace TSMapEditor.UI.Windows
         {
             lbScriptTypes.Clear();
 
-            foreach (var script in map.Scripts)
+            List<Script> sortedScripts = map.Scripts;
+
+            var shouldViewTop = false; // when filtering the scroll bar should update so we use a flag here
+            if (tbFilter.Text != string.Empty && tbFilter.Text != tbFilter.Suggestion)
             {
-                lbScriptTypes.AddItem(new XNAListBoxItem() { Text = script.Name, Tag = script });
+                sortedScripts = sortedScripts.Where(sortedScript => sortedScript.Name.Contains(tbFilter.Text, StringComparison.CurrentCultureIgnoreCase)).ToList();
+                shouldViewTop = true;
             }
+
+            switch (ScriptSortMode)
+            {
+                case ScriptSortMode.Color:
+                    sortedScripts = sortedScripts.OrderBy(script => script.EditorColor).ThenBy(script => script.ININame).ToList();
+                    break;
+                case ScriptSortMode.Name:
+                    sortedScripts = sortedScripts.OrderBy(script => script.Name).ThenBy(script => script.ININame).ToList();
+                    break;
+                case ScriptSortMode.ColorThenName:
+                    sortedScripts = sortedScripts.OrderBy(script => script.EditorColor).ThenBy(script => script.Name).ToList();
+                    break;
+                case ScriptSortMode.ID:
+                default:
+                    sortedScripts = sortedScripts.OrderBy(script => script.ININame).ToList();
+                    break;
+            }
+
+            foreach (var script in sortedScripts)
+            {
+                lbScriptTypes.AddItem(new XNAListBoxItem() { 
+                    Text = script.Name,
+                    Tag = script,
+                    TextColor = script.EditorColor == null ? lbScriptTypes.DefaultItemColor : script.XNAColor
+                });
+            }
+
+            if (shouldViewTop)
+                lbScriptTypes.TopIndex = 0;
         }
 
         private void EditScript(Script script)
         {
             editedScript = script;
+            ddScriptColor.SelectedIndexChanged -= DdScriptColor_SelectedIndexChanged;
 
             lbActions.Clear();
             lbActions.ViewTop = 0;
@@ -536,6 +636,7 @@ namespace TSMapEditor.UI.Windows
                 tbParameterValue.Text = string.Empty;
                 btnEditorPresetValues.ContextMenu.ClearItems();
                 lblActionDescriptionValue.Text = string.Empty;
+                ddScriptColor.SelectedIndex = -1;
 
                 return;
             }
@@ -551,7 +652,12 @@ namespace TSMapEditor.UI.Windows
                 });
             }
 
+            ddScriptColor.SelectedIndex = ddScriptColor.Items.FindIndex(item => item.Text == editedScript.EditorColor);
+            if (ddScriptColor.SelectedIndex == -1)
+                ddScriptColor.SelectedIndex = 0;
+
             LbActions_SelectedIndexChanged(this, EventArgs.Empty);
+            ddScriptColor.SelectedIndexChanged += DdScriptColor_SelectedIndexChanged;
         }
 
         private string GetActionEntryText(int index, ScriptActionEntry entry)
