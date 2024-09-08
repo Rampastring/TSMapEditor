@@ -41,6 +41,15 @@ namespace TSMapEditor.UI.Windows
         private readonly PlaceCellTagCursorAction placeCellTagCursorAction;
         private readonly ChangeAttachedTagCursorAction changeAttachedTagCursorAction;
         private readonly EditorState editorState;
+        private readonly TriggerParamType[] supportedGoToSourceTriggerParamTypes = 
+        {
+            TriggerParamType.Trigger,
+            TriggerParamType.TeamType,
+            TriggerParamType.Waypoint,
+            TriggerParamType.WaypointZZ
+        };
+        public event EventHandler<TeamTypeEventArgs> TeamTypeOpened;
+        
 
         private XNADropDown ddActions;
 
@@ -73,6 +82,7 @@ namespace TSMapEditor.UI.Windows
         private EditorDescriptionPanel panelActionDescription;
         private EditorListBox lbActionParameters;
         private EditorTextBox tbActionParameterValue;
+        private EditorButton btnActionGoToSource;        
         private XNAContextMenu ctxActionParameterPresetValues;
 
         private SelectEventWindow selectEventWindow;
@@ -153,6 +163,7 @@ namespace TSMapEditor.UI.Windows
             panelEventDescription = FindChild<EditorDescriptionPanel>(nameof(panelEventDescription));
             lbEventParameters = FindChild<EditorListBox>(nameof(lbEventParameters));
             tbEventParameterValue = FindChild<EditorTextBox>(nameof(tbEventParameterValue));
+            btnActionGoToSource = FindChild<EditorButton>(nameof(btnActionGoToSource));
 
             ctxEventParameterPresetValues = new XNAContextMenu(WindowManager);
             ctxEventParameterPresetValues.Name = nameof(ctxEventParameterPresetValues);
@@ -213,6 +224,8 @@ namespace TSMapEditor.UI.Windows
 
             FindChild<EditorButton>("btnActionParameterValuePreset").LeftClick += BtnActionParameterValuePreset_LeftClick;
             FindChild<EditorButton>("btnEventParameterValuePreset").LeftClick += BtnEventParameterValuePreset_LeftClick;
+
+            btnActionGoToSource.LeftClick += BtnActionGoToSource_LeftClick;
 
             selectEventWindow = new SelectEventWindow(WindowManager, map);
             var eventWindowDarkeningPanel = DarkeningPanel.InitializeAndAddToParentControlWithChild(WindowManager, Parent, selectEventWindow);
@@ -1041,6 +1054,77 @@ namespace TSMapEditor.UI.Windows
             }
         }
 
+        private void BtnActionGoToSource_LeftClick(object sender, EventArgs e)
+        {
+            if (lbActions.SelectedItem == null)
+                return;
+
+            GetTriggerActionAndParamIndex(out TriggerAction triggerAction, out int paramIndex);            
+
+            var triggerActionType = GetTriggerActionType(triggerAction.ActionIndex);
+            var triggerActionParam = triggerActionType.Parameters[paramIndex];
+            var triggerParamType = triggerActionParam.TriggerParamType;
+
+            if (!supportedGoToSourceTriggerParamTypes.Contains(triggerParamType))
+                return;
+
+            switch (triggerParamType)
+            {
+                case TriggerParamType.Trigger:
+                    var triggerId = triggerAction.Parameters[paramIndex];
+                    var triggerIndex = lbTriggers.Items.FindIndex(listBoxTrigger => ((Trigger)listBoxTrigger.Tag).ID == triggerId);
+                    if (triggerIndex == -1)
+                        break;
+
+                    lbTriggers.SelectedIndex = triggerIndex;
+                    break;
+
+                case TriggerParamType.TeamType:
+                    var teamTypeId = triggerAction.Parameters[paramIndex];
+                    var teamType = map.TeamTypes.Find(teamType => teamType.ININame == teamTypeId);
+                    if (teamType == null) 
+                        break;
+
+                    OpenTeamType(teamType);
+                    break;
+
+                case TriggerParamType.Waypoint:
+                case TriggerParamType.WaypointZZ:
+                    int waypointNumber;
+                    if (triggerParamType == TriggerParamType.WaypointZZ)
+                    {
+                        waypointNumber = Helpers.GetWaypointNumberFromAlphabeticalString(triggerAction.Parameters[paramIndex]);
+                    }
+                    else
+                    {                                                
+                        var success = int.TryParse(triggerAction.Parameters[paramIndex], out waypointNumber);
+                        if (!success)
+                        {
+                            waypointNumber = -1;
+                        }                                                
+                    }
+
+                    if (waypointNumber == -1)
+                        break;
+                    
+                    Waypoint waypoint = map.Waypoints.Find(wp => wp.Identifier == waypointNumber);
+                    if (waypoint == null)
+                        break;
+
+                    cursorActionTarget.Camera.CenterOnCell(waypoint.Position);
+                    break;
+
+                default:
+                    break;
+            }
+        }
+
+        private void SetGoToSourceButtonVisibility(bool enabled)
+        {
+            btnActionGoToSource.Enabled = enabled;
+            btnActionGoToSource.Visible = enabled;
+        }
+
         private void AnimationWindowDarkeningPanel_Hidden(object sender, EventArgs e)
         {
             if (selectAnimationWindow.SelectedObject == null)
@@ -1550,6 +1634,8 @@ namespace TSMapEditor.UI.Windows
                 lbActionParameters.Clear();
                 tbActionParameterValue.Text = string.Empty;
 
+                SetGoToSourceButtonVisibility(false);
+
                 return;
             }
 
@@ -1680,6 +1766,8 @@ namespace TSMapEditor.UI.Windows
                 panelActionDescription.Text = string.Empty;
                 lbActionParameters.Clear();
                 tbActionParameterValue.Text = string.Empty;
+
+                SetGoToSourceButtonVisibility(false);                
                 return;
             }
 
@@ -1748,11 +1836,16 @@ namespace TSMapEditor.UI.Windows
 
                 tbActionParameterValue.Text = GetParamValueText(triggerAction.Parameters[paramNumber], triggerParamType, triggerActionParam.PresetOptions);
                 tbActionParameterValue.TextColor = GetParamValueColor(triggerAction.Parameters[paramNumber], triggerParamType);
+
+                var isSupportedGoToSourceParamType = supportedGoToSourceTriggerParamTypes.Contains(triggerParamType);
+                SetGoToSourceButtonVisibility(isSupportedGoToSourceParamType);                
             }
             else
             {
                 tbActionParameterValue.Text = triggerAction.Parameters[paramNumber];
                 tbActionParameterValue.TextColor = UISettings.ActiveSettings.AltColor;
+
+                SetGoToSourceButtonVisibility(false);
             }
 
             tbActionParameterValue.TextChanged += TbActionParameterValue_TextChanged;
@@ -2200,6 +2293,12 @@ namespace TSMapEditor.UI.Windows
             }
 
             return intValue + " " + objectTypeList[intValue].GetEditorDisplayName();
+        }
+
+        private void OpenTeamType(TeamType teamType)
+        {
+            TeamTypeOpened?.Invoke(this, new TeamTypeEventArgs(teamType));
+            PutOnBackground();
         }
     }
 }

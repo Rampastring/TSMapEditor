@@ -210,6 +210,7 @@ namespace TSMapEditor.UI.Windows
             TeamTypesWindow.ScriptOpened += TeamTypesWindow_ScriptOpened;
             TeamTypesWindow.TagOpened += Window_TagOpened;
             AITriggersWindow.TeamTypeOpened += AITriggersWindow_TeamTypeOpened;
+            TriggersWindow.TeamTypeOpened += TriggersWindow_TeamTypeOpened;
             StructureOptionsWindow.TagOpened += Window_TagOpened;
             VehicleOptionsWindow.TagOpened += Window_TagOpened;
             InfantryOptionsWindow.TagOpened += Window_TagOpened;
@@ -286,6 +287,8 @@ namespace TSMapEditor.UI.Windows
             TeamTypesWindow.SelectTeamType(e.TeamType);
         }
 
+        private void TriggersWindow_TeamTypeOpened(object sender, TeamTypeEventArgs e) => AITriggersWindow_TeamTypeOpened(sender, e);
+
         private void ClearFocusSwitchHandlerFromChildrenRecursive(EditorWindow window, XNAControl control)
         {
             foreach (var child in control.Children)
@@ -304,6 +307,7 @@ namespace TSMapEditor.UI.Windows
             TeamTypesWindow.ScriptOpened -= TeamTypesWindow_ScriptOpened;
             TeamTypesWindow.TagOpened -= Window_TagOpened;
             AITriggersWindow.TeamTypeOpened -= AITriggersWindow_TeamTypeOpened;
+            TriggersWindow.TeamTypeOpened -= TriggersWindow_TeamTypeOpened;
             StructureOptionsWindow.TagOpened -= Window_TagOpened;
             VehicleOptionsWindow.TagOpened -= Window_TagOpened;
             InfantryOptionsWindow.TagOpened -= Window_TagOpened;
