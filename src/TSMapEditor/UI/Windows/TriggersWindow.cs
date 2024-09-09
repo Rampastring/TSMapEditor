@@ -36,6 +36,8 @@ namespace TSMapEditor.UI.Windows
             changeAttachedTagCursorAction = new ChangeAttachedTagCursorAction(cursorActionTarget);
         }
 
+        public event EventHandler<TeamTypeEventArgs> TeamTypeOpened;
+
         private readonly Map map;
         private readonly ICursorActionTarget cursorActionTarget;
         private readonly PlaceCellTagCursorAction placeCellTagCursorAction;
@@ -48,8 +50,6 @@ namespace TSMapEditor.UI.Windows
             TriggerParamType.Waypoint,
             TriggerParamType.WaypointZZ
         };
-        public event EventHandler<TeamTypeEventArgs> TeamTypeOpened;
-        
 
         private XNADropDown ddActions;
 
@@ -1093,12 +1093,8 @@ namespace TSMapEditor.UI.Windows
                         waypointNumber = Helpers.GetWaypointNumberFromAlphabeticalString(triggerAction.Parameters[paramIndex]);
                     }
                     else
-                    {                                                
-                        var success = int.TryParse(triggerAction.Parameters[paramIndex], out waypointNumber);
-                        if (!success)
-                        {
-                            waypointNumber = -1;
-                        }                                                
+                    {
+                        waypointNumber = Conversions.IntFromString(triggerAction.Parameters[paramIndex], -1);
                     }
 
                     if (waypointNumber == -1)
