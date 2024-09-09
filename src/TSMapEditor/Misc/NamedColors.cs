@@ -1,27 +1,9 @@
 ﻿using Microsoft.Xna.Framework;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using TSMapEditor.Models;
 
 namespace TSMapEditor.Misc
 {
-    public class NamedColors
-    {
-        public struct NamedColor
-        {
-            public string Name;
-            public Color Value;
-
-            public NamedColor(string name, Color value)
-            {
-                Name = name;
-                Value = value;
-            }
-        }
-
+    public static class NamedColors
+    {        
         public static NamedColor[] GenericSupportedNamedColors = new NamedColor[]
         {
             new NamedColor("Teal", new Color(0, 196, 196)),
@@ -40,5 +22,17 @@ namespace TSMapEditor.Misc
             new NamedColor("Brown", Color.Brown),
             new NamedColor("Metalic", new Color(160, 160, 200)),
         };
+    }
+
+    public struct NamedColor
+    {
+        public string Name;
+        public Color Value;
+
+        public NamedColor(string name, Color value)
+        {
+            Name = name;
+            Value = value;
+        }
     }
 }

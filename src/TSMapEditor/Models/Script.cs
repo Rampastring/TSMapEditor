@@ -1,6 +1,5 @@
 ﻿using Rampastring.Tools;
 using System.Collections.Generic;
-using static TSMapEditor.Misc.NamedColors;
 using TSMapEditor.Misc;
 using System;
 using Microsoft.Xna.Framework;

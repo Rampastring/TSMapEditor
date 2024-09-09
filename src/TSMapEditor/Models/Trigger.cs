@@ -4,7 +4,6 @@ using System;
 using System.Collections.Generic;
 using TSMapEditor.Misc;
 using TSMapEditor.Models.Enums;
-using static TSMapEditor.Misc.NamedColors;
 
 namespace TSMapEditor.Models
 {

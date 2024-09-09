@@ -3,7 +3,6 @@ using Rampastring.Tools;
 using System;
 using System.Collections.Generic;
 using System.Text;
-using static TSMapEditor.Misc.NamedColors;
 using TSMapEditor.Misc;
 
 namespace TSMapEditor.Models
