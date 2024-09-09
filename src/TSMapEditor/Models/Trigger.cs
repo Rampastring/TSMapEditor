@@ -13,7 +13,7 @@ namespace TSMapEditor.Models
     /// </summary>
     public class Trigger : IIDContainer
     {
-        public static NamedColor[] SupportedColors = NamedColors.GenericSupportedNamedColors;
+        public static NamedColor[] SupportedColors => NamedColors.GenericSupportedNamedColors;
 
         public Trigger(string id) { ID = id; }
 

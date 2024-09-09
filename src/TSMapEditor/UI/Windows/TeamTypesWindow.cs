@@ -286,10 +286,7 @@ namespace TSMapEditor.UI.Windows
             lbTeamTypes.ScrollToBottom();
         }
 
-        private void TbFilter_TextChanged(object sender, EventArgs e)
-        {
-            ListTeamTypes();
-        }
+        private void TbFilter_TextChanged(object sender, EventArgs e) => ListTeamTypes();
 
         private void LbTeamTypes_SelectedIndexChanged(object sender, EventArgs e) => RefreshSelectedTeamType();
 
@@ -363,29 +360,29 @@ namespace TSMapEditor.UI.Windows
         {
             lbTeamTypes.Clear();
             
-            var sortedTeamTypes = map.TeamTypes;
+            IEnumerable<TeamType> sortedTeamTypes = map.TeamTypes;
 
             var shouldViewTop = false; // when filtering the scroll bar should update so we use a flag here
             if (tbFilter.Text != string.Empty && tbFilter.Text != tbFilter.Suggestion)
             {
-                sortedTeamTypes = sortedTeamTypes.Where(teamType => teamType.Name.Contains(tbFilter.Text, StringComparison.CurrentCultureIgnoreCase)).ToList();
+                sortedTeamTypes = sortedTeamTypes.Where(teamType => teamType.Name.Contains(tbFilter.Text, StringComparison.CurrentCultureIgnoreCase));
                 shouldViewTop = true;
             }
 
             switch (TeamTypeSortMode)
             {
                 case TeamTypeSortMode.Color:
-                    sortedTeamTypes = sortedTeamTypes.OrderBy(teamType => teamType.GetXNAColor().ToString()).ThenBy(teamType => teamType.ININame).ToList();
+                    sortedTeamTypes = sortedTeamTypes.OrderBy(teamType => teamType.GetXNAColor().ToString()).ThenBy(teamType => teamType.ININame);
                     break;
                 case TeamTypeSortMode.Name:
-                    sortedTeamTypes = sortedTeamTypes.OrderBy(teamType => teamType.Name).ThenBy(teamType => teamType.ININame).ToList();
+                    sortedTeamTypes = sortedTeamTypes.OrderBy(teamType => teamType.Name).ThenBy(teamType => teamType.ININame);
                     break;
                 case TeamTypeSortMode.ColorThenName:
-                    sortedTeamTypes = sortedTeamTypes.OrderBy(teamType => teamType.GetXNAColor().ToString()).ThenBy(teamType => teamType.Name).ToList();
+                    sortedTeamTypes = sortedTeamTypes.OrderBy(teamType => teamType.GetXNAColor().ToString()).ThenBy(teamType => teamType.Name);
                     break;
                 case TeamTypeSortMode.ID:
                 default:
-                    sortedTeamTypes = sortedTeamTypes.OrderBy(teamType => teamType.ININame).ToList();
+                    sortedTeamTypes = sortedTeamTypes.OrderBy(teamType => teamType.ININame);
                     break;
             }
 

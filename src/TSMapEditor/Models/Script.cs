@@ -78,7 +78,7 @@ namespace TSMapEditor.Models
             }
         }
 
-        public static NamedColor[] SupportedColors = NamedColors.GenericSupportedNamedColors;
+        public static NamedColor[] SupportedColors => NamedColors.GenericSupportedNamedColors;
 
         public Color XNAColor;
 
@@ -113,17 +113,22 @@ namespace TSMapEditor.Models
             return script;
         }
 
-        public void WriteToIniSection(IniFile iniFile, IniSection scriptSection)
+        public void WriteToIniSection(IniSection scriptSection)
         {
             for (int i = 0; i < Actions.Count; i++)
             {
                 scriptSection.SetStringValue(i.ToString(), $"{Actions[i].Action},{Actions[i].Argument}");
             }
 
-            scriptSection.SetStringValue("Name", Name);
+            scriptSection.SetStringValue("Name", Name);            
+        }
 
-            if (EditorColor != null)
-                iniFile.SetStringValue("EditorScriptInfo", ININame, EditorColor);
+        public void WriteEditorProperties(IniFile iniFile)
+        {
+            if (EditorColor == null)
+                return;
+
+            iniFile.SetStringValue("EditorScriptInfo", ININame, EditorColor);
         }
 
         public static Script ParseScript(string id, IniSection scriptSection)

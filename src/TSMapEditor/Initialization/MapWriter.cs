@@ -304,7 +304,8 @@ namespace TSMapEditor.Initialization
                 iniFile.RemoveSection(script.ININame);
                 var scriptSection = new IniSection(script.ININame);
                 iniFile.AddSection(scriptSection);
-                script.WriteToIniSection(iniFile, scriptSection);
+                script.WriteToIniSection(scriptSection);
+                script.WriteEditorProperties(iniFile);
             }
         }
 
@@ -332,7 +333,8 @@ namespace TSMapEditor.Initialization
                 iniFile.RemoveSection(teamType.ININame);
                 var teamTypeSection = new IniSection(teamType.ININame);
                 iniFile.AddSection(teamTypeSection);
-                teamType.WriteToIniSection(iniFile, teamTypeSection, teamTypeFlags);
+                teamType.WriteToIniSection(teamTypeSection, teamTypeFlags);
+                teamType.WriteEditorProperties(iniFile);
             }
         }
 

@@ -352,10 +352,7 @@ namespace TSMapEditor.UI.Windows
             lbScriptTypes.SelectedItem.Text = tbName.Text;
         }
 
-        private void TbFilter_TextChanged(object sender, EventArgs e)
-        {
-            ListScripts();
-        }
+        private void TbFilter_TextChanged(object sender, EventArgs e) => ListScripts();
 
         private void DdScriptColor_SelectedIndexChanged(object sender, EventArgs e)
         {
@@ -581,29 +578,29 @@ namespace TSMapEditor.UI.Windows
         {
             lbScriptTypes.Clear();
 
-            List<Script> sortedScripts = map.Scripts;
+            IEnumerable<Script> sortedScripts = map.Scripts;
 
             var shouldViewTop = false; // when filtering the scroll bar should update so we use a flag here
             if (tbFilter.Text != string.Empty && tbFilter.Text != tbFilter.Suggestion)
             {
-                sortedScripts = sortedScripts.Where(sortedScript => sortedScript.Name.Contains(tbFilter.Text, StringComparison.CurrentCultureIgnoreCase)).ToList();
+                sortedScripts = sortedScripts.Where(script => script.Name.Contains(tbFilter.Text, StringComparison.CurrentCultureIgnoreCase));
                 shouldViewTop = true;
             }
 
             switch (ScriptSortMode)
             {
                 case ScriptSortMode.Color:
-                    sortedScripts = sortedScripts.OrderBy(script => script.EditorColor).ThenBy(script => script.ININame).ToList();
+                    sortedScripts = sortedScripts.OrderBy(script => script.EditorColor).ThenBy(script => script.ININame);
                     break;
                 case ScriptSortMode.Name:
-                    sortedScripts = sortedScripts.OrderBy(script => script.Name).ThenBy(script => script.ININame).ToList();
+                    sortedScripts = sortedScripts.OrderBy(script => script.Name).ThenBy(script => script.ININame);
                     break;
                 case ScriptSortMode.ColorThenName:
-                    sortedScripts = sortedScripts.OrderBy(script => script.EditorColor).ThenBy(script => script.Name).ToList();
+                    sortedScripts = sortedScripts.OrderBy(script => script.EditorColor).ThenBy(script => script.Name);
                     break;
                 case ScriptSortMode.ID:
                 default:
-                    sortedScripts = sortedScripts.OrderBy(script => script.ININame).ToList();
+                    sortedScripts = sortedScripts.OrderBy(script => script.ININame);
                     break;
             }
 
@@ -653,7 +650,7 @@ namespace TSMapEditor.UI.Windows
             }
 
             ddScriptColor.SelectedIndex = ddScriptColor.Items.FindIndex(item => item.Text == editedScript.EditorColor);
-            if (ddScriptColor.SelectedIndex == -1)
+            if (ddScriptColor.SelectedIndex < 0)
                 ddScriptColor.SelectedIndex = 0;
 
             LbActions_SelectedIndexChanged(this, EventArgs.Empty);

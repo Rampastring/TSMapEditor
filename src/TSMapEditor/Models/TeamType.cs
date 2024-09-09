@@ -137,7 +137,7 @@ namespace TSMapEditor.Models
             return clone;
         }
 
-        public void WriteToIniSection(IniFile iniFile, IniSection iniSection, List<TeamTypeFlag> teamTypeFlags)
+        public void WriteToIniSection(IniSection iniSection, List<TeamTypeFlag> teamTypeFlags)
         {
             // This cuts it for all properties of standard types
             WritePropertiesToIniSection(iniSection);
@@ -159,10 +159,15 @@ namespace TSMapEditor.Models
             teamTypeFlags.ForEach(flag =>
             {
                 iniSection.SetBooleanValue(flag.Name, IsFlagEnabled(flag.Name), BooleanStringStyle.YESNO_LOWERCASE);
-            });
+            });            
+        }
 
-            if (EditorColor != null)
-                iniFile.SetStringValue("EditorTeamTypeInfo", ININame, EditorColor);
+        public void WriteEditorProperties(IniFile iniFile)
+        {
+            if (EditorColor == null)
+                return;
+
+            iniFile.SetStringValue("EditorTeamTypeInfo", ININame, EditorColor);
         }
 
         public override RTTIType WhatAmI()
@@ -170,7 +175,7 @@ namespace TSMapEditor.Models
             return RTTIType.TeamType;
         }
 
-        public static NamedColor[] SupportedColors = NamedColors.GenericSupportedNamedColors;
+        public static NamedColor[] SupportedColors => NamedColors.GenericSupportedNamedColors;
 
         private string _editorColor;
         public string EditorColor
@@ -195,6 +200,7 @@ namespace TSMapEditor.Models
                 }
             }
         }
+
         private Color EditorColorValue;
         public Color GetXNAColor() 
         {

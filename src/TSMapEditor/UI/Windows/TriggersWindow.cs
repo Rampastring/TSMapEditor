@@ -1423,13 +1423,7 @@ namespace TSMapEditor.UI.Windows
             EditTrigger(editedTrigger);
         }
 
-        private void BtnCloneAction_LeftClick(object sender, EventArgs e)
-        {
-            if (editedTrigger == null || lbActions.SelectedItem == null)
-                return;
-
-            CloneEventOrAction(lbActions, editedTrigger.Actions);
-        }
+        private void BtnCloneAction_LeftClick(object sender, EventArgs e) => CloneEventOrAction(lbActions, editedTrigger.Actions);
 
         private void BtnAddEvent_LeftClick(object sender, EventArgs e)
         {
@@ -1449,13 +1443,7 @@ namespace TSMapEditor.UI.Windows
             EditTrigger(editedTrigger);
         }
 
-        private void BtnCloneEvent_LeftClick(object sender, EventArgs e)
-        {
-            if (editedTrigger == null || lbEvents.SelectedItem == null)
-                return;
-
-            CloneEventOrAction(lbEvents, editedTrigger.Conditions);
-        }        
+        private void BtnCloneEvent_LeftClick(object sender, EventArgs e) => CloneEventOrAction(lbEvents, editedTrigger.Conditions);
 
         private void LbTriggers_SelectedIndexChanged(object sender, EventArgs e)
         {
@@ -1485,29 +1473,29 @@ namespace TSMapEditor.UI.Windows
         {
             lbTriggers.Clear();
 
-            List<Trigger> sortedTriggers = map.Triggers;
+            IEnumerable<Trigger> sortedTriggers = map.Triggers;
 
             var shouldViewTop = false; // when filtering the scroll bar should update so we use a flag here
             if (tbFilter.Text != string.Empty && tbFilter.Text != tbFilter.Suggestion)
             {
-                sortedTriggers = sortedTriggers.Where(sortedTrigger => sortedTrigger.Name.Contains(tbFilter.Text, StringComparison.CurrentCultureIgnoreCase)).ToList();
+                sortedTriggers = sortedTriggers.Where(sortedTrigger => sortedTrigger.Name.Contains(tbFilter.Text, StringComparison.CurrentCultureIgnoreCase));
                 shouldViewTop = true;
             }
 
             switch (TriggerSortMode)
             {
                 case TriggerSortMode.Color:
-                    sortedTriggers = sortedTriggers.OrderBy(t => t.EditorColor).ThenBy(t => t.ID).ToList();
+                    sortedTriggers = sortedTriggers.OrderBy(t => t.EditorColor).ThenBy(t => t.ID);
                     break;
                 case TriggerSortMode.Name:
-                    sortedTriggers = sortedTriggers.OrderBy(t => t.Name).ThenBy(t => t.ID).ToList();
+                    sortedTriggers = sortedTriggers.OrderBy(t => t.Name).ThenBy(t => t.ID);
                     break;                
                 case TriggerSortMode.ColorThenName:
-                    sortedTriggers = sortedTriggers.OrderBy(t => t.EditorColor).ThenBy(t => t.Name).ToList();
+                    sortedTriggers = sortedTriggers.OrderBy(t => t.EditorColor).ThenBy(t => t.Name);
                     break;
                 case TriggerSortMode.ID:
                 default:
-                    sortedTriggers = sortedTriggers.OrderBy(t => t.ID).ToList();
+                    sortedTriggers = sortedTriggers.OrderBy(t => t.ID);
                     break;
             }
 
@@ -1680,11 +1668,8 @@ namespace TSMapEditor.UI.Windows
             lbTriggers.SelectedItem.Text = tbName.Text;
         }
 
-        private void TbFilter_TextChanged(object sender, EventArgs e)
-        {
-            ListTriggers();
-        }
-        
+        private void TbFilter_TextChanged(object sender, EventArgs e) => ListTriggers();
+
         private void LbActions_SelectedIndexChanged(object sender, EventArgs e)
         {
             lbActionParameters.SelectedIndexChanged -= LbActionParameters_SelectedIndexChanged;
