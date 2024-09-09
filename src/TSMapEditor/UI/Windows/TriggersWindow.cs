@@ -82,7 +82,7 @@ namespace TSMapEditor.UI.Windows
         private EditorDescriptionPanel panelActionDescription;
         private EditorListBox lbActionParameters;
         private EditorTextBox tbActionParameterValue;
-        private EditorButton btnActionGoToSource;        
+        private EditorButton btnActionGoToTarget;        
         private XNAContextMenu ctxActionParameterPresetValues;
 
         private SelectEventWindow selectEventWindow;
@@ -163,7 +163,7 @@ namespace TSMapEditor.UI.Windows
             panelEventDescription = FindChild<EditorDescriptionPanel>(nameof(panelEventDescription));
             lbEventParameters = FindChild<EditorListBox>(nameof(lbEventParameters));
             tbEventParameterValue = FindChild<EditorTextBox>(nameof(tbEventParameterValue));
-            btnActionGoToSource = FindChild<EditorButton>(nameof(btnActionGoToSource));
+            btnActionGoToTarget = FindChild<EditorButton>(nameof(btnActionGoToTarget));
 
             ctxEventParameterPresetValues = new XNAContextMenu(WindowManager);
             ctxEventParameterPresetValues.Name = nameof(ctxEventParameterPresetValues);
@@ -225,7 +225,7 @@ namespace TSMapEditor.UI.Windows
             FindChild<EditorButton>("btnActionParameterValuePreset").LeftClick += BtnActionParameterValuePreset_LeftClick;
             FindChild<EditorButton>("btnEventParameterValuePreset").LeftClick += BtnEventParameterValuePreset_LeftClick;
 
-            btnActionGoToSource.LeftClick += BtnActionGoToSource_LeftClick;
+            btnActionGoToTarget.LeftClick += btnActionGoToTarget_LeftClick;
 
             selectEventWindow = new SelectEventWindow(WindowManager, map);
             var eventWindowDarkeningPanel = DarkeningPanel.InitializeAndAddToParentControlWithChild(WindowManager, Parent, selectEventWindow);
@@ -1054,7 +1054,7 @@ namespace TSMapEditor.UI.Windows
             }
         }
 
-        private void BtnActionGoToSource_LeftClick(object sender, EventArgs e)
+        private void btnActionGoToTarget_LeftClick(object sender, EventArgs e)
         {
             if (lbActions.SelectedItem == null)
                 return;
@@ -1063,10 +1063,7 @@ namespace TSMapEditor.UI.Windows
 
             var triggerActionType = GetTriggerActionType(triggerAction.ActionIndex);
             var triggerActionParam = triggerActionType.Parameters[paramIndex];
-            var triggerParamType = triggerActionParam.TriggerParamType;
-
-            if (!supportedGoToSourceTriggerParamTypes.Contains(triggerParamType))
-                return;
+            var triggerParamType = triggerActionParam.TriggerParamType;            
 
             switch (triggerParamType)
             {
@@ -1117,12 +1114,6 @@ namespace TSMapEditor.UI.Windows
                 default:
                     break;
             }
-        }
-
-        private void SetGoToSourceButtonVisibility(bool enabled)
-        {
-            btnActionGoToSource.Enabled = enabled;
-            btnActionGoToSource.Visible = enabled;
         }
 
         private void AnimationWindowDarkeningPanel_Hidden(object sender, EventArgs e)
@@ -1634,7 +1625,7 @@ namespace TSMapEditor.UI.Windows
                 lbActionParameters.Clear();
                 tbActionParameterValue.Text = string.Empty;
 
-                SetGoToSourceButtonVisibility(false);
+                btnActionGoToTarget.Disable();
 
                 return;
             }
@@ -1767,7 +1758,7 @@ namespace TSMapEditor.UI.Windows
                 lbActionParameters.Clear();
                 tbActionParameterValue.Text = string.Empty;
 
-                SetGoToSourceButtonVisibility(false);                
+                btnActionGoToTarget.Disable();
                 return;
             }
 
@@ -1837,15 +1828,22 @@ namespace TSMapEditor.UI.Windows
                 tbActionParameterValue.Text = GetParamValueText(triggerAction.Parameters[paramNumber], triggerParamType, triggerActionParam.PresetOptions);
                 tbActionParameterValue.TextColor = GetParamValueColor(triggerAction.Parameters[paramNumber], triggerParamType);
 
-                var isSupportedGoToSourceParamType = supportedGoToSourceTriggerParamTypes.Contains(triggerParamType);
-                SetGoToSourceButtonVisibility(isSupportedGoToSourceParamType);                
+                bool isSupportedGoToSourceParamType = supportedGoToSourceTriggerParamTypes.Contains(triggerParamType);
+                if (isSupportedGoToSourceParamType)
+                {
+                    btnActionGoToTarget.Enable();
+                }
+                else
+                {
+                    btnActionGoToTarget.Disable();
+                }
             }
             else
             {
                 tbActionParameterValue.Text = triggerAction.Parameters[paramNumber];
                 tbActionParameterValue.TextColor = UISettings.ActiveSettings.AltColor;
 
-                SetGoToSourceButtonVisibility(false);
+                btnActionGoToTarget.Disable();
             }
 
             tbActionParameterValue.TextChanged += TbActionParameterValue_TextChanged;
