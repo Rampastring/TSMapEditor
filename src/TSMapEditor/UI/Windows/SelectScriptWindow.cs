@@ -37,7 +37,12 @@ namespace TSMapEditor.UI.Windows
 
             foreach (Script script in map.Scripts)
             {
-                lbObjectList.AddItem(new XNAListBoxItem() { Text = $"{script.Name} ({script.ININame})", Tag = script });
+                lbObjectList.AddItem(new XNAListBoxItem() 
+                {
+                    Text = $"{script.Name} ({script.ININame})",
+                    Tag = script,
+                    TextColor = script.EditorColor == null ? lbObjectList.DefaultItemColor : script.XNAColor
+                });
                 if (script == SelectedObject)
                     lbObjectList.SelectedIndex = lbObjectList.Items.Count - 1;
             }
