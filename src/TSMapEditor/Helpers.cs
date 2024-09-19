@@ -586,5 +586,40 @@ namespace TSMapEditor
 
             return tilesToProcess;
         }
+        /// <summary>
+        /// Converts a name that includes a difficulty to instead have a different difficulty.
+        /// Useful for cloning purposes of any type of object named by users to additional difficulty levels.
+        /// </summary>
+        /// <param name="name">Original name to convert.</param>
+        /// <param name="fromDifficulty">Current difficulty to convert the name from (replace).</param>
+        /// <param name="toDifficulty">New difficulty to convert the name to (replace).</param>
+        /// <returns>New name after it was converted to the desired difficulty.</returns>
+        public static string ConvertNameToNewDifficulty(string name, Difficulty fromDifficulty, Difficulty toDifficulty)
+        {
+            string fromDifficultyString = Helpers.getDifficultyString(fromDifficulty);
+            string toDifficultyString = Helpers.getDifficultyString(toDifficulty);
+
+            string newName = name.Replace(fromDifficultyString, toDifficultyString);
+            newName = newName.Replace($" {fromDifficultyString[0]}", $" {toDifficultyString[0]}");
+            newName = newName.Replace($"{fromDifficultyString[0]} ", $"{toDifficultyString[0]} ");
+
+            return newName;
+        }
+
+        /// <summary>
+        /// Takes a difficulty enum and converts it into a string.
+        /// </summary>
+        /// <param name="difficulty">Difficulty enum to convert to string</param>        
+        /// <returns>The string value of the enum.</returns>
+        public static string getDifficultyString(Difficulty difficulty)
+        {
+            return difficulty switch
+            {
+                Difficulty.Easy => "Easy",
+                Difficulty.Medium => "Medium",
+                Difficulty.Hard => "Hard",
+                _ => "Invalid"
+            };
+        }
     }
 }

@@ -2,6 +2,7 @@
 using Rampastring.XNAUI;
 using Rampastring.XNAUI.XNAControls;
 using System;
+using System.Xml.Linq;
 using TSMapEditor.Models;
 using TSMapEditor.UI.Controls;
 
@@ -29,6 +30,7 @@ namespace TSMapEditor.UI.Windows
         public event EventHandler<TeamTypeEventArgs> TeamTypeOpened;
 
         private EditorListBox lbAITriggers;
+        private XNADropDown ddActions;
         private EditorTextBox tbName;
         private XNADropDown ddSide;
         private XNADropDown ddHouseType;
@@ -55,6 +57,7 @@ namespace TSMapEditor.UI.Windows
             base.Initialize();
 
             lbAITriggers = FindChild<EditorListBox>(nameof(lbAITriggers));
+            ddActions = FindChild<XNADropDown>(nameof(ddActions));
             tbName = FindChild<EditorTextBox>(nameof(tbName));
             ddSide = FindChild<XNADropDown>(nameof(ddSide));
             ddHouseType = FindChild<XNADropDown>(nameof(ddHouseType));
@@ -83,7 +86,131 @@ namespace TSMapEditor.UI.Windows
             var teamTypeWindowDarkeningPanel = DarkeningPanel.InitializeAndAddToParentControlWithChild(WindowManager, Parent, selectTeamTypeWindow);
             teamTypeWindowDarkeningPanel.Hidden += TeamTypeWindowDarkeningPanel_Hidden;
 
+            ddActions.AddItem("Advanced...");
+            ddActions.AddItem(new XNADropDownItem() { Text = "Clone for Easier Difficulties", Tag = new Action(CloneForEasierDifficulties) });
+            ddActions.SelectedIndex = 0;
+            ddActions.SelectedIndexChanged += DdActions_SelectedIndexChanged;
+
             lbAITriggers.SelectedIndexChanged += LbAITriggers_SelectedIndexChanged;
+        }
+
+        private void CloneForEasierDifficulties()
+        {
+            if (editedAITrigger == null)
+                return;
+
+            var messageBox = EditorMessageBox.Show(WindowManager,
+                "Are you sure?",
+                "Cloning this AI trigger for easier difficulties will create duplicate instances" + Environment.NewLine +
+                "of this AI trigger for Medium and Easy difficulties, setting the difficulty" + Environment.NewLine +
+                "setting for each AI trigger to Medium and Easy, respectively." + Environment.NewLine +
+                "This will set the current AI trigger's difficulty to Hard only." + Environment.NewLine + Environment.NewLine +
+                "In case the AI trigger references a Primary or Secondary TeamTypes," + Environment.NewLine +
+                "those TeamTypes and their TaskForoces would be duplicated for easier difficulties." + Environment.NewLine +
+                "If those duplicates already exist, this action will set the AI triggers to use those " + Environment.NewLine +
+                "TeamTypes instead." + Environment.NewLine + Environment.NewLine +
+                "The script assumes that this AI Trigger has the words 'H' or 'Hard'" + Environment.NewLine +
+                "in their name and in the respective TeamTypes and TaskForces." + Environment.NewLine + Environment.NewLine +
+                "No un-do is available. Do you want to continue?", MessageBoxButtons.YesNo);
+
+            messageBox.YesClickedAction = _ => DoCloneForEasierDifficulties();
+        }
+
+        private void DoCloneForEasierDifficulties()
+        {
+            editedAITrigger.Hard = true;
+            editedAITrigger.Medium = false;
+            editedAITrigger.Easy = false;
+
+            var mediumAITrigger = editedAITrigger.Clone(map.GetNewUniqueInternalId());
+            mediumAITrigger.Hard = false;
+            mediumAITrigger.Medium = true;
+
+            var easyAITrigger = editedAITrigger.Clone(map.GetNewUniqueInternalId());
+            easyAITrigger.Hard = false;
+            easyAITrigger.Easy = true;
+
+            mediumAITrigger.Name = Helpers.ConvertNameToNewDifficulty(editedAITrigger.Name, Difficulty.Hard, Difficulty.Medium);
+            easyAITrigger.Name = Helpers.ConvertNameToNewDifficulty(editedAITrigger.Name, Difficulty.Hard, Difficulty.Easy);
+
+            map.AITriggerTypes.Add(mediumAITrigger);
+            map.AITriggerTypes.Add(easyAITrigger);
+
+            CloneTeamTypesAndAttachToAITrigger(mediumAITrigger, Difficulty.Medium, true);
+            CloneTeamTypesAndAttachToAITrigger(mediumAITrigger, Difficulty.Medium, false);
+            CloneTeamTypesAndAttachToAITrigger(easyAITrigger, Difficulty.Easy, true);
+            CloneTeamTypesAndAttachToAITrigger(easyAITrigger, Difficulty.Easy, false);
+
+            ListAITriggers();
+        }
+
+        private void CloneTeamTypesAndAttachToAITrigger(AITriggerType newAITrigger, Difficulty difficulty, bool isPrimaryTeamType)
+        {
+            var teamTypeToClone = isPrimaryTeamType ? editedAITrigger.PrimaryTeam : editedAITrigger.SecondaryTeam;
+
+            if (teamTypeToClone == null)
+                return;
+
+            // Check if its lower difficulty counterpart already exists, if it doesn't, create it
+            string newDifficultyName = Helpers.ConvertNameToNewDifficulty(teamTypeToClone.Name, Difficulty.Hard, difficulty);            
+
+            var newDifficultyTeamType = map.TeamTypes.Find(teamType => teamType.Name == newDifficultyName);            
+
+            if (newDifficultyTeamType == null)
+            {
+                // clone the teams type and give it a new name
+                newDifficultyTeamType = teamTypeToClone.Clone(map.GetNewUniqueInternalId());
+                newDifficultyTeamType.Name = newDifficultyName;
+
+                map.AddTeamType(newDifficultyTeamType);                
+
+                // If the team type has a task force, check if it has lower difficulty duplicates; if not, create them
+                if (teamTypeToClone.TaskForce != null)
+                {
+                    var taskForceToClone = teamTypeToClone.TaskForce;
+
+                    newDifficultyName = Helpers.ConvertNameToNewDifficulty(taskForceToClone.Name, Difficulty.Hard, difficulty);
+
+                    var newDifficultyTaskForce = map.TaskForces.Find(taskForce => taskForce.Name == newDifficultyName);                    
+
+                    if (newDifficultyTaskForce == null)
+                    {
+                        newDifficultyTaskForce = taskForceToClone.Clone(map.GetNewUniqueInternalId());
+                        newDifficultyTaskForce.Name = newDifficultyName;
+
+                        map.AddTaskForce(newDifficultyTaskForce);                        
+                    }
+
+                    newDifficultyTeamType.TaskForce = newDifficultyTaskForce;
+                }
+            }
+
+            // Regardless: assign to relevant team to the new AI trigger
+            if (isPrimaryTeamType)
+            {
+                newAITrigger.PrimaryTeam = newDifficultyTeamType;                
+            }
+            else
+            {
+                newAITrigger.SecondaryTeam = newDifficultyTeamType;                
+            }
+        }
+
+        private void DdActions_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            var item = ddActions.SelectedItem;
+            if (item == null)
+                return;
+
+            if (item.Tag == null)
+                return;
+
+            if (item.Tag is Action action)
+                action();
+
+            ddActions.SelectedIndexChanged -= DdActions_SelectedIndexChanged;
+            ddActions.SelectedIndex = 0;
+            ddActions.SelectedIndexChanged += DdActions_SelectedIndexChanged;
         }
 
         private void BtnOpenPrimaryTeam_LeftClick(object sender, EventArgs e)
