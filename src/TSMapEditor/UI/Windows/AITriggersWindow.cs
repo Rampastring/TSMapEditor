@@ -2,7 +2,6 @@
 using Rampastring.XNAUI;
 using Rampastring.XNAUI.XNAControls;
 using System;
-using System.Xml.Linq;
 using TSMapEditor.Models;
 using TSMapEditor.UI.Controls;
 
