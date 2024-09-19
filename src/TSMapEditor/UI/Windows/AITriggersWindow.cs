@@ -110,7 +110,7 @@ namespace TSMapEditor.UI.Windows
                 "If those duplicates already exist, this action will set the AI triggers to use those " + Environment.NewLine +
                 "TeamTypes instead." + Environment.NewLine + Environment.NewLine +
                 "The script assumes that this AI Trigger has the words 'H' or 'Hard'" + Environment.NewLine +
-                "in their name and in the respective TeamTypes and TaskForces." + Environment.NewLine + Environment.NewLine +
+                "in their name and in their respective TeamTypes and TaskForces." + Environment.NewLine + Environment.NewLine +
                 "No un-do is available. Do you want to continue?", MessageBoxButtons.YesNo);
 
             messageBox.YesClickedAction = _ => DoCloneForEasierDifficulties();
@@ -164,7 +164,7 @@ namespace TSMapEditor.UI.Windows
 
                 map.AddTeamType(newDifficultyTeamType);                
 
-                // If the team type has a task force, check if it has lower difficulty duplicates; if not, create them
+                // If the team type has a task force, check if it has lower difficulty duplicate; if not, create it
                 if (teamTypeToClone.TaskForce != null)
                 {
                     var taskForceToClone = teamTypeToClone.TaskForce;
