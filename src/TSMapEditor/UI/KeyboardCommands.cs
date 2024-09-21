@@ -16,6 +16,7 @@ namespace TSMapEditor.UI
                 Save,
                 ConfigureCopiedObjects,
                 Copy,
+                CopyCustomShape,
                 Paste,
                 NextTile,
                 PreviousTile,
@@ -98,6 +99,7 @@ namespace TSMapEditor.UI
         public KeyboardCommand Save { get; } = new KeyboardCommand("Save", "Save Map", new KeyboardCommandInput(Keys.S, KeyboardModifiers.Ctrl));
         public KeyboardCommand ConfigureCopiedObjects { get; } = new KeyboardCommand("ConfigureCopiedObjects", "Configure Copied Objects", new KeyboardCommandInput(Keys.None, KeyboardModifiers.None), false);
         public KeyboardCommand Copy { get; } = new KeyboardCommand("Copy", "Copy", new KeyboardCommandInput(Keys.C, KeyboardModifiers.Ctrl));
+        public KeyboardCommand CopyCustomShape { get; } = new KeyboardCommand("CopyCustomShape", "Copy Custom Shape", new KeyboardCommandInput(Keys.C, KeyboardModifiers.Alt));
         public KeyboardCommand Paste { get; } = new KeyboardCommand("Paste", "Paste", new KeyboardCommandInput(Keys.V, KeyboardModifiers.Ctrl));
         public KeyboardCommand NextTile { get; } = new KeyboardCommand("NextTile", "Select Next Tile", new KeyboardCommandInput(Keys.M, KeyboardModifiers.None));
         public KeyboardCommand PreviousTile { get; } = new KeyboardCommand("PreviousTile", "Select Previous Tile", new KeyboardCommandInput(Keys.N, KeyboardModifiers.None));

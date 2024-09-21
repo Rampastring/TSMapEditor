@@ -101,6 +101,7 @@ namespace TSMapEditor.UI.TopBar
             editContextMenu.Name = nameof(editContextMenu);
             editContextMenu.AddItem("Configure Copied Objects...", () => windowController.CopiedEntryTypesWindow.Open(), null, null, null, KeyboardCommands.Instance.ConfigureCopiedObjects.GetKeyDisplayString());
             editContextMenu.AddItem("Copy", () => KeyboardCommands.Instance.Copy.DoTrigger(), null, null, null, KeyboardCommands.Instance.Copy.GetKeyDisplayString());
+            editContextMenu.AddItem("Copy Custom Shape", () => KeyboardCommands.Instance.CopyCustomShape.DoTrigger(), null, null, null, KeyboardCommands.Instance.CopyCustomShape.GetKeyDisplayString());
             editContextMenu.AddItem("Paste", () => KeyboardCommands.Instance.Paste.DoTrigger(), null, null, null, KeyboardCommands.Instance.Paste.GetKeyDisplayString());
             editContextMenu.AddItem(" ", null, () => false, null, null);
             editContextMenu.AddItem("Undo", () => mutationManager.Undo(), () => mutationManager.CanUndo(), null, null, KeyboardCommands.Instance.Undo.GetKeyDisplayString());

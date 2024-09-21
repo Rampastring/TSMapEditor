@@ -58,6 +58,7 @@ namespace TSMapEditor.UI.Windows
                     var houseType = new HouseType(house.ININame);
                     houseType.Index = i;
                     houseType.Color = house.Color;
+                    houseType.XNAColor = house.XNAColor;
 
                     // Find reasonable default for Side and ActsLike
                     Helpers.FindDefaultSideForNewHouseType(houseType, map.Rules);

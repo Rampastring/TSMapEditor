@@ -68,7 +68,8 @@ namespace TSMapEditor.UI
         private ChangeTechnoOwnerAction changeTechnoOwnerAction;
         private PlaceWaypointCursorAction placeWaypointCursorAction;
         private OverlayPlacementAction overlayPlacementAction;
-        private CopyTerrainCursorAction copyTerrainCursorAction;
+        private CopyRectangularTerrainCursorAction copyRectangularTerrainCursorAction;
+        private CopyCustomShapedTerrainCursorAction copyCustomShapedTerrainCursorAction;
         private PasteTerrainCursorAction pasteTerrainCursorAction;
 
         private WindowController windowController;
@@ -170,7 +171,8 @@ namespace TSMapEditor.UI
             editorState.CursorActionChanged += EditorState_CursorActionChanged;
             overlayPlacementAction.OverlayTypeChanged += OverlayPlacementAction_OverlayTypeChanged;
 
-            copyTerrainCursorAction = new CopyTerrainCursorAction(mapView);
+            copyRectangularTerrainCursorAction = new CopyRectangularTerrainCursorAction(mapView);
+            copyCustomShapedTerrainCursorAction = new CopyCustomShapedTerrainCursorAction(mapView);
             pasteTerrainCursorAction = new PasteTerrainCursorAction(mapView, Keyboard);
 
             InitAutoSaveAndSaveNotifications();
@@ -304,7 +306,8 @@ namespace TSMapEditor.UI
             KeyboardCommands.Instance = new KeyboardCommands();
             KeyboardCommands.Instance.Undo.Triggered += UndoAction;
             KeyboardCommands.Instance.Redo.Triggered += RedoAction;
-            KeyboardCommands.Instance.Copy.Triggered += CopyAction;
+            KeyboardCommands.Instance.Copy.Triggered += CopyRectanglularAreaAction;
+            KeyboardCommands.Instance.CopyCustomShape.Triggered += CopyCustomShapedAreaAction;
             KeyboardCommands.Instance.Paste.Triggered += PasteAction;
 
             KeyboardCommands.Instance.ReadFromSettings();
@@ -316,7 +319,8 @@ namespace TSMapEditor.UI
 
             KeyboardCommands.Instance.Undo.Triggered -= UndoAction;
             KeyboardCommands.Instance.Redo.Triggered -= RedoAction;
-            KeyboardCommands.Instance.Copy.Triggered -= CopyAction;
+            KeyboardCommands.Instance.Copy.Triggered -= CopyRectanglularAreaAction;
+            KeyboardCommands.Instance.CopyCustomShape.Triggered -= CopyCustomShapedAreaAction;
             KeyboardCommands.Instance.Paste.Triggered -= PasteAction;
         }
 
@@ -668,11 +672,21 @@ namespace TSMapEditor.UI
 
         private void RedoAction(object sender, EventArgs e) => mutationManager.Redo();
 
-        private void CopyAction(object sender, EventArgs e)
+        private void CopyRectanglularAreaAction(object sender, EventArgs e)
         {
-            copyTerrainCursorAction.StartCellCoords = null;
-            copyTerrainCursorAction.EntryTypes = windowController.CopiedEntryTypesWindow.GetEnabledEntryTypes();
-            mapView.CursorAction = copyTerrainCursorAction;
+            copyRectangularTerrainCursorAction.StartCellCoords = null;
+            ApplyCopyAction(copyRectangularTerrainCursorAction);
+        }
+
+        private void CopyCustomShapedAreaAction(object sender, EventArgs e)
+        {
+            ApplyCopyAction(copyCustomShapedTerrainCursorAction);
+        }
+
+        private void ApplyCopyAction(CopyTerrainCursorActionBase copyAction)
+        {
+            copyAction.EntryTypes = windowController.CopiedEntryTypesWindow.GetEnabledEntryTypes();
+            mapView.CursorAction = copyAction;
         }
 
         private void PasteAction(object sender, EventArgs e) => mapView.CursorAction = pasteTerrainCursorAction;

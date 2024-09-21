@@ -8,6 +8,7 @@ using TSMapEditor.Mutations.Classes;
 using TSMapEditor.Rendering;
 using Rampastring.XNAUI;
 using Microsoft.Xna.Framework;
+using System.Linq;
 
 namespace TSMapEditor.UI.CursorActions
 {
@@ -56,6 +57,7 @@ namespace TSMapEditor.UI.CursorActions
 
         private int originLevelOffset;
 
+        private Point2D[][] edges { get; set; } = new Point2D[][] { Array.Empty<Point2D>() };
 
         public override void OnKeyPressed(KeyPressEventArgs e, Point2D cellCoords)
         {
@@ -97,12 +99,25 @@ namespace TSMapEditor.UI.CursorActions
             {
                 copiedMapData = new CopiedMapData();
                 copiedMapData.Deserialize(data);
+                GenerateGraphicalEdges();
             }
             catch (CopiedMapDataSerializationException ex)
             {
                 Logger.Log(nameof(PasteTerrainCursorAction) + ": exception when decoding data from clipboard, exiting action. Message: " + ex.Message);
                 ExitAction();
             }
+        }
+
+        private void GenerateGraphicalEdges()
+        {
+            var foundationHashSet = new HashSet<Point2D>();
+
+            copiedMapData.CopiedMapEntries.ForEach(entry =>
+            {
+                foundationHashSet.Add(entry.Offset);
+            });
+
+            edges = Helpers.CreateEdges(copiedMapData.Width + 2, copiedMapData.Height + 2, foundationHashSet.ToList());
         }
 
         public override void PreMapDraw(Point2D cellCoords)
@@ -204,29 +219,38 @@ namespace TSMapEditor.UI.CursorActions
 
         public override void DrawPreview(Point2D cellCoords, Point2D cameraTopLeftPoint)
         {
-            int startY = cellCoords.Y;
-            int endY = cellCoords.Y + copiedMapData.Height;
-            int startX = cellCoords.X;
-            int endX = cellCoords.X + copiedMapData.Width;
+            foreach (var edge in edges)
+            {
+                Point2D edgeCell0 = cellCoords + edge[0];
+                Point2D edgeCell1 = cellCoords + edge[1];
+                int heightOffset0 = 0;
+                int heightOffset1 = 0;
 
-            Func<Point2D, Map, Point2D> func = Is2DMode ? CellMath.CellTopLeftPointFromCellCoords : CellMath.CellTopLeftPointFromCellCoords_3D;
+                if (!CursorActionTarget.Is2DMode)
+                {
+                    var cell = Map.GetTile(edgeCell0);
+                    if (cell != null)
+                        heightOffset0 = Constants.CellHeight * cell.Level;
 
-            Point2D startPoint = func(new Point2D(startX, startY), CursorActionTarget.Map) - cameraTopLeftPoint + new Point2D(Constants.CellSizeX / 2, 0);
-            Point2D endPoint = func(new Point2D(endX, endY), CursorActionTarget.Map) - cameraTopLeftPoint + new Point2D(Constants.CellSizeX / 2, Constants.CellSizeY);
-            Point2D corner1 = func(new Point2D(startX, endY), CursorActionTarget.Map) - cameraTopLeftPoint + new Point2D(0, Constants.CellSizeY / 2);
-            Point2D corner2 = func(new Point2D(endX, startY), CursorActionTarget.Map) - cameraTopLeftPoint + new Point2D(Constants.CellSizeX, Constants.CellSizeY / 2);
+                    cell = Map.GetTile(edgeCell1);
+                    if (cell != null)
+                        heightOffset1 = Constants.CellHeight * cell.Level;
+                }
 
-            startPoint = startPoint.ScaleBy(CursorActionTarget.Camera.ZoomLevel);
-            endPoint = endPoint.ScaleBy(CursorActionTarget.Camera.ZoomLevel);
-            corner1 = corner1.ScaleBy(CursorActionTarget.Camera.ZoomLevel);
-            corner2 = corner2.ScaleBy(CursorActionTarget.Camera.ZoomLevel);
+                // Translate edge vertices from cell coordinate space to world coordinate space.
+                var start = CellMath.CellTopLeftPointFromCellCoords(edgeCell0, Map) - cameraTopLeftPoint;
+                var end = CellMath.CellTopLeftPointFromCellCoords(edgeCell1, Map) - cameraTopLeftPoint;
+                // Height is an illusion, just move everything up or down.
+                // Also offset X to match the top corner of an iso tile.
+                start += new Point2D(Constants.CellSizeX / 2, -heightOffset0);
+                end += new Point2D(Constants.CellSizeX / 2, -heightOffset1);
 
-            Color lineColor = Color.Orange;
-            int thickness = 2;
-            Renderer.DrawLine(startPoint.ToXNAVector(), corner1.ToXNAVector(), lineColor, thickness);
-            Renderer.DrawLine(startPoint.ToXNAVector(), corner2.ToXNAVector(), lineColor, thickness);
-            Renderer.DrawLine(corner1.ToXNAVector(), endPoint.ToXNAVector(), lineColor, thickness);
-            Renderer.DrawLine(corner2.ToXNAVector(), endPoint.ToXNAVector(), lineColor, thickness);
+                start = start.ScaleBy(CursorActionTarget.Camera.ZoomLevel);
+                end = end.ScaleBy(CursorActionTarget.Camera.ZoomLevel);
+
+                // Draw edge.
+                Renderer.DrawLine(start.ToXNAVector(), end.ToXNAVector(), Color.Orange, 2);
+            }
         }
 
         public override void LeftClick(Point2D cellCoords)

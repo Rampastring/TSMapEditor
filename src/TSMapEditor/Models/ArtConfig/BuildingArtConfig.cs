@@ -38,7 +38,7 @@ namespace TSMapEditor.Models.ArtConfig
                     throw new InvalidOperationException("Invalid custom Foundation specified in Art.ini section " + iniSection.SectionName);
 
                 CellsFromINI(iniSection);
-                CreateCustomEdges(Width, Height);
+                Helpers.CreateEdges(Width, Height, FoundationCells);
             }
             else
             {
@@ -99,86 +99,6 @@ namespace TSMapEditor.Models.ArtConfig
             }
 
             FoundationCells = foundationCells.ToArray();
-        }
-
-        /// <summary>
-        /// Generates outline edges for own foundation in two runs, creating horizontal
-        /// and vertical edges separately.
-        /// </summary>
-        /// <param name="maxWidth">Maximum possible length of a horizontal edge in cells.</param>
-        /// <param name="maxHeight">Maximum possible length of a vertical edge in cells.</param>
-        public void CreateCustomEdges(int maxWidth, int maxHeight)
-        {
-            // Create a padded map of every cell occupied by building foundation.
-            var occupyCells = new int[maxWidth + 2, maxHeight + 2];
-            foreach (var cell in FoundationCells)
-                occupyCells[cell.X + 1, cell.Y + 1] = 1;
-
-            var edges = new List<Point2D[]>();
-
-            // Horizontal edge scanning.
-            for (int y = 0; y < maxHeight + 1; y++)
-            {
-                int startX = -1;
-                int endX = -1;
-                for (int x = 0; x < maxWidth + 2; x++)
-                {
-                    // If we found an edge...
-                    if (occupyCells[x, y] + occupyCells[x, y + 1] == 1)
-                    {
-                        // ...and we're not continuing an existing edge, then start a new one.
-                        if (startX == -1)
-                        {
-                            startX = x - 1;
-                            endX = x;
-                        }
-                        // ... and we're continuing an existing edge, then make it longer.
-                        else
-                        {
-                            endX++;
-                        }
-                    }
-                    // ...otherwise end and save the current edge if there's one.
-                    else if (startX != -1)
-                    {
-                        edges.Add(new Point2D[] { new Point2D(startX, y), new Point2D(endX, y) });
-                        startX = -1;
-                    }
-                }
-            }
-
-            // Vertical edge scanning, the same idea as with horizontal edges.
-            for (int x = 0; x < maxWidth + 1; x++)
-            {
-                int startY = -1;
-                int endY = -1;
-                for (int y = 0; y < maxHeight + 2; y++)
-                {
-                    // If we found an edge...
-                    if (occupyCells[x, y] + occupyCells[x + 1, y] == 1)
-                    {
-                        // ...and we're not continuing an existing edge, then start a new one.
-                        if (startY == -1)
-                        {
-                            startY = y - 1;
-                            endY = y;
-                        }
-                        // ... and we're continuing an existing edge, then make it longer.
-                        else
-                        {
-                            endY++;
-                        }
-                    }
-                    // ...otherwise end and save the current edge if there's one.
-                    else if (startY != -1)
-                    {
-                        edges.Add(new Point2D[] { new Point2D(x, startY), new Point2D(x, endY) });
-                        startY = -1;
-                    }
-                }
-            }
-
-            Edges = edges.ToArray();
         }
 
         /// <summary>

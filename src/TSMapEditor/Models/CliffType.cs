@@ -233,10 +233,28 @@ namespace TSMapEditor.Models
                 Point2D coords = Point2D.FromString(coordsString);
 
                 string directionsString = iniSection.GetStringValue($"ConnectionPoint{i}.Directions", null);
-                if (directionsString == null || directionsString.Length != (int)Direction.Count || Regex.IsMatch(directionsString, "[^01]"))
-                    throw new INIConfigException($"Connected Tile {iniSection.SectionName} has invalid ConnectionPoint{i}.Directions value: {directionsString}!");
+                string[] directionParts = directionsString.Split(',');
+                byte directions = 0;
 
-                byte directions = Convert.ToByte(directionsString, 2);
+                // Try parsing the string as a comma-separated list of named directions
+                if (directionParts.Length > 0)
+                {
+                    foreach (string part in directionParts)
+                    {
+                        byte dir = DirectionFromString(part);
+                        if (dir != byte.MaxValue)
+                            directions |= dir;
+                    }
+                }
+                
+                // We failed to read any named directions, try as a bit mask
+                if (directions == 0)
+                {
+                    if (directionsString == null || directionsString.Length != (int)Direction.Count || Regex.IsMatch(directionsString, "[^01]"))
+                        throw new INIConfigException($"Connected Tile {iniSection.SectionName} has invalid ConnectionPoint{i}.Directions value: {directionsString}!");
+
+                    directions = Convert.ToByte(directionsString, 2);
+                }
 
                 string sideString = iniSection.GetStringValue($"ConnectionPoint{i}.Side", string.Empty);
                 CliffSide side = sideString.ToLower() switch
@@ -345,6 +363,46 @@ namespace TSMapEditor.Models
                    directions.Contains(Direction.S) ||
                    directions.Contains(Direction.W) ||
                    directions.Contains(Direction.N);
+        }
+
+        private static byte DirectionFromString(string str)
+        {
+            switch (str.Trim().ToUpperInvariant())
+            {
+                case "NORTH":
+                case "TOPRIGHT":
+                    return 1 << 7;
+
+                case "NORTHEAST":
+                case "RIGHT":
+                    return 1 << 6;
+
+                case "EAST":
+                case "BOTTOMRIGHT":
+                    return 1 << 5;
+
+                case "SOUTHEAST":
+                case "BOTTOM":
+                    return 1 << 4;
+
+                case "SOUTH":
+                case "BOTTOMLEFT":
+                    return 1 << 3;
+
+                case "SOUTHWEST":
+                case "LEFT":
+                    return 1 << 2;
+
+                case "WEST":
+                case "TOPLEFT":
+                    return 1 << 1;
+
+                case "NORTHWEST":
+                case "TOP":
+                    return 1 << 0;
+            }
+
+            return byte.MaxValue;
         }
     }
 
