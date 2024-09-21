@@ -14,6 +14,8 @@ namespace TSMapEditor.UI.Windows
 
         private readonly Map map;
 
+        public bool IncludeNone { get; set; }
+
         public override void Initialize()
         {
             Name = nameof(SelectTechnoTypeWindow);
@@ -34,6 +36,9 @@ namespace TSMapEditor.UI.Windows
         protected override void ListObjects()
         {
             lbObjectList.Clear();
+
+            if (IncludeNone)
+                lbObjectList.AddItem("None");
 
             var technoTypes = map.GetAllTechnoTypes();
 

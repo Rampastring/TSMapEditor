@@ -67,7 +67,7 @@ namespace TSMapEditor.Models
         public string OwnerName { get; set; }
         public int TechLevel { get; set; }
         public AITriggerConditionType ConditionType { get; set; } = AITriggerConditionType.None;
-        public string ConditionObjectString { get; set; }
+        public TechnoType ConditionObject { get; set; }
 
         /// <summary>
         /// The comparator string originally loaded from the map.
@@ -108,7 +108,7 @@ namespace TSMapEditor.Models
             extendedStringBuilder.Append(OwnerName);
             extendedStringBuilder.Append(TechLevel);
             extendedStringBuilder.Append((int)ConditionType);
-            extendedStringBuilder.Append(string.IsNullOrWhiteSpace(ConditionObjectString) ? Constants.NoneValue1 : ConditionObjectString);
+            extendedStringBuilder.Append(ConditionObject == null ? Constants.NoneValue1 : ConditionObject.ININame);
             extendedStringBuilder.Append(Comparator.ToStringValue());
             extendedStringBuilder.Append(InitialWeight.ToString("0.######", CultureInfo.InvariantCulture));
             extendedStringBuilder.Append(MinimumWeight.ToString("0.######", CultureInfo.InvariantCulture));

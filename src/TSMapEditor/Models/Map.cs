@@ -1836,11 +1836,10 @@ namespace TSMapEditor.Models
             // Check for AITriggerTypes that have a non-existing condition object
             foreach (var aiTrigger in AITriggerTypes)
             {
-                if (!string.IsNullOrWhiteSpace(aiTrigger.ConditionObjectString) &&
-                    !Helpers.IsStringNoneValue(aiTrigger.ConditionObjectString) &&
-                    Rules.FindTechnoType(aiTrigger.ConditionObjectString) == null)
+                if (aiTrigger.ConditionObject != null &&
+                    Rules.FindTechnoType(aiTrigger.ConditionObject.ININame) == null)
                 {
-                    issueList.Add($"AITrigger '{aiTrigger.Name}' has a condition object '{aiTrigger.ConditionObjectString}' that does not exist in Rules!");
+                    issueList.Add($"AITrigger '{aiTrigger.Name}' has a condition object '{aiTrigger.ConditionObject.GetEditorDisplayName()} ({aiTrigger.ConditionObject.ININame})' that does not exist in Rules!");
                 }
             }
 
