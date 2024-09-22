@@ -585,6 +585,7 @@ namespace TSMapEditor
 
             return tilesToProcess;
         }
+
         /// <summary>
         /// Converts a name that includes a difficulty to instead have a different difficulty.
         /// Useful for cloning purposes of any type of object named by users to additional difficulty levels.
@@ -595,8 +596,8 @@ namespace TSMapEditor
         /// <returns>New name after it was converted to the desired difficulty.</returns>
         public static string ConvertNameToNewDifficulty(string name, Difficulty fromDifficulty, Difficulty toDifficulty)
         {
-            string fromDifficultyString = Helpers.getDifficultyString(fromDifficulty);
-            string toDifficultyString = Helpers.getDifficultyString(toDifficulty);
+            string fromDifficultyString = Helpers.GetDifficultyString(fromDifficulty);
+            string toDifficultyString = Helpers.GetDifficultyString(toDifficulty);
 
             string newName = name.Replace(fromDifficultyString, toDifficultyString);
             newName = newName.Replace($" {fromDifficultyString[0]}", $" {toDifficultyString[0]}");
@@ -610,7 +611,7 @@ namespace TSMapEditor
         /// </summary>
         /// <param name="difficulty">Difficulty enum to convert to string</param>        
         /// <returns>The string value of the enum.</returns>
-        public static string getDifficultyString(Difficulty difficulty)
+        public static string GetDifficultyString(Difficulty difficulty)
         {
             return difficulty switch
             {
@@ -619,7 +620,7 @@ namespace TSMapEditor
                 Difficulty.Hard => "Hard",
                 _ => "Invalid"
             };
-		}
+        }
 
         /// <summary>
         /// Generates outline edges for a foundation of cells
