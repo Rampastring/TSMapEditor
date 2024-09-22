@@ -1833,16 +1833,6 @@ namespace TSMapEditor.Models
                 }
             }
 
-            // Check for AITriggerTypes that have a non-existing condition object
-            foreach (var aiTrigger in AITriggerTypes)
-            {
-                if (aiTrigger.ConditionObject != null &&
-                    Rules.FindTechnoType(aiTrigger.ConditionObject.ININame) == null)
-                {
-                    issueList.Add($"AITrigger '{aiTrigger.Name}' has a condition object '{aiTrigger.ConditionObject.GetEditorDisplayName()} ({aiTrigger.ConditionObject.ININame})' that does not exist in Rules!");
-                }
-            }
-
             // Check for triggers being attached to themselves (potentially recursively)
             foreach (var trigger in Triggers)
             {

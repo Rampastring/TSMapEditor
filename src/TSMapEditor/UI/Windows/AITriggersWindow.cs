@@ -118,8 +118,7 @@ namespace TSMapEditor.UI.Windows
         {
             var aiTrigger = new AITriggerType(map.GetNewUniqueInternalId());
             aiTrigger.Name = "New AITrigger";
-            aiTrigger.OwnerName = "<all>";
-            aiTrigger.ConditionObject = null;
+            aiTrigger.OwnerName = "<all>";            
             map.AITriggerTypes.Add(aiTrigger);
             ListAITriggers();
             SelectAITrigger(aiTrigger);
