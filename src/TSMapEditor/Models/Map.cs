@@ -1833,17 +1833,6 @@ namespace TSMapEditor.Models
                 }
             }
 
-            // Check for AITriggerTypes that have a non-existing condition object
-            foreach (var aiTrigger in AITriggerTypes)
-            {
-                if (!string.IsNullOrWhiteSpace(aiTrigger.ConditionObjectString) &&
-                    !Helpers.IsStringNoneValue(aiTrigger.ConditionObjectString) &&
-                    Rules.FindTechnoType(aiTrigger.ConditionObjectString) == null)
-                {
-                    issueList.Add($"AITrigger '{aiTrigger.Name}' has a condition object '{aiTrigger.ConditionObjectString}' that does not exist in Rules!");
-                }
-            }
-
             // Check for triggers being attached to themselves (potentially recursively)
             foreach (var trigger in Triggers)
             {
@@ -1897,6 +1886,14 @@ namespace TSMapEditor.Models
                         issueList.Add($"Trigger '{trigger.Name}' has more than {maxActionCount} actions! This can cause the game to crash! Consider splitting it up to multiple triggers.");
                     }
                 }
+            }
+
+            // In Tiberian Sun, waypoint #100 should be reserved for special dynamic use cases like paradrops
+            // (it is defined as WAYPT_SPECIAL in original game code)
+            const int wpSpecial = 100;
+            if (!Constants.IsRA2YR && Waypoints.Exists(wp => wp.Identifier == wpSpecial))
+            {
+                issueList.Add($"The map makes use of waypoint #{wpSpecial}. In Tiberian Sun, this waypoint is reserved for special use cases (WAYPT_SPECIAL). Using it as a normal waypoint may cause issues as it may be dynamically moved by game events.");
             }
 
             return issueList;

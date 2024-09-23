@@ -995,7 +995,7 @@ namespace TSMapEditor.Initialization
                         AddMapLoadError($"AITriggerType {kvp.Key} has a non-existent condition object \"{parts[5]}\"");
                     }
 
-                    aiTriggerType.ConditionObjectString = parts[5];
+                    aiTriggerType.ConditionObject = conditionObject;
                 }
 
                 aiTriggerType.LoadedComparatorString = parts[6];

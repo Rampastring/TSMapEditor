@@ -36,7 +36,7 @@ namespace TSMapEditor.UI.Windows
         private XNADropDown ddConditionType;
         private XNADropDown ddComparator;
         private EditorNumberTextBox tbQuantity;
-        private EditorTextBox tbComparisonObjectType;
+        private EditorPopUpSelector selComparisonObjectType;
         private EditorPopUpSelector selPrimaryTeam;
         private EditorPopUpSelector selSecondaryTeam;
         private EditorNumberTextBox tbInitial;
@@ -47,6 +47,7 @@ namespace TSMapEditor.UI.Windows
         private XNACheckBox chkEnabledOnHard;
 
         private SelectTeamTypeWindow selectTeamTypeWindow;
+        private SelectTechnoTypeWindow selectTechnoTypeWindow;
 
         private AITriggerType editedAITrigger;
 
@@ -63,7 +64,7 @@ namespace TSMapEditor.UI.Windows
             ddConditionType = FindChild<XNADropDown>(nameof(ddConditionType));
             ddComparator = FindChild<XNADropDown>(nameof(ddComparator));
             tbQuantity = FindChild<EditorNumberTextBox>(nameof(tbQuantity));
-            tbComparisonObjectType = FindChild<EditorTextBox>(nameof(tbComparisonObjectType));
+            selComparisonObjectType = FindChild<EditorPopUpSelector>(nameof(selComparisonObjectType));
             selPrimaryTeam = FindChild<EditorPopUpSelector>(nameof(selPrimaryTeam));
             selSecondaryTeam = FindChild<EditorPopUpSelector>(nameof(selSecondaryTeam));
             tbInitial = FindChild<EditorNumberTextBox>(nameof(tbInitial));
@@ -85,10 +86,15 @@ namespace TSMapEditor.UI.Windows
             var teamTypeWindowDarkeningPanel = DarkeningPanel.InitializeAndAddToParentControlWithChild(WindowManager, Parent, selectTeamTypeWindow);
             teamTypeWindowDarkeningPanel.Hidden += TeamTypeWindowDarkeningPanel_Hidden;
 
+			selectTechnoTypeWindow = new SelectTechnoTypeWindow(WindowManager, map);
+            selectTechnoTypeWindow.IncludeNone = true;
+            var technoTypeDarkeningPanel = DarkeningPanel.InitializeAndAddToParentControlWithChild(WindowManager, Parent, selectTechnoTypeWindow);
+            technoTypeDarkeningPanel.Hidden += TechnoTypeDarkeningPanel_Hidden;
+
             ddActions.AddItem("Advanced...");
             ddActions.AddItem(new XNADropDownItem() { Text = "Clone for Easier Difficulties", Tag = new Action(CloneForEasierDifficulties) });
             ddActions.SelectedIndex = 0;
-            ddActions.SelectedIndexChanged += DdActions_SelectedIndexChanged;
+            ddActions.SelectedIndexChanged += DdActions_SelectedIndexChanged;            
 
             lbAITriggers.SelectedIndexChanged += LbAITriggers_SelectedIndexChanged;
         }
@@ -238,8 +244,7 @@ namespace TSMapEditor.UI.Windows
         {
             var aiTrigger = new AITriggerType(map.GetNewUniqueInternalId());
             aiTrigger.Name = "New AITrigger";
-            aiTrigger.OwnerName = "<all>";
-            aiTrigger.ConditionObjectString = string.Empty;
+            aiTrigger.OwnerName = "<all>";            
             map.AITriggerTypes.Add(aiTrigger);
             ListAITriggers();
             SelectAITrigger(aiTrigger);
@@ -291,6 +296,13 @@ namespace TSMapEditor.UI.Windows
             EditAITrigger(editedAITrigger);
         }
 
+        private void TechnoTypeDarkeningPanel_Hidden(object sender, EventArgs e)
+        {
+            editedAITrigger.ConditionObject = selectTechnoTypeWindow.SelectedObject;
+
+            EditAITrigger(editedAITrigger);
+        }
+
         private void LbAITriggers_SelectedIndexChanged(object sender, EventArgs e)
         {
             if (lbAITriggers.SelectedItem == null)
@@ -310,7 +322,7 @@ namespace TSMapEditor.UI.Windows
             ddConditionType.SelectedIndexChanged -= DdConditionType_SelectedIndexChanged;
             ddComparator.SelectedIndexChanged -= DdComparator_SelectedIndexChanged;
             tbQuantity.TextChanged -= TbQuantity_TextChanged;
-            tbComparisonObjectType.TextChanged -= TbComparisonObjectType_TextChanged;
+            selComparisonObjectType.LeftClick -= SelComparisonObjectType_LeftClick;
             selPrimaryTeam.LeftClick -= SelPrimaryTeam_LeftClick;
             selSecondaryTeam.LeftClick -= SelSecondaryTeam_LeftClick;
             tbInitial.TextChanged -= TbInitial_TextChanged;
@@ -330,7 +342,8 @@ namespace TSMapEditor.UI.Windows
                 ddConditionType.SelectedIndex = -1;
                 ddComparator.SelectedIndex = -1;
                 tbQuantity.Text = string.Empty;
-                tbComparisonObjectType.Text = string.Empty;
+                selComparisonObjectType.Text = string.Empty;
+                selComparisonObjectType.Tag = null;
                 selPrimaryTeam.Text = string.Empty;
                 selSecondaryTeam.Text = string.Empty;
                 selPrimaryTeam.Tag = null;
@@ -350,7 +363,8 @@ namespace TSMapEditor.UI.Windows
             ddConditionType.SelectedIndex = ((int)aiTriggerType.ConditionType + 1);
             ddComparator.SelectedIndex = (int)aiTriggerType.Comparator.ComparatorOperator;
             tbQuantity.Value = aiTriggerType.Comparator.Quantity;
-            tbComparisonObjectType.Text = string.IsNullOrWhiteSpace(aiTriggerType.ConditionObjectString) ? string.Empty : aiTriggerType.ConditionObjectString;
+            selComparisonObjectType.Text = aiTriggerType.ConditionObject != null ? $"{aiTriggerType.ConditionObject.GetEditorDisplayName()} ({aiTriggerType.ConditionObject.ININame})" : string.Empty;
+            selComparisonObjectType.Tag = aiTriggerType.ConditionObject;
             selPrimaryTeam.Text = aiTriggerType.PrimaryTeam != null ? aiTriggerType.PrimaryTeam.GetDisplayName() : string.Empty;
             selPrimaryTeam.Tag = aiTriggerType.PrimaryTeam;
             selSecondaryTeam.Text = aiTriggerType.SecondaryTeam != null ? aiTriggerType.SecondaryTeam.GetDisplayName() : string.Empty;
@@ -368,7 +382,7 @@ namespace TSMapEditor.UI.Windows
             ddConditionType.SelectedIndexChanged += DdConditionType_SelectedIndexChanged;
             ddComparator.SelectedIndexChanged += DdComparator_SelectedIndexChanged;
             tbQuantity.TextChanged += TbQuantity_TextChanged;
-            tbComparisonObjectType.TextChanged += TbComparisonObjectType_TextChanged;
+            selComparisonObjectType.LeftClick += SelComparisonObjectType_LeftClick;
             selPrimaryTeam.LeftClick += SelPrimaryTeam_LeftClick;
             selSecondaryTeam.LeftClick += SelSecondaryTeam_LeftClick;
             tbInitial.TextChanged += TbInitial_TextChanged;
@@ -412,12 +426,9 @@ namespace TSMapEditor.UI.Windows
             editedAITrigger.Comparator = new AITriggerComparator(editedAITrigger.Comparator.ComparatorOperator, tbQuantity.Value);
         }
 
-        private void TbComparisonObjectType_TextChanged(object sender, EventArgs e)
+        private void SelComparisonObjectType_LeftClick(object sender, EventArgs e)
         {
-            if (string.IsNullOrWhiteSpace(tbComparisonObjectType.Text))
-                editedAITrigger.ConditionObjectString = Constants.NoneValue1;
-            else
-                editedAITrigger.ConditionObjectString = tbComparisonObjectType.Text;
+            selectTechnoTypeWindow.Open(editedAITrigger.ConditionObject);
         }
 
         private void SelPrimaryTeam_LeftClick(object sender, EventArgs e)
