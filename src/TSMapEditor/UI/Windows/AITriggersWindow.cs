@@ -86,7 +86,7 @@ namespace TSMapEditor.UI.Windows
             var teamTypeWindowDarkeningPanel = DarkeningPanel.InitializeAndAddToParentControlWithChild(WindowManager, Parent, selectTeamTypeWindow);
             teamTypeWindowDarkeningPanel.Hidden += TeamTypeWindowDarkeningPanel_Hidden;
 
-			selectTechnoTypeWindow = new SelectTechnoTypeWindow(WindowManager, map);
+            selectTechnoTypeWindow = new SelectTechnoTypeWindow(WindowManager, map);
             selectTechnoTypeWindow.IncludeNone = true;
             var technoTypeDarkeningPanel = DarkeningPanel.InitializeAndAddToParentControlWithChild(WindowManager, Parent, selectTechnoTypeWindow);
             technoTypeDarkeningPanel.Hidden += TechnoTypeDarkeningPanel_Hidden;
