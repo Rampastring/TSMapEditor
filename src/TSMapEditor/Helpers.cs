@@ -596,30 +596,14 @@ namespace TSMapEditor
         /// <returns>New name after it was converted to the desired difficulty.</returns>
         public static string ConvertNameToNewDifficulty(string name, Difficulty fromDifficulty, Difficulty toDifficulty)
         {
-            string fromDifficultyString = Helpers.GetDifficultyString(fromDifficulty);
-            string toDifficultyString = Helpers.GetDifficultyString(toDifficulty);
+            string fromDifficultyString = fromDifficulty.ToString();
+            string toDifficultyString = toDifficulty.ToString();
 
             string newName = name.Replace(fromDifficultyString, toDifficultyString);
             newName = newName.Replace($" {fromDifficultyString[0]}", $" {toDifficultyString[0]}");
             newName = newName.Replace($"{fromDifficultyString[0]} ", $"{toDifficultyString[0]} ");
 
             return newName;
-        }
-
-        /// <summary>
-        /// Takes a difficulty enum and converts it into a string.
-        /// </summary>
-        /// <param name="difficulty">Difficulty enum to convert to string</param>        
-        /// <returns>The string value of the enum.</returns>
-        public static string GetDifficultyString(Difficulty difficulty)
-        {
-            return difficulty switch
-            {
-                Difficulty.Easy => "Easy",
-                Difficulty.Medium => "Medium",
-                Difficulty.Hard => "Hard",
-                _ => "Invalid"
-            };
         }
 
         /// <summary>
