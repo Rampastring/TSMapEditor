@@ -202,6 +202,6 @@ namespace TSMapEditor.GameMath
             }
 
             return nearestCenterCoords;
-        }        
+        }
     }
 }

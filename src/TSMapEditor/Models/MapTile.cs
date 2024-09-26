@@ -16,10 +16,7 @@ namespace TSMapEditor.Models
     {
         private const int SubCellCount = 5;
 
-        public MapTile()
-        {
-
-        }
+        public MapTile() { }
 
         public MapTile(byte[] data) : base(data) { }
 
@@ -59,7 +56,7 @@ namespace TSMapEditor.Models
 
         public MapColor CellLighting { get; set; } = new MapColor(1.0, 1.0, 1.0);
 
-        public List<(Structure Source, double DistanceInLeptons)> LightSources { get; set; } = new();        
+        public List<(Structure Source, double DistanceInLeptons)> LightSources { get; set; } = new();
 
         public void RefreshLighting(Lighting lighting, LightingPreviewMode lightingPreviewMode)
         {
