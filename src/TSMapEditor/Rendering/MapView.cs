@@ -1561,6 +1561,10 @@ namespace TSMapEditor.Rendering
 
             if (isDraggingObject)
             {
+                var startCell = Map.GetTile(draggedOrRotatedObject.Position);
+                if (startCell == tileUnderCursor)
+                    return;
+
                 bool isCloning = KeyboardCommands.Instance.CloneObject.AreKeysOrModifiersDown(Keyboard);
                 bool overlapObjects = KeyboardCommands.Instance.OverlapObjects.AreKeysOrModifiersDown(Keyboard);
 
@@ -1573,8 +1577,7 @@ namespace TSMapEditor.Rendering
                                                  -Camera.TopLeftPoint.Y + Constants.CellSizeY / 2);
 
                 Point2D startDrawPoint = CellMath.CellTopLeftPointFromCellCoords(draggedOrRotatedObject.Position, Map) + cameraAndCellCenterOffset;
-
-                var startCell = Map.GetTile(draggedOrRotatedObject.Position);
+                
                 if (startCell != null)
                 {
                     startDrawPoint -= new Point2D(0, startCell.Level * Constants.CellHeight);
@@ -1594,14 +1597,17 @@ namespace TSMapEditor.Rendering
             }
             else if (isRotatingObject)
             {
+                var startCell = Map.GetTile(draggedOrRotatedObject.Position);
+                if (startCell == tileUnderCursor)
+                    return;
+
                 Color lineColor = Color.Yellow;
 
                 Point2D cameraAndCellCenterOffset = new Point2D(-Camera.TopLeftPoint.X + Constants.CellSizeX / 2,
                                                  -Camera.TopLeftPoint.Y + Constants.CellSizeY / 2);
 
                 Point2D startDrawPoint = CellMath.CellTopLeftPointFromCellCoords(draggedOrRotatedObject.Position, Map) + cameraAndCellCenterOffset;
-
-                var startCell = Map.GetTile(draggedOrRotatedObject.Position);
+                
                 if (startCell != null)
                 {
                     startDrawPoint -= new Point2D(0, Map.GetTile(draggedOrRotatedObject.Position).Level * Constants.CellHeight);
