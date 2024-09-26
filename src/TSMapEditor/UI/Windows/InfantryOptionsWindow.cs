@@ -1,6 +1,7 @@
 ﻿using Rampastring.XNAUI;
 using Rampastring.XNAUI.XNAControls;
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using TSMapEditor.Models;
 using TSMapEditor.UI.Controls;
@@ -27,8 +28,9 @@ namespace TSMapEditor.UI.Windows
         private XNACheckBox chkAutocreateNoRecruitable;
         private XNACheckBox chkAutocreateYesRecruitable;
         private EditorPopUpSelector attachedTagSelector;
+        private XNALabel lblHeader;
 
-        private Infantry infantry;
+        private List<Infantry> infantry = [];
 
         private SelectTagWindow selectTagWindow;
 
@@ -46,6 +48,7 @@ namespace TSMapEditor.UI.Windows
             chkAutocreateNoRecruitable = FindChild<XNACheckBox>(nameof(chkAutocreateNoRecruitable));
             chkAutocreateYesRecruitable = FindChild<XNACheckBox>(nameof(chkAutocreateYesRecruitable));
             attachedTagSelector = FindChild<EditorPopUpSelector>(nameof(attachedTagSelector));
+            lblHeader = FindChild<XNALabel>(nameof(lblHeader));
 
             trbStrength.ValueChanged += TrbStrength_ValueChanged;
             attachedTagSelector.LeftClick += AttachedTagSelector_LeftClick;
@@ -80,19 +83,23 @@ namespace TSMapEditor.UI.Windows
 
         private void BtnOpenAttachedTrigger_LeftClick(object sender, EventArgs e)
         {
-            if (infantry.AttachedTag == null)
-                return;
+            foreach (var infantryUnit in infantry)
+            {
+                if (infantryUnit.AttachedTag == null)
+                    continue;                
 
-            TagOpened?.Invoke(this, new TagEventArgs(infantry.AttachedTag));
-            PutOnBackground();
+                TagOpened?.Invoke(this, new TagEventArgs(infantryUnit.AttachedTag));
+                PutOnBackground();
+                return;
+            }
         }
 
         private void AttachedTagSelector_LeftClick(object sender, EventArgs e)
         {
-            selectTagWindow.Open(infantry.AttachedTag);
+            selectTagWindow.Open(infantry[0].AttachedTag);
         }
 
-        public void Open(Infantry infantry)
+        public void Open(List<Infantry> infantry)
         {
             this.infantry = infantry;
             RefreshValues();
@@ -101,28 +108,37 @@ namespace TSMapEditor.UI.Windows
 
         private void RefreshValues()
         {
-            trbStrength.Value = infantry.HP;
-            ddMission.SelectedIndex = ddMission.Items.FindIndex(item => item.Text == infantry.Mission);
-            int veterancyIndex = ddVeterancy.Items.FindIndex(i => (int)i.Tag == infantry.Veterancy);
+            var amountIndex = lblHeader.Text.IndexOf(" (");
+            if (amountIndex >= 0)
+                lblHeader.Text = lblHeader.Text.Substring(0, amountIndex);
+            
+            lblHeader.Text += $" (x{infantry.Count})";
+
+            trbStrength.Value = infantry[0].HP;
+            ddMission.SelectedIndex = ddMission.Items.FindIndex(item => item.Text == infantry[0].Mission);
+            int veterancyIndex = ddVeterancy.Items.FindIndex(i => (int)i.Tag == infantry[0].Veterancy);
             ddVeterancy.SelectedIndex = Math.Max(0, veterancyIndex);
-            tbGroup.Value = infantry.Group;
-            chkOnBridge.Checked = infantry.High;
-            chkAutocreateNoRecruitable.Checked = infantry.AutocreateNoRecruitable;
-            chkAutocreateYesRecruitable.Checked = infantry.AutocreateYesRecruitable;
-            attachedTagSelector.Text = infantry.AttachedTag == null ? string.Empty : infantry.AttachedTag.GetDisplayString();
-            attachedTagSelector.Tag = infantry.AttachedTag;
+            tbGroup.Value = infantry[0].Group;
+            chkOnBridge.Checked = infantry[0].High;
+            chkAutocreateNoRecruitable.Checked = infantry[0].AutocreateNoRecruitable;
+            chkAutocreateYesRecruitable.Checked = infantry[0].AutocreateYesRecruitable;
+            attachedTagSelector.Text = infantry[0].AttachedTag == null ? string.Empty : infantry[0].AttachedTag.GetDisplayString();
+            attachedTagSelector.Tag = infantry[0].AttachedTag;
         }
 
         private void BtnOK_LeftClick(object sender, EventArgs e)
         {
-            infantry.HP = Math.Min(Constants.ObjectHealthMax, Math.Max(trbStrength.Value, 0));
-            infantry.Mission = ddMission.SelectedItem == null ? infantry.Mission : ddMission.SelectedItem.Text;
-            infantry.Veterancy = (int)ddVeterancy.SelectedItem.Tag;
-            infantry.Group = tbGroup.Value;
-            infantry.High = chkOnBridge.Checked;
-            infantry.AutocreateNoRecruitable = chkAutocreateNoRecruitable.Checked;
-            infantry.AutocreateYesRecruitable = chkAutocreateYesRecruitable.Checked;
-            infantry.AttachedTag = (Tag)attachedTagSelector.Tag;
+            foreach (var infantryUnit in infantry)
+            {
+                infantryUnit.HP = Math.Min(Constants.ObjectHealthMax, Math.Max(trbStrength.Value, 0));
+                infantryUnit.Mission = ddMission.SelectedItem == null ? infantryUnit.Mission : ddMission.SelectedItem.Text;
+                infantryUnit.Veterancy = (int)ddVeterancy.SelectedItem.Tag;
+                infantryUnit.Group = tbGroup.Value;
+                infantryUnit.High = chkOnBridge.Checked;
+                infantryUnit.AutocreateNoRecruitable = chkAutocreateNoRecruitable.Checked;
+                infantryUnit.AutocreateYesRecruitable = chkAutocreateYesRecruitable.Checked;
+                infantryUnit.AttachedTag = (Tag)attachedTagSelector.Tag;
+            }
 
             Hide();
         }

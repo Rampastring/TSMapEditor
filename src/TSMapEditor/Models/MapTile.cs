@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using TSMapEditor.GameMath;
 using TSMapEditor.Models.Enums;
 using TSMapEditor.Models.MapFormat;
@@ -212,6 +213,21 @@ namespace TSMapEditor.Models
             return SubCell.None;
         }
 
+        public int GetNumberOfFreeSubCellSpots()
+        {
+            int freeSubCellSpots = 0;
+
+            IEnumerable<SubCell> subCells = [SubCell.Bottom, SubCell.Left, SubCell.Right];
+
+            foreach (var subCell in subCells)
+            {
+                if (GetInfantryFromSubCellSpot(subCell) == null)
+                    freeSubCellSpots++;
+            }
+
+            return freeSubCellSpots;
+        }
+
         public Infantry GetInfantryFromSubCellSpot(SubCell subCell)
         {
             return Infantry[(int)subCell];
@@ -226,6 +242,12 @@ namespace TSMapEditor.Models
             }
 
             return null;
+        }
+
+        public List<Infantry> GetInfantry()
+        {
+            List<Infantry> infantryUnits = Infantry.Where(inf => inf != null).ToList();
+            return infantryUnits;
         }
 
         public bool HasInfantry() => GetFirstInfantry() != null;
@@ -308,6 +330,11 @@ namespace TSMapEditor.Models
             }
 
             return false;
+        }
+
+        public bool CanAddInfantryUnits(int infantryUnitsCount)
+        {
+            return GetNumberOfFreeSubCellSpots() >= infantryUnitsCount;
         }
 
         public bool ContainsObject(AbstractObject abstractObject)

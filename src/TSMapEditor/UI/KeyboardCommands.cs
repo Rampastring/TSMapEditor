@@ -36,6 +36,7 @@ namespace TSMapEditor.UI
                 ResetZoomLevel,
                 RotateUnit,
                 RotateUnitOneStep,
+                HandleMultipleInfantry,
                 PlaceTerrainBelow,
                 FillTerrain,
                 CloneObject,
@@ -123,6 +124,7 @@ namespace TSMapEditor.UI
         public KeyboardCommand FillTerrain { get; } = new KeyboardCommand("FillTerrain", "Fill Terrain (1x1 tiles only)", new KeyboardCommandInput(Keys.None, KeyboardModifiers.Ctrl), true);
         public KeyboardCommand CloneObject { get; } = new KeyboardCommand("CloneObject", "Clone Object (Modifier)", new KeyboardCommandInput(Keys.None, KeyboardModifiers.Shift), true);
         public KeyboardCommand OverlapObjects { get; } = new KeyboardCommand("OverlapObjects", "Overlap Objects (Modifier)", new KeyboardCommandInput(Keys.None, KeyboardModifiers.Alt), true);
+        public KeyboardCommand HandleMultipleInfantry { get; } = new KeyboardCommand("Handle MultipleInfantry", "Handle Multiple Infantry", new KeyboardCommandInput(Keys.Z, KeyboardModifiers.None), true);
         public KeyboardCommand ViewMegamap { get; } = new KeyboardCommand("ViewMegamap", "View Megamap", new KeyboardCommandInput(Keys.F12, KeyboardModifiers.None));
         public KeyboardCommand GenerateTerrain { get; } = new KeyboardCommand("GenerateTerrain", "Generate Terrain", new KeyboardCommandInput(Keys.G, KeyboardModifiers.Ctrl));
         public KeyboardCommand ConfigureTerrainGenerator { get; } = new KeyboardCommand("ConfigureTerrainGenerator", "Configure Terrain Generator", new KeyboardCommandInput(Keys.G, KeyboardModifiers.Alt));

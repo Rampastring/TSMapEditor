@@ -1090,6 +1090,12 @@ namespace TSMapEditor.Models
             return cell.CanAddObject((GameObject)movable, blocksSelf, overlapObjects);
         }
 
+        public bool CanAddInfantryUnitsAt(int amount, Point2D newCoords)
+        {
+            MapTile cell = GetTile(newCoords);
+            return cell.CanAddInfantryUnits(amount);
+        }
+
         public AbstractObject DeleteObjectFromCell(Point2D cellCoords, DeletionMode deletionMode)
         {
             var tile = GetTile(cellCoords.X, cellCoords.Y);

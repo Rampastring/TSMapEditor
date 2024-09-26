@@ -356,12 +356,30 @@ namespace TSMapEditor.Rendering
             if (firstObject == null)
                 return;
 
-            const int step = 32;
+            bool isObjectInfantry = firstObject.WhatAmI() == RTTIType.Infantry;
+            bool handleMultipleInfantry = isObjectInfantry && KeyboardCommands.Instance.HandleMultipleInfantry.AreKeysOrModifiersDown(Keyboard);
 
-            if (firstObject.Facing + step > byte.MaxValue)
-                firstObject.Facing = (byte)(firstObject.Facing + step - byte.MaxValue);
+            List<TechnoBase> objectsToHandle = [];
+
+            if (handleMultipleInfantry)
+            {
+                var infantry = tileUnderCursor.GetInfantry();
+                objectsToHandle.AddRange(infantry);
+            }
             else
-                firstObject.Facing += step;
+            {
+                objectsToHandle.Add(firstObject);
+            }
+
+            foreach (var objectToHandle in objectsToHandle)
+            {
+                const int step = 32;
+
+                if (objectToHandle.Facing + step > byte.MaxValue)
+                    objectToHandle.Facing = (byte)(objectToHandle.Facing + step - byte.MaxValue);
+                else
+                    objectToHandle.Facing += step;
+            }
 
             AddRefreshPoint(tileUnderCursor.CoordsToPoint());
         }
@@ -1266,19 +1284,43 @@ namespace TSMapEditor.Rendering
                             // If the clone modifier is held down, attempt cloning the object.
                             // Otherwise, move the dragged object.
                             bool overlapObjects = KeyboardCommands.Instance.OverlapObjects.AreKeysOrModifiersDown(Keyboard);
-                            if (KeyboardCommands.Instance.CloneObject.AreKeysOrModifiersDown(Keyboard))
+                            bool isObjectInfantry = draggedOrRotatedObject.WhatAmI() == RTTIType.Infantry;
+                            bool handleMultipleInfantry = isObjectInfantry && KeyboardCommands.Instance.HandleMultipleInfantry.AreKeysOrModifiersDown(Keyboard);
+                            var originCell = Map.GetTile(draggedOrRotatedObject.Position.X, draggedOrRotatedObject.Position.Y);
+                            List<IMovable> objectsToHandle = [];
+
+                            if (handleMultipleInfantry)
                             {
+                                var infantryUnits = originCell.GetInfantry();
+                                if (Map.CanAddInfantryUnitsAt(infantryUnits.Count, tileUnderCursor.CoordsToPoint()))                                
+                                    objectsToHandle.AddRange(infantryUnits);
+                                
+                            }
+                            else
+                            {
+                                objectsToHandle.Add(draggedOrRotatedObject);
+                            }
+
+                            if (KeyboardCommands.Instance.CloneObject.AreKeysOrModifiersDown(Keyboard))
+                            {                                
                                 if ((draggedOrRotatedObject.IsTechno() || draggedOrRotatedObject.WhatAmI() == RTTIType.Terrain) && 
                                     Map.CanPlaceObjectAt(draggedOrRotatedObject, tileUnderCursor.CoordsToPoint(), true, overlapObjects))
                                 {
-                                    var mutation = new CloneObjectMutation(MutationTarget, draggedOrRotatedObject, tileUnderCursor.CoordsToPoint());
-                                    MutationManager.PerformMutation(mutation);
+                                    foreach (var objectToHandle in objectsToHandle)
+                                    {
+                                        var mutation = new CloneObjectMutation(MutationTarget, objectToHandle, tileUnderCursor.CoordsToPoint());
+                                        MutationManager.PerformMutation(mutation);
+                                    }
                                 }
-                            }
-                            else if (Map.CanPlaceObjectAt(draggedOrRotatedObject, tileUnderCursor.CoordsToPoint(), false, overlapObjects))
+                            }                            
+                            else if (Map.CanPlaceObjectAt(draggedOrRotatedObject, tileUnderCursor.CoordsToPoint(), false, overlapObjects) ||
+                                (handleMultipleInfantry && Map.CanAddInfantryUnitsAt(originCell.GetInfantry().Count, tileUnderCursor.CoordsToPoint())))
                             {
-                                var mutation = new MoveObjectMutation(MutationTarget, draggedOrRotatedObject, tileUnderCursor.CoordsToPoint());
-                                MutationManager.PerformMutation(mutation);
+                                foreach (var objectToHandle in objectsToHandle)
+                                {
+                                    var mutation = new MoveObjectMutation(MutationTarget, objectToHandle, tileUnderCursor.CoordsToPoint());
+                                    MutationManager.PerformMutation(mutation);                                    
+                                }
                             }
                         }
                     }
@@ -1404,9 +1446,14 @@ namespace TSMapEditor.Rendering
                 if (tileUnderCursor.Aircraft.Count > 0)
                     windowController.AircraftOptionsWindow.Open(tileUnderCursor.Aircraft[0]);
 
-                Infantry infantry = tileUnderCursor.GetFirstInfantry();
-                if (infantry != null)
-                    windowController.InfantryOptionsWindow.Open(infantry);
+                if (tileUnderCursor.HasInfantry())
+                {
+                    List<Infantry> infantryUnits;
+                    infantryUnits = KeyboardCommands.Instance.HandleMultipleInfantry.AreKeysOrModifiersDown(Keyboard) ?
+                        tileUnderCursor.GetInfantry() :
+                        [tileUnderCursor.GetFirstInfantry()];
+                    windowController.InfantryOptionsWindow.Open(infantryUnits);
+                }
             }
         }
 
@@ -1516,6 +1563,15 @@ namespace TSMapEditor.Rendering
                 return;
             }
 
+            if (draggedOrRotatedObject == null)
+            {
+                DrawTileCursor();
+                return;
+            }
+
+            bool isObjectInfantry = draggedOrRotatedObject.WhatAmI() == RTTIType.Infantry;
+            bool handleMultipleInfantry = isObjectInfantry && KeyboardCommands.Instance.HandleMultipleInfantry.AreKeysOrModifiersDown(Keyboard);
+            var originCell = Map.GetTile(draggedOrRotatedObject.Position.X, draggedOrRotatedObject.Position.Y);
 
             if (isDraggingObject)
             {
@@ -1524,7 +1580,8 @@ namespace TSMapEditor.Rendering
 
                 Color lineColor = isCloning ? new Color(0, 255, 255) : Color.White;
                 if (!Map.CanPlaceObjectAt(draggedOrRotatedObject, tileUnderCursor.CoordsToPoint(), isCloning, overlapObjects) ||
-                    (isCloning && !draggedOrRotatedObject.IsTechno() && draggedOrRotatedObject.WhatAmI() != RTTIType.Terrain))
+                    (isCloning && !draggedOrRotatedObject.IsTechno() && draggedOrRotatedObject.WhatAmI() != RTTIType.Terrain) ||
+                    (handleMultipleInfantry && !Map.CanAddInfantryUnitsAt(originCell.GetInfantry().Count, tileUnderCursor.CoordsToPoint())))
                     lineColor = Color.Red;
 
                 Point2D cameraAndCellCenterOffset = new Point2D(-Camera.TopLeftPoint.X + Constants.CellSizeX / 2,
@@ -1585,8 +1642,20 @@ namespace TSMapEditor.Rendering
                     float percent = angle / ((float)Math.PI * 2.0f);
                     byte facing = (byte)Math.Ceiling(percent * (float)byte.MaxValue);
 
-                    techno.Facing = facing;
-                    AddRefreshPoint(techno.Position, 2);
+                    if (handleMultipleInfantry)
+                    {
+                        var infantryUnits = originCell.GetInfantry();
+                        foreach (var infantryUnit in infantryUnits)
+                        {
+                            infantryUnit.Facing = facing;
+                            AddRefreshPoint(infantryUnit.Position, 2);
+                        }
+                    }
+                    else
+                    {
+                        techno.Facing = facing;
+                        AddRefreshPoint(techno.Position, 2);
+                    }
                 }
             }
             else
