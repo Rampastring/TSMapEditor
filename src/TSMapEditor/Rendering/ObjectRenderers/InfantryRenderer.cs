@@ -28,16 +28,16 @@ namespace TSMapEditor.Rendering.ObjectRenderers
             switch (gameObject.SubCell)
             {
                 case SubCell.Top:
-                    drawPoint += new Point2D(0, Constants.CellSizeY / -4);
+                    drawPoint += Constants.SubCellTopOffSet;
                     break;
                 case SubCell.Bottom:
-                    drawPoint += new Point2D(0, Constants.CellSizeY / 4);
+                    drawPoint += Constants.SubCellBottomOffSet;
                     break;
                 case SubCell.Left:
-                    drawPoint += new Point2D(Constants.CellSizeX / -4, 0);
+                    drawPoint += Constants.SubCellLeftOffSet;
                     break;
                 case SubCell.Right:
-                    drawPoint += new Point2D(Constants.CellSizeX / 4, 0);
+                    drawPoint += Constants.SubCellRightOffSet;
                     break;
                 case SubCell.Center:
                 default:

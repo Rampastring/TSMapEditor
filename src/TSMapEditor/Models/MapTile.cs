@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
+using Microsoft.Xna.Framework;
 using TSMapEditor.GameMath;
 using TSMapEditor.Models.Enums;
 using TSMapEditor.Models.MapFormat;
@@ -14,7 +16,10 @@ namespace TSMapEditor.Models
     {
         private const int SubCellCount = 5;
 
-        public MapTile() { }
+        public MapTile(Map map) 
+        {
+            Map = map;
+        }
 
         public MapTile(byte[] data) : base(data) { }
 
@@ -55,6 +60,8 @@ namespace TSMapEditor.Models
         public MapColor CellLighting { get; set; } = new MapColor(1.0, 1.0, 1.0);
 
         public List<(Structure Source, double DistanceInLeptons)> LightSources { get; set; } = new();
+
+        public Map Map { get; set; }
 
         public void RefreshLighting(Lighting lighting, LightingPreviewMode lightingPreviewMode)
         {
@@ -198,6 +205,54 @@ namespace TSMapEditor.Models
             }
         }
 
+        public Point2D GetSubCellCoords(SubCell subcell)
+        {
+            var tileCoords = new Point2D(X, Y);
+            var tileCenter = CellMath.CellCenterPointFromCellCoords(tileCoords, Map);
+
+            switch (subcell)
+            {
+                case SubCell.Bottom:
+                    return tileCenter + Constants.SubCellBottomOffSet;
+
+                case SubCell.Left:
+                    return tileCenter + Constants.SubCellLeftOffSet;
+
+                case SubCell.Right:
+                    return tileCenter + Constants.SubCellRightOffSet;
+
+                default:
+                    return Point2D.Zero;
+            }
+        }
+
+        public SubCell GetSubCellClosestToCursor(Point2D cursorPoint, bool onlyOccupiedCells)
+        {
+            cursorPoint += new Point2D(0, Constants.MapYBaseline);
+
+            IEnumerable<SubCell> subCells = [SubCell.Bottom, SubCell.Left, SubCell.Right];
+            if (onlyOccupiedCells)
+            {
+                subCells = subCells.Where(sc => GetInfantryFromSubCellSpot(sc) != null);
+            }
+
+            SubCell closestSubcell = SubCell.None;
+            float shortestDistance = float.MaxValue;
+
+            foreach (var subCell in subCells)
+            {
+                var subCellCoords = GetSubCellCoords(subCell);
+                var distanceToSubCell = Vector2.Distance(cursorPoint.ToXNAVector(), subCellCoords.ToXNAVector());
+                if (distanceToSubCell < shortestDistance)
+                {
+                    closestSubcell = subCell;
+                    shortestDistance = distanceToSubCell;
+                }
+            }
+
+            return closestSubcell;
+        }
+
         public SubCell GetFreeSubCellSpot()
         {
             if (GetInfantryFromSubCellSpot(SubCell.Bottom) == null)
@@ -254,7 +309,7 @@ namespace TSMapEditor.Models
             return Array.Find(Infantry, inf => inf != null && predicate(inf));
         }
 
-        public TechnoBase GetTechno()
+        public TechnoBase GetTechno(Point2D? cursorPosition = null)
         {
             if (Structures.Count > 0)
                 return Structures[0];
@@ -265,12 +320,23 @@ namespace TSMapEditor.Models
             if (Aircraft.Count > 0)
                 return Aircraft[0];
 
-            return Array.Find(Infantry, inf => inf != null);
-        }
+            if (cursorPosition != null)
+            {
+                var closestSubcell = GetSubCellClosestToCursor((Point2D)cursorPosition, true);
+                if (closestSubcell == SubCell.None)
+                    return null;
 
-        public GameObject GetObject()
+                return GetInfantryFromSubCellSpot(closestSubcell);                
+            }
+            else
+            {
+                return Array.Find(Infantry, inf => inf != null);
+            }            
+        }        
+
+        public GameObject GetObject(Point2D? cursorPosition = null)
         {
-            GameObject obj = GetTechno();
+            GameObject obj = GetTechno(cursorPosition);
             if (obj != null)
                 return obj;
 
