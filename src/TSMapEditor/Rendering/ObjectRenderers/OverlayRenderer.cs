@@ -1,5 +1,4 @@
 ﻿using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Graphics;
 using TSMapEditor.GameMath;
 using TSMapEditor.Models;
 
@@ -22,49 +21,41 @@ namespace TSMapEditor.Rendering.ObjectRenderers
             };
         }
 
-        protected override float GetDepth(Overlay gameObject, Texture2D texture)
+        protected override float GetDepth(Overlay gameObject, int referenceDrawPointY)
         {
-            // Overlay belong to the same layer with tiles themselves
-            return base.GetDepth(gameObject, texture) - Constants.DepthRenderStep;
+            if (gameObject.OverlayType.HighBridgeDirection == BridgeDirection.None)
+            {
+                return base.GetDepth(gameObject, referenceDrawPointY) - Constants.DepthEpsilon;
+            }
+
+            var tile = Map.GetTile(gameObject.Position);
+            return (((float)referenceDrawPointY / RenderDependencies.Map.HeightInPixelsWithCellHeight) * Constants.DownwardsDepthRenderSpace) + ((tile.Level + 4) * Constants.DepthRenderStep);
         }
 
-        protected override void Render(Overlay gameObject, int heightOffset, Point2D drawPoint, in CommonDrawParams drawParams)
+        protected override void Render(Overlay gameObject, Point2D drawPoint, in CommonDrawParams drawParams)
         {
             Color remapColor = Color.White;
             if (gameObject.OverlayType.TiberiumType != null)
                 remapColor = gameObject.OverlayType.TiberiumType.XNAColor;
 
-            int overlayIndex = gameObject.OverlayType.Index;
-
-            if (!RenderDependencies.EditorState.Is2DMode)
+            if (!RenderDependencies.EditorState.Is2DMode && gameObject.OverlayType.HighBridgeDirection != BridgeDirection.None)
             {
-                foreach (var bridge in Map.EditorConfig.Bridges)
+                if (gameObject.OverlayType.HighBridgeDirection == BridgeDirection.EastWest)
                 {
-                    if (bridge.Kind == BridgeKind.High)
-                    {
-                        if (bridge.EastWest.Pieces.Contains(overlayIndex))
-                        {
-                            drawPoint.Y -= Constants.CellHeight + 1;
-                            heightOffset += Constants.CellHeight + 1;
-                            break;
-                        }
-
-                        if (bridge.NorthSouth.Pieces.Contains(overlayIndex))
-                        {
-                            drawPoint.Y -= Constants.CellHeight * 2 + 1;
-                            heightOffset += Constants.CellHeight * 2 + 1;
-                            break;
-                        }
-                    }
+                    drawPoint.Y -= Constants.CellHeight + 1;
+                }
+                else
+                {
+                    drawPoint.Y -= Constants.CellHeight * 2 + 1;
                 }
             }
 
             bool affectedByLighting = drawParams.ShapeImage.SubjectToLighting;
             bool affectedByAmbient = !gameObject.OverlayType.Tiberium && !affectedByLighting;
 
-            // DrawShadow(gameObject, drawParams, drawPoint, heightOffset);
+            DrawShadowDirect(gameObject);
             DrawShapeImage(gameObject, drawParams.ShapeImage, gameObject.FrameIndex, Color.White,
-                false, true, remapColor, affectedByLighting, affectedByAmbient, drawPoint, heightOffset);
+                true, remapColor, affectedByLighting, affectedByAmbient, drawPoint);
         }
     }
 }

@@ -16,24 +16,30 @@
 #begin Shaders/ColorDraw.fx
 /importer:EffectImporter
 /processor:EffectProcessor
-/processorParam:DebugMode=Debug
+/processorParam:DebugMode=Auto
 /build:Shaders/ColorDraw.fx
+
+#begin Shaders/CombineWithDepth.fx
+/importer:EffectImporter
+/processor:EffectProcessor
+/processorParam:DebugMode=Auto
+/build:Shaders/CombineWithDepth.fx
 
 #begin Shaders/DepthApply.fx
 /importer:EffectImporter
 /processor:EffectProcessor
-/processorParam:DebugMode=Debug
+/processorParam:DebugMode=Auto
 /build:Shaders/DepthApply.fx
 
 #begin Shaders/PalettedColorDraw.fx
 /importer:EffectImporter
 /processor:EffectProcessor
-/processorParam:DebugMode=Debug
+/processorParam:DebugMode=Auto
 /build:Shaders/PalettedColorDraw.fx
 
 #begin Shaders/PalettedDrawNoDepth.fx
 /importer:EffectImporter
 /processor:EffectProcessor
-/processorParam:DebugMode=Debug
+/processorParam:DebugMode=Auto
 /build:Shaders/PalettedDrawNoDepth.fx
 

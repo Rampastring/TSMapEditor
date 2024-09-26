@@ -1149,7 +1149,7 @@ namespace TSMapEditor.Initialization
 
                     if (houseType == null)
                     {
-                        houseType = map.StandardHouseTypes[0];
+                        houseType = map.GetHouseTypes()[0];
                         AddMapLoadError($"Nonexistent Country= or no Country= specified for House {houseName}. This makes it default to the first standard Country ({houseType.ININame}).");
                     }
                 }

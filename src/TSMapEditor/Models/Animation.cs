@@ -17,6 +17,8 @@ namespace TSMapEditor.Models
 
         public override RTTIType WhatAmI() => RTTIType.Anim;
 
+        public override GameObjectType GetObjectType() => AnimType;
+
         public AnimType AnimType { get; private set; }
         public House Owner { get; set; }
         public byte Facing { get; set; }

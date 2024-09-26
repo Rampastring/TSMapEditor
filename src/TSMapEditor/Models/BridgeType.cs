@@ -19,6 +19,7 @@ namespace TSMapEditor.Models
 
     public enum BridgeDirection
     {
+        None,
         EastWest,
         NorthSouth
     }
@@ -35,17 +36,17 @@ namespace TSMapEditor.Models
                 if (bridgeStart == null)
                     throw new BridgeLoadException($"Low bridge {bridgeType.Name} has no start overlay!");
 
-                Start = rules.FindOverlayType(bridgeStart)?.Index ??
+                Start = rules.FindOverlayType(bridgeStart) ??
                         throw new BridgeLoadException($"Low bridge {bridgeType.Name} has an invalid start overlay {bridgeStart}!");
 
                 string bridgeEnd = iniSection.GetStringValue($"BridgeEnd.{suffix}", null);
                 if (bridgeEnd == null)
                     throw new BridgeLoadException($"Low bridge {bridgeType.Name} has no end overlay!");
 
-                End = rules.FindOverlayType(bridgeEnd)?.Index ??
+                End = rules.FindOverlayType(bridgeEnd) ??
                       throw new BridgeLoadException($"Low bridge {bridgeType.Name} has an invalid end overlay {bridgeEnd}!");
 
-                Pieces = iniSection.GetListValue($"BridgePieces.{suffix}", ',', (overlayName) => rules.FindOverlayType(overlayName)?.Index ??
+                Pieces = iniSection.GetListValue($"BridgePieces.{suffix}", ',', (overlayName) => rules.FindOverlayType(overlayName) ??
                     throw new BridgeLoadException($"Low bridge {bridgeType.Name} has an invalid bridge piece {overlayName}!"));
 
                 if (Pieces.Count == 0)
@@ -57,16 +58,17 @@ namespace TSMapEditor.Models
                 if (piece == null)
                     throw new BridgeLoadException($"High bridge {bridgeType.Name} has no bridge piece!");
 
-                int bridgePiece = rules.FindOverlayType(piece)?.Index ??
+                OverlayType bridgePiece = rules.FindOverlayType(piece) ??
                       throw new BridgeLoadException($"High bridge {bridgeType.Name} has an invalid bridge piece {piece}!");
 
                 Pieces.Add(bridgePiece);
+                Pieces.ForEach(p => p.HighBridgeDirection = direction);
             }
         }
 
-        public int Start;
-        public int End;
-        public List<int> Pieces = new List<int>();
+        public OverlayType Start;
+        public OverlayType End;
+        public List<OverlayType> Pieces = new List<OverlayType>();
     }
 
     public class BridgeType

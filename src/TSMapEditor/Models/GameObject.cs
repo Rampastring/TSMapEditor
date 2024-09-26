@@ -20,6 +20,8 @@ namespace TSMapEditor.Models
 
         public ulong LastRefreshIndex;
 
+        public abstract GameObjectType GetObjectType();
+
         public virtual int GetYDrawOffset()
         {
             return 0;

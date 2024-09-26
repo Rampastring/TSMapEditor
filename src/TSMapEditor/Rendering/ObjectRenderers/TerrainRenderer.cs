@@ -21,13 +21,26 @@ namespace TSMapEditor.Rendering.ObjectRenderers
             };
         }
 
-        protected override void Render(TerrainObject gameObject, int heightOffset, Point2D drawPoint, in CommonDrawParams drawParams)
+        protected override void Render(TerrainObject gameObject, Point2D drawPoint, in CommonDrawParams drawParams)
         {
             bool affectedByLighting = RenderDependencies.EditorState.IsLighting;
 
-            // DrawShadow(gameObject, drawParams, drawPoint, heightOffset);
+            // We need increased depth for very tall trees so they are reliably drawn over
+            // objects behind them despite lack of required precision in the depth buffer
+            float depthOverride = -1f;
+            if (drawParams.ShapeImage != null)
+            {
+                var frame = drawParams.ShapeImage.GetFrame(0);
+                if (frame != null && frame.Texture != null)
+                {
+                    var textureDrawCoords = GetTextureDrawCoords(gameObject, frame, drawPoint);
+                    depthOverride = GetDepth(gameObject, textureDrawCoords.Bottom) + ((textureDrawCoords.Height / Constants.CellHeight) * Constants.DepthEpsilon);
+                }
+            }
+
+            DrawShadowDirect(gameObject);
             DrawShapeImage(gameObject, drawParams.ShapeImage, 0,
-                Color.White, false, false, Color.White, affectedByLighting, !drawParams.ShapeImage.SubjectToLighting, drawPoint, heightOffset);
+                Color.White, false, Color.White, affectedByLighting, !drawParams.ShapeImage.SubjectToLighting, drawPoint, depthOverride);
         }
     }
 }

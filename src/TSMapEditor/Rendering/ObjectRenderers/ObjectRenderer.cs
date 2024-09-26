@@ -8,11 +8,16 @@ using TSMapEditor.Models;
 
 namespace TSMapEditor.Rendering.ObjectRenderers
 {
+    public interface IObjectRenderer
+    {
+        void DrawShadow(GameObject gameObject);
+    }
+
     /// <summary>
     /// Base class for all object renderers.
     /// </summary>
     /// <typeparam name="T">The type of game object to render.</typeparam>
-    public abstract class ObjectRenderer<T> where T : GameObject
+    public abstract class ObjectRenderer<T> : IObjectRenderer where T : GameObject
     {
         protected ObjectRenderer(RenderDependencies renderDependencies)
         {
@@ -30,13 +35,38 @@ namespace TSMapEditor.Rendering.ObjectRenderers
         /// The entry point for rendering an object.
         ///
         /// Checks whether the object is within the visible screen space. If yes,
-        /// draws the graphics of the object, or the object's replacement text in
-        /// case it has no loaded graphics.
+        /// draws the graphics of the object.
         /// </summary>
         /// <param name="gameObject">The game object to render.</param>
         /// <param name="checkInCamera">Whether the object's presence within the camera should be checked.</param>
-        /// <param name="drawShadow">Whether a shadow should also be drawn for this object.</param>
-        public void Draw(T gameObject, bool checkInCamera, bool drawShadow)
+        public void Draw(T gameObject, bool checkInCamera)
+        {
+            Point2D drawPoint = GetDrawPoint(gameObject);
+
+            CommonDrawParams drawParams = GetDrawParams(gameObject);
+
+            PositionedTexture frame = GetFrameTexture(gameObject, drawParams, RenderDependencies.EditorState.IsLighting);
+
+            if (checkInCamera)
+            {
+                Rectangle drawingBounds = GetTextureDrawCoords(gameObject, frame, drawPoint);
+
+                // If the object is not in view, skip
+                if (!IsObjectInCamera(drawingBounds))
+                    return;
+            }
+
+            if (frame == null && ShouldRenderReplacementText(gameObject))
+            {
+                DrawText(gameObject, false);
+            }
+            else if (frame != null)
+            {
+                Render(gameObject, drawPoint, drawParams);   
+            }
+        }
+
+        public bool IsWithinCamera(T gameObject)
         {
             Point2D drawPointWithoutCellHeight = CellMath.CellTopLeftPointFromCellCoords(gameObject.Position, RenderDependencies.Map);
 
@@ -51,24 +81,59 @@ namespace TSMapEditor.Rendering.ObjectRenderers
             Rectangle drawingBounds = GetTextureDrawCoords(gameObject, frame, drawPoint);
 
             // If the object is not in view, skip
-            if (checkInCamera && !IsObjectInCamera(drawingBounds))
-                return;
+            if (!IsObjectInCamera(drawingBounds))
+                return false;
 
-            if (drawShadow)
-            {
-                if (gameObject.HasShadow())
-                    DrawShadow(gameObject, drawParams, drawPoint, heightOffset);
+            return true;
+        }
 
-                return;
-            }
+        public virtual Point2D GetDrawPoint(T gameObject)
+        {
+            Point2D drawPointWithoutCellHeight = CellMath.CellTopLeftPointFromCellCoords(gameObject.Position, RenderDependencies.Map);
 
-            if (frame == null && ShouldRenderReplacementText(gameObject))
+            var mapCell = RenderDependencies.Map.GetTile(gameObject.Position);
+            int heightOffset = RenderDependencies.EditorState.Is2DMode ? 0 : mapCell.Level * Constants.CellHeight;
+            Point2D drawPoint = new Point2D(drawPointWithoutCellHeight.X, drawPointWithoutCellHeight.Y - heightOffset);
+
+            return drawPoint;
+        }
+
+        public virtual void DrawNonRemap(T gameObject, Point2D drawPoint)
+        {
+            // Do nothing by default
+        }
+
+        public virtual void DrawRemap(T gameObject, Point2D drawPoint)
+        {
+            // Do nothing by default
+        }
+
+        /// <summary>
+        /// Draws a textual representation of the object.
+        /// 
+        /// Usually used as a fallback rendering method for an object that has no loaded graphics.
+        /// </summary>
+        /// <param name="gameObject">The game object for which to render a textual representation.</param>
+        /// <param name="checkInCamera">Whether the object's presence within the camera should be checked.</param>
+        public void DrawText(T gameObject, bool checkInCamera)
+        {
+            if (ShouldRenderReplacementText(gameObject))
             {
-                DrawObjectReplacementText(gameObject, drawParams, drawPoint);
-            }
-            else
-            {
-                Render(gameObject, heightOffset, drawPoint, drawParams);
+                Point2D drawPointWithoutCellHeight = CellMath.CellTopLeftPointFromCellCoords(gameObject.Position, RenderDependencies.Map);
+
+                var mapCell = RenderDependencies.Map.GetTile(gameObject.Position);
+                int heightOffset = RenderDependencies.EditorState.Is2DMode ? 0 : mapCell.Level * Constants.CellHeight;
+                Point2D drawPoint = new Point2D(drawPointWithoutCellHeight.X, drawPointWithoutCellHeight.Y - heightOffset);
+
+                if (checkInCamera)
+                {
+                    Rectangle drawingBounds = new Rectangle(drawPoint.X, drawPoint.Y, 1, 1);
+                    if (!IsObjectInCamera(drawingBounds))
+                        return;
+                }
+
+                // DrawObjectReplacementText(gameObject, gameObject.GetObjectType().ININame, drawPoint);
+                RenderDependencies.ObjectSpriteRecord.AddTextEntry(new TextEntry(gameObject.GetObjectType().ININame, ReplacementColor, drawPoint));
             }
         }
 
@@ -98,19 +163,17 @@ namespace TSMapEditor.Rendering.ObjectRenderers
         /// <param name="heightOffset">The Y-axis draw offset from cell height.</param>
         /// <param name="drawPoint">The draw point of the object, with cell height taken into account.</param>
         /// <param name="drawParams">Draw parameters.</param>
-        protected abstract void Render(T gameObject, int heightOffset, Point2D drawPoint, in CommonDrawParams drawParams);
+        protected virtual void Render(T gameObject, Point2D drawPoint, in CommonDrawParams drawParams) { }
 
         /// <summary>
         /// Renders the replacement text of an object, displayed when no graphics for an object have been loaded.
         /// Override in derived classes to implement and customize the rendering process.
         /// </summary>
         /// <param name="gameObject">The game object for which to draw a replacement text.</param>
-        /// <param name="drawParams">Draw parameters.</param>
+        /// <param name="text">The string to draw.</param>
         /// <param name="drawPoint">The draw point of the object, with cell height taken into account.</param>
-        protected virtual void DrawObjectReplacementText(T gameObject, in CommonDrawParams drawParams, Point2D drawPoint)
+        protected virtual void DrawObjectReplacementText(T gameObject, string text, Point2D drawPoint)
         {
-            SetEffectParams_RGBADraw(false);
-
             // If the object is a techno, draw an arrow that displays its facing
             if (gameObject.IsTechno())
             {
@@ -118,7 +181,7 @@ namespace TSMapEditor.Rendering.ObjectRenderers
                 DrawObjectFacingArrow(techno.Facing, drawPoint);
             }
 
-            Renderer.DrawString(drawParams.IniName, 1, drawPoint.ToXNAVector(), ReplacementColor, 1.0f);
+            Renderer.DrawString(text, 1, drawPoint.ToXNAVector(), ReplacementColor, 1.0f);
         }
 
         protected void DrawObjectFacingArrow(byte facing, Point2D drawPoint)
@@ -174,7 +237,7 @@ namespace TSMapEditor.Rendering.ObjectRenderers
             return null;
         }
 
-        private Rectangle GetTextureDrawCoords(T gameObject,
+        protected Rectangle GetTextureDrawCoords(T gameObject,
             PositionedTexture frame,
             Point2D initialDrawPoint)
         {
@@ -197,55 +260,48 @@ namespace TSMapEditor.Rendering.ObjectRenderers
             }
 
             return new Rectangle(finalDrawPointX, finalDrawPointY,
-                finalDrawPointX + frame?.Texture.Width ?? 0, finalDrawPointY + frame?.Texture.Height ?? 0);
+                frame?.Texture.Width ?? 1, frame?.Texture.Height ?? 1);
         }
 
-        protected void SetEffectParams_PalettedDraw(bool isShadow, Texture2D paletteTexture)
-            => SetEffectParams(RenderDependencies.PalettedColorDrawEffect, isShadow, paletteTexture, true);
+        public void DrawShadow(GameObject gameObject) => DrawShadowDirect(gameObject as T);
 
-        protected void SetEffectParams_RGBADraw(bool isShadow)
-            => SetEffectParams(RenderDependencies.PalettedColorDrawEffect, isShadow, null, false);
-
-        protected void SetEffectParams(Effect effect, bool isShadow, Texture2D paletteTexture, bool usePalette)
+        public virtual void DrawShadowDirect(T gameObject)
         {
-            effect.Parameters["IsShadow"].SetValue(isShadow);
-            RenderDependencies.GraphicsDevice.SamplerStates[1] = SamplerState.LinearClamp;
+            Point2D drawPoint = GetDrawPoint(gameObject);
+            CommonDrawParams drawParams = GetDrawParams(gameObject);
 
-            if (paletteTexture != null)
-            {
-                effect.Parameters["PaletteTexture"].SetValue(paletteTexture);
-                RenderDependencies.GraphicsDevice.Textures[2] = paletteTexture;
-            }
-
-            effect.Parameters["UsePalette"].SetValue(usePalette);
-            RenderDependencies.PalettedColorDrawEffect.Parameters["UseRemap"].SetValue(false); // Disable remap by default
-        }
-
-        protected virtual void DrawShadow(T gameObject, in CommonDrawParams drawParams, Point2D drawPoint, int heightOffset)
-        {
             if (drawParams.ShapeImage == null)
                 return;
 
             int shadowFrameIndex = gameObject.GetShadowFrameIndex(drawParams.ShapeImage.GetFrameCount());
-            if (shadowFrameIndex > 0 && shadowFrameIndex < drawParams.ShapeImage.GetFrameCount())
-            {
-                DrawShapeImage(gameObject, drawParams.ShapeImage, shadowFrameIndex,
-                    new Color(0, 0, 0, 128), true, false, Color.White, false, false, drawPoint, heightOffset);
-            }
+            if (shadowFrameIndex < 0 && shadowFrameIndex >= drawParams.ShapeImage.GetFrameCount())
+                return;
+
+            PositionedTexture frame = drawParams.ShapeImage.GetFrame(shadowFrameIndex);
+
+            if (frame == null)
+                return;
+
+            float depth = GetDepth(gameObject, drawPoint.Y);
+
+            Texture2D texture = frame.Texture;
+
+            Rectangle drawingBounds = GetTextureDrawCoords(gameObject, frame, drawPoint);
+
+            RenderDependencies.ObjectSpriteRecord.AddGraphicsEntry(new ObjectSpriteEntry(null, texture, drawingBounds, Color.White, false, true, depth));
+
+            // For the shadow it doesn't matter what we input as color
+            // Renderer.DrawTexture(texture, drawingBounds, null, Color.White, 0f, Vector2.Zero, SpriteEffects.None, depth);
         }
 
-        protected virtual float GetDepth(T gameObject, Texture2D texture)
+        protected virtual float GetDepth(T gameObject, int referenceDrawPointY)
         {
             var tile = Map.GetTile(gameObject.Position);
-            // int textureHeightInCells = texture.Height / Constants.CellHeight;
-            // if (textureHeightInCells == 0)
-            //     textureHeightInCells++;
-
-            return (tile.Level + 1) * Constants.DepthRenderStep;
+            return (((float)referenceDrawPointY / RenderDependencies.Map.HeightInPixelsWithCellHeight) * Constants.DownwardsDepthRenderSpace) + ((tile.Level + 2) * Constants.DepthRenderStep);
         }
 
         protected void DrawShapeImage(T gameObject, ShapeImage image, int frameIndex, Color color,
-            bool isShadow, bool drawRemap, Color remapColor, bool affectedByLighting, bool affectedByAmbient, Point2D drawPoint, int heightOffset)
+            bool drawRemap, Color remapColor, bool affectedByLighting, bool affectedByAmbient, Point2D drawPoint, float depthOverride = -1f)
         {
             if (image == null)
                 return;
@@ -291,14 +347,14 @@ namespace TSMapEditor.Rendering.ObjectRenderers
                 }
             }
 
-            float depth = GetDepth(gameObject, frame.Texture);
+            float depth = depthOverride >= 0f ? depthOverride : GetDepth(gameObject, drawingBounds.Bottom);
 
-            RenderFrame(frame, remapFrame, color, drawRemap, remapColor, isShadow,
-                drawingBounds.X, drawingBounds.Y, image.GetPaletteTexture(), lighting, depth);
+            RenderFrame(frame, remapFrame, color, drawRemap, remapColor,
+                drawingBounds, image.GetPaletteTexture(), lighting, depth);
         }
 
         protected void DrawVoxelModel(T gameObject, VoxelModel model, byte facing, RampType ramp,
-            Color color, bool drawRemap, Color remapColor, bool affectedByLighting, Point2D drawPoint, int heightOffset)
+            Color color, bool drawRemap, Color remapColor, bool affectedByLighting, Point2D drawPoint, float depthOverride = -1f)
         {
             if (model == null)
                 return;
@@ -306,8 +362,6 @@ namespace TSMapEditor.Rendering.ObjectRenderers
             PositionedTexture frame = model.GetFrame(facing, ramp, false);
             if (frame == null || frame.Texture == null)
                 return;
-
-            float depth = GetDepth(gameObject, frame.Texture);
 
             PositionedTexture remapFrame = null;
             if (drawRemap)
@@ -318,9 +372,6 @@ namespace TSMapEditor.Rendering.ObjectRenderers
             {
                 case RTTIType.Unit:
                     extraLight = Map.Rules.ExtraUnitLight;
-                    break;
-                case RTTIType.Infantry:
-                    extraLight = Map.Rules.ExtraInfantryLight;
                     break;
                 case RTTIType.Aircraft:
                     extraLight = Map.Rules.ExtraAircraftLight;
@@ -342,28 +393,32 @@ namespace TSMapEditor.Rendering.ObjectRenderers
                 }
             }
 
+            float depth = depthOverride >= 0f ? depthOverride : GetDepth(gameObject, drawPoint.Y + frame.Texture.Height);
+
             remapColor = ScaleColorToAmbient(remapColor, mapCell.CellLighting);
 
             Rectangle drawingBounds = GetTextureDrawCoords(gameObject, frame, drawPoint);
 
-            RenderFrame(frame, remapFrame, color, drawRemap, remapColor, false,
-                drawingBounds.X, drawingBounds.Y, null, lighting, depth);
+            RenderFrame(frame, remapFrame, color, drawRemap, remapColor,
+                drawingBounds, null, lighting, depth);
         }
 
         private void RenderFrame(PositionedTexture frame, PositionedTexture remapFrame, Color color, bool drawRemap, Color remapColor,
-            bool isShadow, int finalDrawPointX, int finalDrawPointY, Texture2D paletteTexture, Vector4 lightingColor, float depth)
+            Rectangle drawingBounds, Texture2D paletteTexture, Vector4 lightingColor, float depth)
         {
             Texture2D texture = frame.Texture;
 
-            ApplyShaderEffectValues(isShadow, paletteTexture);
+            if (depth > 1.0f)
+                depth = 1.0f;
 
             color = new Color((color.R / 255.0f) * lightingColor.X / 2f,
                 (color.B / 255.0f) * lightingColor.Y / 2f,
                 (color.B / 255.0f) * lightingColor.Z / 2f, depth);
 
-            Renderer.DrawTexture(texture, 
-                new Rectangle(finalDrawPointX, finalDrawPointY, texture.Width, texture.Height),
-                null, color, 0f, Vector2.Zero, SpriteEffects.None, depth);
+            RenderDependencies.ObjectSpriteRecord.AddGraphicsEntry(new ObjectSpriteEntry(paletteTexture, texture, drawingBounds, color, false, false, depth));
+
+            // Renderer.DrawTexture(texture, drawingBounds,
+            //     null, color, 0f, Vector2.Zero, SpriteEffects.None, depth);
 
             if (drawRemap && remapFrame != null)
             {
@@ -373,25 +428,18 @@ namespace TSMapEditor.Rendering.ObjectRenderers
                     (remapColor.B / 255.0f),
                     depth);
 
-                RenderDependencies.PalettedColorDrawEffect.Parameters["UseRemap"].SetValue(true);
+                // RenderDependencies.PalettedColorDrawEffect.Parameters["UseRemap"].SetValue(true);
+                RenderDependencies.ObjectSpriteRecord.AddGraphicsEntry(new ObjectSpriteEntry(paletteTexture, remapFrame.Texture, drawingBounds, remapColor, true, false, depth));
 
                 Renderer.DrawTexture(remapFrame.Texture,
-                    new Rectangle(finalDrawPointX, finalDrawPointY, texture.Width, texture.Height),
+                    drawingBounds,
                     null,
                     remapColor,
                     0f,
                     Vector2.Zero,
                     SpriteEffects.None,
-                    0f);
+                    depth);
             }
-        }
-
-        private void ApplyShaderEffectValues(bool isShadow, Texture2D paletteTexture)
-        {
-            if (paletteTexture == null)
-                SetEffectParams_RGBADraw(isShadow);
-            else
-                SetEffectParams_PalettedDraw(isShadow, paletteTexture);
         }
 
         protected void DrawLine(Vector2 start, Vector2 end, Color color, int thickness = 1, float depth = 0f)

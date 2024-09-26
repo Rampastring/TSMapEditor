@@ -29,5 +29,8 @@ namespace TSMapEditor.Models
         public bool IsVeins { get; set; }
         public bool IsVeinholeMonster { get; set; }
         public TiberiumType TiberiumType { get; set; }
+
+        [INI(false)]
+        public BridgeDirection HighBridgeDirection { get; set; }
     }
 }

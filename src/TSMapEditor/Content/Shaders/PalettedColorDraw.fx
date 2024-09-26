@@ -46,8 +46,9 @@ struct VertexShaderOutput
 
 struct PixelShaderOutput
 {
-    float4 color : SV_Target;
-    float depth : SV_Depth;
+    float4 color : SV_Target0;
+    float depthTarget : SV_Target1;
+    float depthEmbedded : SV_Depth;
 };
 
 PixelShaderOutput MainPS(VertexShaderOutput input)
@@ -65,7 +66,8 @@ PixelShaderOutput MainPS(VertexShaderOutput input)
     // This is because when doing batched rendering, shader parameters cannot be changed
     // within one batch, meaning we cannot introduce a shader parameter for depth
     // without sacrificing performance. And we need a unique depth value for each sprite.
-    output.depth = input.Color.a;
+    output.depthTarget = input.Color.a;
+    output.depthEmbedded = input.Color.a;
 
     if (IsShadow)
     {
@@ -115,7 +117,6 @@ technique SpriteDrawing
 {
     pass P0
     {
-        AlphaBlendEnable = TRUE;
         PixelShader = compile PS_SHADERMODEL MainPS();
     }
 };

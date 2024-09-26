@@ -17,7 +17,15 @@ namespace TSMapEditor.Rendering.ObjectRenderers
 
         private AnimRenderer buildingAnimRenderer;
 
-        private void DrawFoundationLines(Structure gameObject)
+        public Point2D GetBuildingCenterPoint(Structure structure)
+        {
+            Point2D topPoint = CellMath.CellCenterPointFromCellCoords(structure.Position, Map);
+            var foundation = structure.ObjectType.ArtConfig.Foundation;
+            Point2D bottomPoint = CellMath.CellCenterPointFromCellCoords(structure.Position + new Point2D(foundation.Width - 1, foundation.Height - 1), Map);
+            return topPoint + new Point2D((bottomPoint.X - topPoint.X) / 2, (bottomPoint.Y - topPoint.Y) / 2);
+        }
+
+        public void DrawFoundationLines(Structure gameObject)
         {
             int foundationX = gameObject.ObjectType.ArtConfig.Foundation.Width;
             int foundationY = gameObject.ObjectType.ArtConfig.Foundation.Height;
@@ -37,27 +45,32 @@ namespace TSMapEditor.Rendering.ObjectRenderers
             if (cell != null && !RenderDependencies.EditorState.Is2DMode)
                 heightOffset = cell.Level * Constants.CellHeight;
 
-            float depth = cell.Level * Constants.DepthRenderStep;
-
-            foundationLineColor = new Color((foundationLineColor.R / 255.0f) * (float)cell.CellLighting.R,
-                (foundationLineColor.G / 255.0f) * (float)cell.CellLighting.G,
-                (foundationLineColor.B / 255.0f) * (float)cell.CellLighting.B,
-                depth);
-
-            SetEffectParams_RGBADraw(false);
+            // Cell lighting ranges from 0.0 to 2.0, XNA colors from 0.0 to 1.0. Thus division by 2
+            foundationLineColor = new Color((foundationLineColor.R / 255.0f) * (float)cell.CellLighting.R / 2.0f,
+                (foundationLineColor.G / 255.0f) * (float)cell.CellLighting.G / 2.0f,
+                (foundationLineColor.B / 255.0f) * (float)cell.CellLighting.B / 2.0f,
+                1.0f);
 
             foreach (var edge in gameObject.ObjectType.ArtConfig.Foundation.Edges)
             {
                 // Translate edge vertices from cell coordinate space to world coordinate space.
                 var start = CellMath.CellTopLeftPointFromCellCoords(gameObject.Position + edge[0], map);
                 var end = CellMath.CellTopLeftPointFromCellCoords(gameObject.Position + edge[1], map);
+
+                float depth = GetFoundationLineDepth(gameObject, start, end);
                 // Height is an illusion, just move everything up or down.
                 // Also offset X to match the top corner of an iso tile.
                 start += new Point2D(Constants.CellSizeX / 2, -heightOffset);
                 end += new Point2D(Constants.CellSizeX / 2, -heightOffset);
                 // Draw edge.
-                DrawLine(start.ToXNAVector(), end.ToXNAVector(), foundationLineColor, 1);
+                RenderDependencies.ObjectSpriteRecord.AddLineEntry(new LineEntry(start.ToXNAVector(), end.ToXNAVector(), foundationLineColor, 1, depth));
             }
+        }
+
+        private float GetFoundationLineDepth(Structure gameObject, Point2D startPoint, Point2D endPoint)
+        {
+            Point2D lowerPoint = startPoint.Y > endPoint.Y ? startPoint : endPoint;
+            return base.GetDepth(gameObject, lowerPoint.Y) - (Constants.DepthRenderStep);
         }
 
         protected override CommonDrawParams GetDrawParams(Structure gameObject)
@@ -89,13 +102,20 @@ namespace TSMapEditor.Rendering.ObjectRenderers
             return base.ShouldRenderReplacementText(gameObject);
         }
 
-        private void DrawBibGraphics(Structure gameObject, ShapeImage bibGraphics, int heightOffset, Point2D drawPoint, in CommonDrawParams drawParams, bool affectedByLighting)
+        protected override float GetDepth(Structure gameObject, int referenceDrawPointY)
         {
-            DrawShapeImage(gameObject, bibGraphics, 0, Color.White, false, true, gameObject.GetRemapColor(),
-                affectedByLighting, !drawParams.ShapeImage.SubjectToLighting, drawPoint, heightOffset);
+            // The 100.0 divisor is just an arbitrary number here. It appeared to give me the best result on SOV01UMD.MAP.
+            // Before we implement a shader-based replacement for BUILDINGZ.SHP, we probably can't do better.
+            return base.GetDepth(gameObject, referenceDrawPointY) + ((gameObject.ObjectType.ArtConfig.Height * Constants.DepthRenderStep) / 100.0f);
         }
 
-        protected override void Render(Structure gameObject, int heightOffset, Point2D drawPoint, in CommonDrawParams drawParams)
+        private void DrawBibGraphics(Structure gameObject, ShapeImage bibGraphics, Point2D drawPoint, in CommonDrawParams drawParams, bool affectedByLighting)
+        {
+            DrawShapeImage(gameObject, bibGraphics, 0, Color.White, true, gameObject.GetRemapColor(),
+                affectedByLighting, !drawParams.ShapeImage.SubjectToLighting, drawPoint);
+        }
+
+        protected override void Render(Structure gameObject, Point2D drawPoint, in CommonDrawParams drawParams)
         {
             if (RenderDependencies.EditorState.RenderInvisibleInGameObjects)
                 DrawFoundationLines(gameObject);
@@ -105,9 +125,26 @@ namespace TSMapEditor.Rendering.ObjectRenderers
             // Bib is on the ground, gets grawn first
             var bibGraphics = RenderDependencies.TheaterGraphics.BuildingBibTextures[gameObject.ObjectType.Index];
             if (bibGraphics != null)
-                DrawBibGraphics(gameObject, bibGraphics, heightOffset, drawPoint, drawParams, affectedByLighting);
+                DrawBibGraphics(gameObject, bibGraphics, drawPoint, drawParams, affectedByLighting);
 
             Color nonRemapColor = gameObject.IsBaseNodeDummy ? new Color(150, 150, 255) * 0.5f : Color.White;
+
+            int frameCount = drawParams.ShapeImage == null ? 0 : drawParams.ShapeImage.GetFrameCount();
+            int frameIndex = gameObject.GetFrameIndex(frameCount);
+
+            // We need to calculate depth earlier so it can also be used for the building's animations
+            // Animations are typically higher than the building itself, but they still need a greater z-value,
+            // which isn't achieved by default because z grows downwards
+            float depthOverride = -1f;
+            if (drawParams.ShapeImage != null)
+            {
+                var frame = drawParams.ShapeImage.GetFrame(frameIndex);
+                if (frame != null && frame.Texture != null)
+                {
+                    var textureDrawCoords = GetTextureDrawCoords(gameObject, frame, drawPoint);
+                    depthOverride = GetDepth(gameObject, textureDrawCoords.Bottom);
+                }
+            }
 
             // Form the anims list
             var animsList = gameObject.Anims.ToList();
@@ -121,25 +158,30 @@ namespace TSMapEditor.Rendering.ObjectRenderers
 
             // The building itself has an offset of 0, so first draw all anims with sort values < 0
             foreach (var anim in animsList.Where(a => a.BuildingAnimDrawConfig.SortValue < 0))
-                buildingAnimRenderer.Draw(anim, false, false);
+            {
+                buildingAnimRenderer.BuildingAnimDepth = depthOverride - Constants.DepthEpsilon;
+                buildingAnimRenderer.Draw(anim, false);
+            }
 
             // Then the building itself
-            // if (!gameObject.ObjectType.NoShadow && drawShadow)
-            //     DrawShadow(gameObject, drawParams, drawPoint, heightOffset);
+            if (!gameObject.ObjectType.NoShadow)
+                DrawShadowDirect(gameObject);
 
-            int frameCount = drawParams.ShapeImage == null ? 0 : drawParams.ShapeImage.GetFrameCount();
             bool affectedByAmbient = !affectedByLighting;
 
             DrawShapeImage(gameObject, drawParams.ShapeImage,
                 gameObject.GetFrameIndex(frameCount),
-                nonRemapColor, false, true, gameObject.GetRemapColor(),
-                affectedByLighting, affectedByAmbient, drawPoint, heightOffset);
+                nonRemapColor, true, gameObject.GetRemapColor(),
+                affectedByLighting, affectedByAmbient, drawPoint, depthOverride);
 
             // Then draw all anims with sort values >= 0
             foreach (var anim in animsList.Where(a => a.BuildingAnimDrawConfig.SortValue >= 0))
-                buildingAnimRenderer.Draw(anim, false, false);
+            {
+                buildingAnimRenderer.BuildingAnimDepth = depthOverride + Constants.DepthEpsilon;
+                buildingAnimRenderer.Draw(anim, false);
+            }
 
-            DrawVoxelTurret(gameObject, heightOffset, drawPoint, drawParams, nonRemapColor, affectedByLighting);
+            DrawVoxelTurret(gameObject, drawPoint, drawParams, nonRemapColor, affectedByLighting, depthOverride);
 
             if (gameObject.ObjectType.HasSpotlight)
             {
@@ -151,7 +193,7 @@ namespace TSMapEditor.Rendering.ObjectRenderers
             }
         }
 
-        private void DrawVoxelTurret(Structure gameObject, int heightOffset, Point2D drawPoint, in CommonDrawParams drawParams, Color nonRemapColor, bool affectedByLighting)
+        private void DrawVoxelTurret(Structure gameObject, Point2D drawPoint, in CommonDrawParams drawParams, Color nonRemapColor, bool affectedByLighting, float depthOverride)
         {
             if (gameObject.ObjectType.Turret && gameObject.ObjectType.TurretAnimIsVoxel)
             {
@@ -165,21 +207,21 @@ namespace TSMapEditor.Rendering.ObjectRenderers
                 {
                     DrawVoxelModel(gameObject, drawParams.TurretVoxel,
                         gameObject.Facing, RampType.None, nonRemapColor, true, gameObject.GetRemapColor(),
-                        affectedByLighting, turretDrawPoint, heightOffset);
+                        affectedByLighting, turretDrawPoint, depthOverride + Constants.DepthEpsilon);
 
                     DrawVoxelModel(gameObject, drawParams.BarrelVoxel,
                         gameObject.Facing, RampType.None, nonRemapColor, true, gameObject.GetRemapColor(),
-                        affectedByLighting, turretDrawPoint, heightOffset);
+                        affectedByLighting, turretDrawPoint, depthOverride + (Constants.DepthEpsilon * 2));
                 }
                 else
                 {
                     DrawVoxelModel(gameObject, drawParams.BarrelVoxel,
                         gameObject.Facing, RampType.None, nonRemapColor, true, gameObject.GetRemapColor(),
-                        affectedByLighting, turretDrawPoint, heightOffset);
+                        affectedByLighting, turretDrawPoint, depthOverride - Constants.DepthEpsilon);
 
                     DrawVoxelModel(gameObject, drawParams.TurretVoxel,
                         gameObject.Facing, RampType.None, nonRemapColor, true, gameObject.GetRemapColor(),
-                        affectedByLighting, turretDrawPoint, heightOffset);
+                        affectedByLighting, turretDrawPoint, depthOverride + Constants.DepthEpsilon); // Turret is always drawn above building
                 }
             }
             else if (gameObject.ObjectType.Turret && !gameObject.ObjectType.TurretAnimIsVoxel &&
@@ -187,15 +229,15 @@ namespace TSMapEditor.Rendering.ObjectRenderers
             {
                 DrawVoxelModel(gameObject, drawParams.BarrelVoxel,
                     gameObject.Facing, RampType.None, nonRemapColor, true, gameObject.GetRemapColor(),
-                    affectedByLighting, drawPoint, heightOffset);
+                    affectedByLighting, drawPoint, depthOverride + Constants.DepthEpsilon);
             }
         }
 
-        protected override void DrawObjectReplacementText(Structure gameObject, in CommonDrawParams drawParams, Point2D drawPoint)
+        protected override void DrawObjectReplacementText(Structure gameObject, string text, Point2D drawPoint)
         {
             DrawFoundationLines(gameObject);
 
-            base.DrawObjectReplacementText(gameObject, drawParams, drawPoint);
+            base.DrawObjectReplacementText(gameObject, text, drawPoint);
         }
     }
 }

@@ -9,6 +9,8 @@ namespace TSMapEditor.Models
             ObjectType = objectType;
         }
 
+        public override GameObjectType GetObjectType() => ObjectType;
+
         public override double GetWeaponRange() => ObjectType.GetWeaponRange();
 
         public override double GetGuardRange()

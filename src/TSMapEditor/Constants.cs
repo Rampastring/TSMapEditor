@@ -5,7 +5,7 @@ namespace TSMapEditor
 {
     public static class Constants
     {
-        public const string ReleaseVersion = "1.2.0";
+        public const string ReleaseVersion = "1.2.2";
 
         public static int CellSizeX = 48;
         public static int CellSizeY = 24;
@@ -95,9 +95,15 @@ namespace TSMapEditor
         public const string NoneValue2 = "None";
 
         public const float RemapBrightenFactor = 1.25f;
-        public const float DepthRenderStep = 1 / 32f;
 
-        public const bool DrawShadows = true;
+        // The resolution of depth rendering. In other words, the minimum depth difference that is significant enough to have an impact on rendering order.
+        public const float DepthEpsilon = 1.0f / 255.0f;
+
+        // Depth is between 0.0 and 1.0. How much of the scale is reserved for depth increasing as we go southwards on the map.
+        public const float DownwardsDepthRenderSpace = 0.7f;
+
+        // How much of the depth scale (0.0 to 1.0) is reserved for depth increasing as we go up the map height levels.
+        public static readonly float DepthRenderStep = 0.3f / (MaxMapHeightLevel + 1);
 
         public const string ClipboardMapDataFormatValue = "ScenarioEditorCopiedMapData";
         public const string UserDataFolder = "UserData";

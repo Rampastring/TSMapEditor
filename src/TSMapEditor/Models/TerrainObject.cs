@@ -17,6 +17,8 @@ namespace TSMapEditor.Models
             Position = position;
         }
 
+        public override GameObjectType GetObjectType() => TerrainType;
+
         public override RTTIType WhatAmI() => RTTIType.Terrain;
 
         public TerrainType TerrainType { get; private set; }

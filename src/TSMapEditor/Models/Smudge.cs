@@ -4,6 +4,8 @@
     {
         public override RTTIType WhatAmI() => RTTIType.Smudge;
 
+        public override GameObjectType GetObjectType() => SmudgeType;
+
         public SmudgeType SmudgeType { get; set; }
 
         public override int GetYDrawOffset()
