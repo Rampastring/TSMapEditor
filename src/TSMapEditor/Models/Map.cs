@@ -491,12 +491,12 @@ namespace TSMapEditor.Models
                 {
                     if (Tiles[ty][tx] == null || overrideExisting)
                     {
-                        Tiles[ty][tx] = new MapTile(this) { X = (short)tx, Y = (short)ty, Level = defaultLevel };
+                        Tiles[ty][tx] = new MapTile() { X = (short)tx, Y = (short)ty, Level = defaultLevel };
                     }
 
                     if (tx < Size.X + ox - 1 && (Tiles[ty][tx + 1] == null || overrideExisting))
                     {
-                        Tiles[ty][tx + 1] = new MapTile(this) { X = (short)(tx + 1), Y = (short)ty, Level = defaultLevel };
+                        Tiles[ty][tx + 1] = new MapTile() { X = (short)(tx + 1), Y = (short)ty, Level = defaultLevel };
                     }
 
                     tx++;

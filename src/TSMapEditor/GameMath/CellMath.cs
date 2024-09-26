@@ -202,17 +202,6 @@ namespace TSMapEditor.GameMath
             }
 
             return nearestCenterCoords;
-        }
-        public static Point2D GetInfantrySubcellOffset(MapTile cell, Infantry infantry, Map map)
-        {
-            var subCellCoords = cell.GetSubCellCoords(infantry.SubCell);
-            var cellCenterCoords = CellCenterPointFromCellCoords(new Point2D(cell.X, cell.Y), map);
-
-            var offsetX = subCellCoords.X - cellCenterCoords.X;
-            var offsetY = subCellCoords.Y - cellCenterCoords.Y - Constants.CellHeight / 2;
-            var offset = new Point2D(offsetX, offsetY);
-
-            return offset;
-        }
+        }        
     }
 }

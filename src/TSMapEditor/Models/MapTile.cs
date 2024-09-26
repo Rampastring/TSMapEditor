@@ -16,9 +16,9 @@ namespace TSMapEditor.Models
     {
         private const int SubCellCount = 5;
 
-        public MapTile(Map map) 
+        public MapTile()
         {
-            Map = map;
+
         }
 
         public MapTile(byte[] data) : base(data) { }
@@ -59,9 +59,7 @@ namespace TSMapEditor.Models
 
         public MapColor CellLighting { get; set; } = new MapColor(1.0, 1.0, 1.0);
 
-        public List<(Structure Source, double DistanceInLeptons)> LightSources { get; set; } = new();
-
-        public Map Map { get; set; }
+        public List<(Structure Source, double DistanceInLeptons)> LightSources { get; set; } = new();        
 
         public void RefreshLighting(Lighting lighting, LightingPreviewMode lightingPreviewMode)
         {
@@ -205,31 +203,26 @@ namespace TSMapEditor.Models
             }
         }
 
-        public Point2D GetSubCellCoords(SubCell subcell)
-        {
-            var tileCoords = new Point2D(X, Y);
-            var tileCenter = CellMath.CellCenterPointFromCellCoords(tileCoords, Map);
-
+        public Point2D GetSubCellOffset(SubCell subcell)
+        { 
             switch (subcell)
             {
                 case SubCell.Bottom:
-                    return tileCenter + Constants.SubCellBottomOffSet;
+                    return Constants.SubCellBottomOffSet;
 
                 case SubCell.Left:
-                    return tileCenter + Constants.SubCellLeftOffSet;
+                    return Constants.SubCellLeftOffSet;
 
                 case SubCell.Right:
-                    return tileCenter + Constants.SubCellRightOffSet;
+                    return Constants.SubCellRightOffSet;
 
                 default:
                     return Point2D.Zero;
             }
         }
 
-        public SubCell GetSubCellClosestToCursor(Point2D cursorPoint, bool onlyOccupiedCells)
-        {
-            cursorPoint += new Point2D(0, Constants.MapYBaseline);
-
+        public SubCell GetSubCellClosestToPosition(Point2D position, bool onlyOccupiedCells)
+        { 
             IEnumerable<SubCell> subCells = [SubCell.Bottom, SubCell.Left, SubCell.Right];
             if (onlyOccupiedCells)
             {
@@ -241,8 +234,8 @@ namespace TSMapEditor.Models
 
             foreach (var subCell in subCells)
             {
-                var subCellCoords = GetSubCellCoords(subCell);
-                var distanceToSubCell = Vector2.Distance(cursorPoint.ToXNAVector(), subCellCoords.ToXNAVector());
+                var subCellCoords = GetTileCenter() + GetSubCellOffset(subCell);
+                var distanceToSubCell = Vector2.Distance(position.ToXNAVector(), subCellCoords.ToXNAVector());
                 if (distanceToSubCell < shortestDistance)
                 {
                     closestSubcell = subCell;
@@ -309,7 +302,7 @@ namespace TSMapEditor.Models
             return Array.Find(Infantry, inf => inf != null && predicate(inf));
         }
 
-        public TechnoBase GetTechno(Point2D? cursorPosition = null)
+        public TechnoBase GetTechno(Point2D? position = null)
         {
             if (Structures.Count > 0)
                 return Structures[0];
@@ -320,9 +313,9 @@ namespace TSMapEditor.Models
             if (Aircraft.Count > 0)
                 return Aircraft[0];
 
-            if (cursorPosition != null)
+            if (position != null)
             {
-                var closestSubcell = GetSubCellClosestToCursor((Point2D)cursorPosition, true);
+                var closestSubcell = GetSubCellClosestToPosition((Point2D)position, true);
                 if (closestSubcell == SubCell.None)
                     return null;
 
@@ -330,13 +323,13 @@ namespace TSMapEditor.Models
             }
             else
             {
-                return Array.Find(Infantry, inf => inf != null);
+                return GetFirstInfantry();
             }            
         }        
 
-        public GameObject GetObject(Point2D? cursorPosition = null)
+        public GameObject GetObject(Point2D? position = null)
         {
-            GameObject obj = GetTechno(cursorPosition);
+            GameObject obj = GetTechno(position);
             if (obj != null)
                 return obj;
 
@@ -422,5 +415,7 @@ namespace TSMapEditor.Models
         }
 
         public Point2D CoordsToPoint() => new Point2D(X, Y);
+
+        public Point2D GetTileCenter() => new Point2D(X + Constants.CellSizeX / 2, Y + Constants.CellSizeY / 2);
     }
 }

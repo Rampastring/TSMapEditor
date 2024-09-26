@@ -353,16 +353,17 @@ namespace TSMapEditor.Rendering
             if (tileUnderCursor == null)
                 return;
 
-            var firstObject = tileUnderCursor.GetObject(GetCursorMapPoint()) as TechnoBase;
-            if (firstObject == null)
+            var tilePosition = GetRelativeTilePositionFromCursorPosition(tileUnderCursor);
+            var selectedObject = tileUnderCursor.GetObject(tilePosition) as TechnoBase;
+            if (selectedObject == null)
                 return;
 
             const int step = 32;
 
-            if (firstObject.Facing + step > byte.MaxValue)
-                firstObject.Facing = (byte)(firstObject.Facing + step - byte.MaxValue);
+            if (selectedObject.Facing + step > byte.MaxValue)
+                selectedObject.Facing = (byte)(selectedObject.Facing + step - byte.MaxValue);
             else
-                firstObject.Facing += step;
+                selectedObject.Facing += step;
 
             AddRefreshPoint(tileUnderCursor.CoordsToPoint());
         }
@@ -1333,7 +1334,8 @@ namespace TSMapEditor.Rendering
             // Attempt dragging or rotating an object
             if (CursorAction == null && tileUnderCursor != null && Cursor.LeftPressedDown && !isDraggingObject && !isRotatingObject)
             {
-                var cellObject = tileUnderCursor.GetObject(GetCursorMapPoint());
+                var tilePosition = GetRelativeTilePositionFromCursorPosition(tileUnderCursor);
+                var cellObject = tileUnderCursor.GetObject(tilePosition);
 
                 if (cellObject != null)
                 {
@@ -1442,7 +1444,8 @@ namespace TSMapEditor.Rendering
                 if (tileUnderCursor.Aircraft.Count > 0)
                     windowController.AircraftOptionsWindow.Open(tileUnderCursor.Aircraft[0]);
 
-                var closestOccupiedSubCell = tileUnderCursor.GetSubCellClosestToCursor(GetCursorMapPoint(), true);
+                var tilePosition = GetRelativeTilePositionFromCursorPosition(tileUnderCursor); 
+                var closestOccupiedSubCell = tileUnderCursor.GetSubCellClosestToPosition(tilePosition, true);
                 if (closestOccupiedSubCell != SubCell.None)
                 {
                     Infantry infantry = tileUnderCursor.GetInfantryFromSubCellSpot(closestOccupiedSubCell);
@@ -1490,7 +1493,8 @@ namespace TSMapEditor.Rendering
 
             if (IsActive && tileUnderCursor != null)
             {
-                TechnoUnderCursor = tileUnderCursor.GetTechno(GetCursorMapPoint());
+                var tilePosition = GetRelativeTilePositionFromCursorPosition(tileUnderCursor);
+                TechnoUnderCursor = tileUnderCursor.GetTechno(tilePosition);
 
                 if (KeyboardCommands.Instance.DeleteObject.AreKeysDown(Keyboard))
                 {
@@ -1583,7 +1587,7 @@ namespace TSMapEditor.Rendering
                     startDrawPoint -= new Point2D(0, startCell.Level * Constants.CellHeight);
 
                     if (draggedOrRotatedObject.WhatAmI() == RTTIType.Infantry)
-                        startDrawPoint += CellMath.GetInfantrySubcellOffset(startCell, (Infantry)draggedOrRotatedObject, Map);
+                        startDrawPoint += startCell.GetSubCellOffset(((Infantry)draggedOrRotatedObject).SubCell) - new Point2D(0, Constants.CellHeight / 2);
                 }
 
                 Point2D endDrawPoint = CellMath.CellTopLeftPointFromCellCoords(tileUnderCursor.CoordsToPoint(), Map) + cameraAndCellCenterOffset;
@@ -1613,7 +1617,7 @@ namespace TSMapEditor.Rendering
                     startDrawPoint -= new Point2D(0, Map.GetTile(draggedOrRotatedObject.Position).Level * Constants.CellHeight);
 
                     if (draggedOrRotatedObject.WhatAmI() == RTTIType.Infantry)
-                        startDrawPoint += CellMath.GetInfantrySubcellOffset(startCell, (Infantry)draggedOrRotatedObject, Map);
+                        startDrawPoint += startCell.GetSubCellOffset(((Infantry)draggedOrRotatedObject).SubCell) - new Point2D(0, Constants.CellHeight / 2);
                 }
 
                 Point2D endDrawPoint = CellMath.CellTopLeftPointFromCellCoords(tileUnderCursor.CoordsToPoint(), Map) + cameraAndCellCenterOffset;
@@ -2036,6 +2040,15 @@ namespace TSMapEditor.Rendering
             MinimapUsers.Remove(this);
 
             EditorState.RenderInvisibleInGameObjects = true;
+        }
+
+        private Point2D GetRelativeTilePositionFromCursorPosition(MapTile tile)
+        {
+            var tileCenter = tile.GetTileCenter();
+            var cursorPosition = GetCursorMapPoint() + new Point2D(0, Constants.MapYBaseline);
+            var offset = cursorPosition - CellMath.CellCenterPointFromCellCoords(tile.CoordsToPoint(), Map);
+
+            return tileCenter + offset;
         }
     }
 }
