@@ -1587,7 +1587,7 @@ namespace TSMapEditor.Rendering
                     startDrawPoint -= new Point2D(0, startCell.Level * Constants.CellHeight);
 
                     if (draggedOrRotatedObject.WhatAmI() == RTTIType.Infantry)
-                        startDrawPoint += startCell.GetSubCellOffset(((Infantry)draggedOrRotatedObject).SubCell) - new Point2D(0, Constants.CellHeight / 2);
+                        startDrawPoint += CellMath.GetSubCellOffset(((Infantry)draggedOrRotatedObject).SubCell) - new Point2D(0, Constants.CellHeight / 2);
                 }
 
                 Point2D endDrawPoint = CellMath.CellTopLeftPointFromCellCoords(tileUnderCursor.CoordsToPoint(), Map) + cameraAndCellCenterOffset;
@@ -1617,7 +1617,7 @@ namespace TSMapEditor.Rendering
                     startDrawPoint -= new Point2D(0, Map.GetTile(draggedOrRotatedObject.Position).Level * Constants.CellHeight);
 
                     if (draggedOrRotatedObject.WhatAmI() == RTTIType.Infantry)
-                        startDrawPoint += startCell.GetSubCellOffset(((Infantry)draggedOrRotatedObject).SubCell) - new Point2D(0, Constants.CellHeight / 2);
+                        startDrawPoint += CellMath.GetSubCellOffset(((Infantry)draggedOrRotatedObject).SubCell) - new Point2D(0, Constants.CellHeight / 2);
                 }
 
                 Point2D endDrawPoint = CellMath.CellTopLeftPointFromCellCoords(tileUnderCursor.CoordsToPoint(), Map) + cameraAndCellCenterOffset;
@@ -2044,11 +2044,11 @@ namespace TSMapEditor.Rendering
 
         private Point2D GetRelativeTilePositionFromCursorPosition(MapTile tile)
         {
-            var tileCenter = tile.GetTileCenter();
-            var cursorPosition = GetCursorMapPoint() + new Point2D(0, Constants.MapYBaseline);
-            var offset = cursorPosition - CellMath.CellCenterPointFromCellCoords(tile.CoordsToPoint(), Map);
+            var cellTopLeft = Constants.IsFlatWorld && EditorState.Is2DMode ?
+                CellMath.CellTopLeftPointFromCellCoords_NoBaseline(tile.CoordsToPoint(), Map) :
+                CellMath.CellTopLeftPointFromCellCoords_3D_NoBaseline(tile.CoordsToPoint(), Map);
 
-            return tileCenter + offset;
+            return GetCursorMapPoint() - cellTopLeft;
         }
     }
 }

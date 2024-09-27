@@ -198,25 +198,7 @@ namespace TSMapEditor.Models
             {
                 action(waypoint);
             }
-        }
-
-        public Point2D GetSubCellOffset(SubCell subcell)
-        { 
-            switch (subcell)
-            {
-                case SubCell.Bottom:
-                    return Constants.SubCellBottomOffSet;
-
-                case SubCell.Left:
-                    return Constants.SubCellLeftOffSet;
-
-                case SubCell.Right:
-                    return Constants.SubCellRightOffSet;
-
-                default:
-                    return Point2D.Zero;
-            }
-        }
+        }       
 
         public SubCell GetSubCellClosestToPosition(Point2D position, bool onlyOccupiedCells)
         { 
@@ -231,7 +213,7 @@ namespace TSMapEditor.Models
 
             foreach (var subCell in subCells)
             {
-                var subCellCoords = GetTileCenter() + GetSubCellOffset(subCell);
+                var subCellCoords = GetTileCenter() + CellMath.GetSubCellOffset(subCell);
                 var distanceToSubCell = Vector2.Distance(position.ToXNAVector(), subCellCoords.ToXNAVector());
                 if (distanceToSubCell < shortestDistance)
                 {
@@ -413,6 +395,6 @@ namespace TSMapEditor.Models
 
         public Point2D CoordsToPoint() => new Point2D(X, Y);
 
-        public Point2D GetTileCenter() => new Point2D(X + Constants.CellSizeX / 2, Y + Constants.CellSizeY / 2);
+        public Point2D GetTileCenter() => new Point2D(Constants.CellSizeX / 2, Constants.CellSizeY / 2);
     }
 }

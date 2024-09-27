@@ -107,12 +107,7 @@ namespace TSMapEditor
         public const char NewTheaterGenericLetter = 'G';
 
         public const string VeinholeMonsterTypeName = "VEINHOLE";
-        public const string VeinholeDummyTypeName = "VEINHOLEDUMMY";
-
-        public static Point2D SubCellTopOffSet = new Point2D(0, CellSizeY / -4);
-        public static Point2D SubCellBottomOffSet = new Point2D(0, CellSizeY / 4);
-        public static Point2D SubCellLeftOffSet = new Point2D(CellSizeX / -4, 0);
-        public static Point2D SubCellRightOffSet = new Point2D(CellSizeX / 4, 0);
+        public const string VeinholeDummyTypeName = "VEINHOLEDUMMY";        
 
         public static void Init()
         {

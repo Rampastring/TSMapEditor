@@ -203,5 +203,26 @@ namespace TSMapEditor.GameMath
 
             return nearestCenterCoords;
         }
+
+        public static Point2D GetSubCellOffset(SubCell subcell)
+        {
+            switch (subcell)
+            {
+                case SubCell.Top:
+                    return new Point2D(0, Constants.CellSizeY / -4);
+
+                case SubCell.Bottom:
+                    return new Point2D(0, Constants.CellSizeY / 4);
+
+                case SubCell.Left:
+                    return new Point2D(Constants.CellSizeX / -4, 0);
+
+                case SubCell.Right:
+                    return new Point2D(Constants.CellSizeX / 4, 0);
+
+                default:
+                    return Point2D.Zero;
+            }
+        }
     }
 }

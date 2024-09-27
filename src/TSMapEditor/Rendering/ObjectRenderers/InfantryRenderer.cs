@@ -24,27 +24,9 @@ namespace TSMapEditor.Rendering.ObjectRenderers
         public override Point2D GetDrawPoint(Infantry gameObject)
         {
             Point2D drawPoint = base.GetDrawPoint(gameObject);
+            Point2D subCellOffset = CellMath.GetSubCellOffset(gameObject.SubCell);
 
-            switch (gameObject.SubCell)
-            {
-                case SubCell.Top:
-                    drawPoint += Constants.SubCellTopOffSet;
-                    break;
-                case SubCell.Bottom:
-                    drawPoint += Constants.SubCellBottomOffSet;
-                    break;
-                case SubCell.Left:
-                    drawPoint += Constants.SubCellLeftOffSet;
-                    break;
-                case SubCell.Right:
-                    drawPoint += Constants.SubCellRightOffSet;
-                    break;
-                case SubCell.Center:
-                default:
-                    break;
-            }
-
-            return drawPoint;
+            return drawPoint + subCellOffset;
         }
 
         protected override void Render(Infantry gameObject, Point2D drawPoint, in CommonDrawParams drawParams)
