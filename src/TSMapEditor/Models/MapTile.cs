@@ -201,18 +201,16 @@ namespace TSMapEditor.Models
         }       
 
         public SubCell GetSubCellClosestToPosition(Point2D position, bool onlyOccupiedCells)
-        { 
-            IEnumerable<SubCell> subCells = [SubCell.Bottom, SubCell.Left, SubCell.Right];
-            if (onlyOccupiedCells)
-            {
-                subCells = subCells.Where(sc => GetInfantryFromSubCellSpot(sc) != null);
-            }
-
+        {
             SubCell closestSubcell = SubCell.None;
             float shortestDistance = float.MaxValue;
-
-            foreach (var subCell in subCells)
+            for (int i = 0; i < SubCellCount; i++)
             {
+                SubCell subCell = (SubCell)i;
+
+                if (onlyOccupiedCells && GetInfantryFromSubCellSpot(subCell) == null)
+                    continue;
+
                 var subCellCoords = GetTileCenter() + CellMath.GetSubCellOffset(subCell);
                 var distanceToSubCell = Vector2.Distance(position.ToXNAVector(), subCellCoords.ToXNAVector());
                 if (distanceToSubCell < shortestDistance)
