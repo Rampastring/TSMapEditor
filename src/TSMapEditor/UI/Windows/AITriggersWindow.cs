@@ -130,15 +130,13 @@ namespace TSMapEditor.UI.Windows
             var mediumAITrigger = editedAITrigger.Clone(map.GetNewUniqueInternalId());
             mediumAITrigger.Hard = false;
             mediumAITrigger.Medium = true;
+            mediumAITrigger.Name = Helpers.ConvertNameToNewDifficulty(editedAITrigger.Name, Difficulty.Hard, Difficulty.Medium);
+            map.AITriggerTypes.Add(mediumAITrigger);
 
             var easyAITrigger = editedAITrigger.Clone(map.GetNewUniqueInternalId());
             easyAITrigger.Hard = false;
             easyAITrigger.Easy = true;
-
-            mediumAITrigger.Name = Helpers.ConvertNameToNewDifficulty(editedAITrigger.Name, Difficulty.Hard, Difficulty.Medium);
             easyAITrigger.Name = Helpers.ConvertNameToNewDifficulty(editedAITrigger.Name, Difficulty.Hard, Difficulty.Easy);
-
-            map.AITriggerTypes.Add(mediumAITrigger);
             map.AITriggerTypes.Add(easyAITrigger);
 
             CloneTeamTypesAndAttachToAITrigger(mediumAITrigger, Difficulty.Medium, true);
