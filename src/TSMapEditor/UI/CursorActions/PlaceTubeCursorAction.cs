@@ -1,6 +1,8 @@
 ﻿using Microsoft.Xna.Framework;
 using Rampastring.XNAUI;
 using Rampastring.XNAUI.Input;
+using System;
+using System.Collections.Generic;
 using TSMapEditor.GameMath;
 using TSMapEditor.Models;
 using TSMapEditor.Mutations.Classes;
@@ -10,6 +12,8 @@ namespace TSMapEditor.UI.CursorActions
 {
     public class PlaceTubeCursorAction : CursorAction
     {
+        private const double DoubleClickTime = 0.2f;
+
         public PlaceTubeCursorAction(ICursorActionTarget cursorActionTarget) : base(cursorActionTarget)
         {
         }
@@ -22,16 +26,45 @@ namespace TSMapEditor.UI.CursorActions
 
         private Tube tube;
 
+        private List<Point2D> points = new List<Point2D>();
+        private List<Point2D> tubeCells = new List<Point2D>();
+
+        private bool pointAddedForPreview;
+
+        private Point2D lastClickedCell;
+        private DateTime lastClickedCellDateTime;
+
         public override void PreMapDraw(Point2D cellCoords)
         {
+            if (!points.Contains(cellCoords) && !tubeCells.Contains(cellCoords))
+            {
+                points.Add(cellCoords);
+                pointAddedForPreview = true;
+                RefreshTube();
+            }
+            else
+            {
+                pointAddedForPreview = false;
+            }
+
             if (tube != null)
                 CursorActionTarget.Map.Tubes.Add(tube);
+
+            CursorActionTarget.InvalidateMap();
         }
 
         public override void PostMapDraw(Point2D cellCoords)
         {
             if (tube != null)
                 CursorActionTarget.Map.Tubes.RemoveAt(CursorActionTarget.Map.Tubes.Count - 1);
+
+            if (pointAddedForPreview)
+            {
+                points.RemoveAt(points.Count - 1);
+                RefreshTube();
+            }
+
+            CursorActionTarget.InvalidateMap();
         }
 
         public override void DrawPreview(Point2D cellCoords, Point2D cameraTopLeftPoint)
@@ -40,7 +73,12 @@ namespace TSMapEditor.UI.CursorActions
 
             cellTopLeftPoint = cellTopLeftPoint.ScaleBy(CursorActionTarget.Camera.ZoomLevel);
 
-            const string text = "Hold left click or click on cells to draw tunnel.\r\n\r\nENTER to confirm\r\nShift + ENTER to also create opposing tunnel\r\nESC to clear\r\nBackspace to step back\r\nRight click to exit";
+            const string text = "Click on cells to draw a tunnel. Once ready, use one of the options below:\r\n\r\n" +
+                "Double-click to confirm\r\n" +
+                "Double-click while holding Shift to create bidirectional tunnel\r\n" +
+                "Press ESC to clear\r\n" +
+                "Press B to step back\r\n" +
+                "Right-click to exit";
             var textDimensions = Renderer.GetTextDimensions(text, Constants.UIBoldFont);
             int x = cellTopLeftPoint.X - (int)(textDimensions.X - Constants.CellSizeX) / 2;
 
@@ -57,14 +95,15 @@ namespace TSMapEditor.UI.CursorActions
             Renderer.DrawStringWithShadow(text, Constants.UIBoldFont, textPosition, Color.Yellow);
         }
 
-        public override void OnKeyPressed(KeyPressEventArgs e)
+        public override void OnKeyPressed(KeyPressEventArgs e, Point2D cellCoords)
         {
             if (e.PressedKey == Microsoft.Xna.Framework.Input.Keys.Escape)
             {
                 if (tube != null)
                 {
                     TubeRefreshHelper.MapViewRefreshTube(tube, CursorActionTarget.MutationTarget);
-                    tube = null;
+                    points.Clear();
+                    RefreshTube();
                 }
 
                 if (CursorActionTarget.WindowManager.Keyboard.IsShiftHeldDown())
@@ -72,7 +111,29 @@ namespace TSMapEditor.UI.CursorActions
 
                 e.Handled = true;
             }
-            else if (e.PressedKey == Microsoft.Xna.Framework.Input.Keys.Enter && tube != null && tube.Directions.Count > 0)
+            else if (e.PressedKey == Microsoft.Xna.Framework.Input.Keys.C && tube != null && tube.Directions.Count > 0)
+            {
+                ConfirmTube();
+
+                e.Handled = true;
+            }
+            else if (e.PressedKey == Microsoft.Xna.Framework.Input.Keys.B && tube != null && tube.Directions.Count > 0)
+            {
+                TubeRefreshHelper.MapViewRefreshTube(tube, CursorActionTarget.MutationTarget);
+                tube.Directions.RemoveAt(tube.Directions.Count - 1);
+
+                if (points.Count > 0)
+                    points.RemoveAt(points.Count - 1);
+
+                RefreshTube();
+
+                e.Handled = true;
+            }
+        }
+
+        private void ConfirmTube()
+        {
+            if (tube != null && tube.Directions.Count > 0)
             {
                 tube.Pending = false;
                 tube.UnitInitialFacing = tube.Directions[0];
@@ -86,71 +147,108 @@ namespace TSMapEditor.UI.CursorActions
                     CursorActionTarget.MutationManager.PerformMutation(new PlaceTubeMutation(CursorActionTarget.MutationTarget, reversedTube));
                 }
 
-                tube = null;
-
-                e.Handled = true;
+                points.Clear();
+                RefreshTube();
             }
-            else if (e.PressedKey == Microsoft.Xna.Framework.Input.Keys.Back && tube != null && tube.Directions.Count > 0)
+        }
+
+        private void RefreshTube()
+        {
+            tubeCells.Clear();
+
+            if (points.Count == 0)
             {
-                TubeRefreshHelper.MapViewRefreshTube(tube, CursorActionTarget.MutationTarget);
-                tube.Directions.RemoveAt(tube.Directions.Count - 1);
-
-                if (tube.Directions.Count == 0)
-                {
-                    tube = null;
-                }
-
-                e.Handled = true;
+                tube = null;
+                return;
             }
+
+            if (tube == null)
+                tube = new Tube();
+
+            tube.Pending = true;
+
+            tubeCells.Add(points[0]);
+
+            tube.EntryPoint = points[0];
+            tube.ExitPoint = points[^1];
+
+            tube.Directions.Clear();
+
+            for (int i = 0; i < points.Count - 1; i++)
+            {
+                Point2D current = points[i];
+                Point2D next = points[i + 1];
+
+                Point2D previousStep = current;
+
+                while (previousStep != next)
+                {
+                    int x = previousStep.X;
+                    int y = previousStep.Y;
+
+                    if (x > next.X)
+                        x--;
+                    else if (x < next.X)
+                        x++;
+
+                    if (y > next.Y)
+                        y--;
+                    else if (y < next.Y)
+                        y++;
+
+                    Point2D newPoint = new Point2D(x, y);
+
+                    // Fetch tube direction for this cell
+                    // Check each tube direction to see if we find a fitting one
+
+                    TubeDirection? nextTubeDirection = null;
+                    for (int dir = (int)TubeDirection.First; dir <= (int)TubeDirection.Max; dir++)
+                    {
+                        TubeDirection tubeDirection = (TubeDirection)dir;
+                        Point2D nextPointCandidate = previousStep.NextPointFromTubeDirection(tubeDirection);
+
+                        if (nextPointCandidate == newPoint)
+                        {
+                            nextTubeDirection = tubeDirection;
+                            break;
+                        }
+                    }
+
+                    if (!nextTubeDirection.HasValue)
+                        throw new ApplicationException("Unable to find tunnel tube direction! From: " + previousStep + " To: " + newPoint);
+
+                    tube.Directions.Add(nextTubeDirection.Value);
+                    tubeCells.Add(newPoint);
+
+                    previousStep = newPoint;
+                }
+            }
+
+            tube.UnitInitialFacing = tube.Directions.Count > 0 ? tube.Directions[0] : TubeDirection.None;
         }
 
         public override void LeftClick(Point2D cellCoords)
         {
-            if (tube == null)
+            if (points.Count == 0)
             {
                 // Make sure that a tube doesn't already exist on this cell
                 if (CursorActionTarget.Map.Tubes.Exists(tb => tb.EntryPoint == cellCoords))
                     return;
-
-                tube = new Tube();
-                tube.Pending = true;
-                tube.EntryPoint = cellCoords;
-                return;
             }
 
-            Point2D lastCell = tube.EntryPoint;
-            tube.Directions.ForEach(td => lastCell = lastCell.NextPointFromTubeDirection(td));
-
-            if (cellCoords == lastCell)
-                return;
-
-            // Fetch tube direction for this cell
-            // Check each tube direction to see if we find a fitting one
-
-            TubeDirection? nextTubeDirection = null;
-            for (int i = (int)TubeDirection.First; i <= (int)TubeDirection.Max; i++)
+            if (!points.Contains(cellCoords) && !tubeCells.Contains(cellCoords))
             {
-                TubeDirection tubeDirection = (TubeDirection)i;
-                Point2D nextPointCandidate = lastCell.NextPointFromTubeDirection(tubeDirection);
-
-                if (nextPointCandidate == cellCoords)
-                {
-                    nextTubeDirection = tubeDirection;
-                    break;
-                }
+                points.Add(cellCoords);
+                RefreshTube();
+                TubeRefreshHelper.MapViewRefreshTube(tube, CursorActionTarget.MutationTarget);
+                lastClickedCell = cellCoords;
+                lastClickedCellDateTime = DateTime.Now;
             }
-
-            // If we didn't find a fitting direction, the user didn't press the cursor 
-            // on a cell next to our previous tube cell. Jump out.
-            if (nextTubeDirection == null)
-                return;
-
-            tube.Directions.Add(nextTubeDirection.Value);
-            tube.ExitPoint = cellCoords;
-
-            TubeRefreshHelper.MapViewRefreshTube(tube, CursorActionTarget.MutationTarget);
+            else
+            {
+                if (points.Count > 1 && lastClickedCell == cellCoords && DateTime.Now - lastClickedCellDateTime < TimeSpan.FromSeconds(DoubleClickTime))
+                    ConfirmTube();
+            }
         }
-
-        public override void LeftDown(Point2D cellCoords) => LeftClick(cellCoords);
     }
 }

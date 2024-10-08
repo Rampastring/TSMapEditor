@@ -1,5 +1,5 @@
-﻿using TSMapEditor.GameMath;
-using Microsoft.Xna.Framework;
+﻿using Microsoft.Xna.Framework;
+using TSMapEditor.GameMath;
 
 namespace TSMapEditor.Models
 {
@@ -17,23 +17,26 @@ namespace TSMapEditor.Models
 
         public override RTTIType WhatAmI() => RTTIType.Anim;
 
+        public override GameObjectType GetObjectType() => AnimType;
+
         public AnimType AnimType { get; private set; }
         public House Owner { get; set; }
         public byte Facing { get; set; }
-
-        public Point2D ExtraDrawOffset { get; set; } = new();
         public bool IsBuildingAnim { get; set; }
         public Structure ParentBuilding { get; set; }
         public bool IsTurretAnim { get; set; }
+        public BuildingAnimDrawConfig BuildingAnimDrawConfig { get; set; } // Contains offsets loaded from the parent building
 
         public override int GetYDrawOffset()
         {
-            return Constants.CellSizeY / -2 + AnimType.ArtConfig.YDrawOffset + ExtraDrawOffset.Y;
+            return Constants.CellSizeY / -2 + AnimType.ArtConfig.YDrawOffset +
+                   (IsBuildingAnim ? BuildingAnimDrawConfig.Y : 0);
         }
 
         public override int GetXDrawOffset()
         {
-            return AnimType.ArtConfig.XDrawOffset + ExtraDrawOffset.X;
+            return AnimType.ArtConfig.XDrawOffset +
+                   (IsBuildingAnim ? BuildingAnimDrawConfig.X : 0);
         }
 
         public override int GetFrameIndex(int frameCount)
@@ -60,5 +63,15 @@ namespace TSMapEditor.Models
 
         public override bool Remapable() => IsBuildingAnim;
         public override Color GetRemapColor() => Remapable() ? Owner.XNAColor : Color.White;
+    }
+
+    public struct BuildingAnimDrawConfig
+    {
+        private const int ZAdjustMult = 5; // Random value to make z-sorting work
+        public int Y { get; set; }
+        public int X { get; set; }
+        public int YSort { get; set; }
+        public int ZAdjust { get; set; }
+        public readonly int SortValue => YSort - ZAdjust * ZAdjustMult;
     }
 }

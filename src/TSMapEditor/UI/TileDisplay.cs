@@ -6,6 +6,7 @@ using Rampastring.XNAUI.XNAControls;
 using System;
 using System.Collections.Generic;
 using TSMapEditor.CCEngine;
+using TSMapEditor.Models;
 using TSMapEditor.Rendering;
 using TSMapEditor.UI.CursorActions;
 
@@ -35,10 +36,11 @@ namespace TSMapEditor.UI
         private const int SCROLL_RATE = 10;
         private const int KEYBOARD_SCROLL_RATE = 400;
 
-        public TileDisplay(WindowManager windowManager, TheaterGraphics theaterGraphics,
+        public TileDisplay(WindowManager windowManager, Map map, TheaterGraphics theaterGraphics,
             PlaceTerrainCursorAction placeTerrainCursorAction, EditorState editorState) : base(windowManager)
         {
             this.theaterGraphics = theaterGraphics;
+            this.map = map;
             DrawMode = ControlDrawMode.UNIQUE_RENDER_TARGET;
             placeTerrainCursorAction.ActionExited += (s, e) => _selectedTile = null;
             this.editorState = editorState;
@@ -60,6 +62,7 @@ namespace TSMapEditor.UI
             }
         }
 
+        private readonly Map map;
         private readonly TheaterGraphics theaterGraphics;
 
         private TileSet tileSet;
@@ -79,9 +82,9 @@ namespace TSMapEditor.UI
             }
         }
 
-        private Effect palettedDrawEffect;
-
         private readonly EditorState editorState;
+
+        private Effect palettedDrawEffect;
 
         public override void Initialize()
         {
@@ -321,7 +324,10 @@ namespace TSMapEditor.UI
 
                     if (!paletteTextureSet)
                     {
-                        palettedDrawEffect.Parameters["PaletteTexture"].SetValue(image.Palette.Texture);
+                        palettedDrawEffect.Parameters["PaletteTexture"].SetValue(image.GetPaletteTexture());
+
+                        palettedDrawEffect.Parameters["Lighting"].SetValue(map.Lighting.MapColorFromPreviewMode(editorState.LightingPreviewState).ToXNAVector4());
+
                         paletteTextureSet = true;
                     }
 

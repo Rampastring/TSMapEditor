@@ -2,7 +2,6 @@
 using TSMapEditor.CCEngine;
 using TSMapEditor.GameMath;
 using TSMapEditor.Models;
-using TSMapEditor.Rendering;
 using TSMapEditor.UI;
 using HCT = TSMapEditor.Mutations.Classes.HeightMutations.HeightComparisonType;
 
@@ -68,9 +67,8 @@ namespace TSMapEditor.Mutations.Classes.HeightMutations
         };
 
         // Pre-ramp-placement height fix checks
-        private static readonly TransitionRampInfo[] heightFixers = new[]
+        private static readonly TransitionRampInfo[] heightFixers = new TransitionRampInfo[]
         {
-            new TransitionRampInfo(RampType.None, new() { HCT.Higher, HCT.Higher, HCT.Higher, HCT.Higher, HCT.Equal, HCT.Equal, HCT.Equal, HCT.Equal }, 1),
             new TransitionRampInfo(RampType.None, new() { HCT.Equal, HCT.Equal, HCT.Higher, HCT.Higher, HCT.Higher, HCT.Equal, HCT.Equal, HCT.Higher }, 1),
             new TransitionRampInfo(RampType.None, new() { HCT.Higher, HCT.Higher, HCT.Higher, HCT.Equal, HCT.Equal, HCT.Higher, HCT.Equal, HCT.Equal }, 1),
             new TransitionRampInfo(RampType.None, new() { HCT.Higher, HCT.Equal, HCT.Equal, HCT.Higher, HCT.Equal, HCT.Equal, HCT.Higher, HCT.Higher }, 1),

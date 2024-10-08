@@ -5,8 +5,11 @@ namespace TSMapEditor
 {
     public static class Constants
     {
+        public const string ReleaseVersion = "1.3.1";
+
         public static int CellSizeX = 48;
         public static int CellSizeY = 24;
+        public const int CellSizeInLeptons = 256;
         public static int CellHeight => CellSizeY / 2;
         public static int TileColorBufferSize = 576;
 
@@ -14,12 +17,20 @@ namespace TSMapEditor
 
         public static bool IsFlatWorld = false;
         public static bool TheaterPaletteForTiberium = false;
+        public static bool TheaterPaletteForVeins = false;
+        public static bool TiberiumAffectedByLighting = false;
+        public static bool TiberiumTreesAffectedByLighting = false;
+        public static bool TerrainPaletteBuildingsAffectedByLighting = false;
+        public static bool VoxelsAffectedByLighting = false;
         public static bool NewTheaterGenericBuilding = false;
         public static bool DrawBuildingAnimationShadows = false;
-        public static bool UseCountries = false;
+        public static bool IsRA2YR = false;
+        public static bool WarnOfTooManyTriggerActions = true;
+        public static bool DefaultPreview = false;
 
         public static string ExpectedClientExecutableName = "DTA.exe";
         public static string GameRegistryInstallPath = "SOFTWARE\\DawnOfTheTiberiumAge";
+        public static bool InstallPathAtHKLM = false;
         public static string OpenFileDialogFilter = "TS maps|*.map|All files|*.*";
 
         public static bool EnableIniInclude = false;
@@ -35,6 +46,8 @@ namespace TSMapEditor
         public static string FirestormAIIniPath;
         public static string TutorialIniPath;
         public static string ThemeIniPath;
+        public static string EvaIniPath;
+        public static string SoundIniPath;
 
         public const int TextureSizeLimit = 16384;
 
@@ -42,6 +55,7 @@ namespace TSMapEditor
         public static int MaxMapHeight;
 
         public const byte MaxMapHeightLevel = 12;
+        public static int MapYBaseline => MaxMapHeightLevel * CellHeight;
 
         public static int MaxWaypoint = 100;
 
@@ -68,6 +82,11 @@ namespace TSMapEditor
 
         public const int UITopBarMenuHeight = 23;
 
+        public static int UITreeViewLineHeight = 20;
+
+        public static int MapPreviewMaxWidth = 800;
+        public static int MapPreviewMaxHeight = 400;
+
         public const int MAX_MAP_LENGTH_IN_DIMENSION = 512;
         public const int NO_OVERLAY = 255; // 0xFF
         public const int OverlayPackFormat = 80;
@@ -75,10 +94,16 @@ namespace TSMapEditor
         public const string NoneValue1 = "<none>";
         public const string NoneValue2 = "None";
 
-        public const bool HQRemap = true;
         public const float RemapBrightenFactor = 1.25f;
 
-        public const bool DrawShadows = true;
+        // The resolution of depth rendering. In other words, the minimum depth difference that is significant enough to have an impact on rendering order.
+        public const float DepthEpsilon = 1f / 333f;
+
+        // Depth is between 0.0 and 1.0. How much of the scale is reserved for depth increasing as we go southwards on the map.
+        public const float DownwardsDepthRenderSpace = 0.75f;
+
+        // How much of the depth scale (0.0 to 1.0) is reserved for depth increasing as we go up the map height levels.
+        public static readonly float DepthRenderStep = DepthEpsilon * 2;
 
         public const string ClipboardMapDataFormatValue = "ScenarioEditorCopiedMapData";
         public const string UserDataFolder = "UserData";
@@ -106,12 +131,20 @@ namespace TSMapEditor
 
             IsFlatWorld = constantsIni.GetBooleanValue(ConstantsSectionName, nameof(IsFlatWorld), IsFlatWorld);
             TheaterPaletteForTiberium = constantsIni.GetBooleanValue(ConstantsSectionName, nameof(TheaterPaletteForTiberium), TheaterPaletteForTiberium);
+            TheaterPaletteForVeins = constantsIni.GetBooleanValue(ConstantsSectionName, nameof(TheaterPaletteForVeins), TheaterPaletteForVeins);
+            TiberiumAffectedByLighting = constantsIni.GetBooleanValue(ConstantsSectionName, nameof(TiberiumAffectedByLighting), TiberiumAffectedByLighting);
+            TiberiumTreesAffectedByLighting = constantsIni.GetBooleanValue(ConstantsSectionName, nameof(TiberiumTreesAffectedByLighting), TiberiumTreesAffectedByLighting);
+            TerrainPaletteBuildingsAffectedByLighting = constantsIni.GetBooleanValue(ConstantsSectionName, nameof(TerrainPaletteBuildingsAffectedByLighting), TerrainPaletteBuildingsAffectedByLighting);
+            VoxelsAffectedByLighting = constantsIni.GetBooleanValue(ConstantsSectionName, nameof(VoxelsAffectedByLighting), VoxelsAffectedByLighting);
             NewTheaterGenericBuilding = constantsIni.GetBooleanValue(ConstantsSectionName, nameof(NewTheaterGenericBuilding), NewTheaterGenericBuilding);
             DrawBuildingAnimationShadows = constantsIni.GetBooleanValue(ConstantsSectionName, nameof(DrawBuildingAnimationShadows), DrawBuildingAnimationShadows);
-            UseCountries = constantsIni.GetBooleanValue(ConstantsSectionName, nameof(UseCountries), UseCountries);
+            IsRA2YR = constantsIni.GetBooleanValue(ConstantsSectionName, nameof(IsRA2YR), IsRA2YR);
+            WarnOfTooManyTriggerActions = constantsIni.GetBooleanValue(ConstantsSectionName, nameof(WarnOfTooManyTriggerActions), WarnOfTooManyTriggerActions);
+            DefaultPreview = constantsIni.GetBooleanValue(ConstantsSectionName, nameof(DefaultPreview), DefaultPreview);
 
             ExpectedClientExecutableName = constantsIni.GetStringValue(ConstantsSectionName, nameof(ExpectedClientExecutableName), ExpectedClientExecutableName);
             GameRegistryInstallPath = constantsIni.GetStringValue(ConstantsSectionName, nameof(GameRegistryInstallPath), GameRegistryInstallPath);
+            InstallPathAtHKLM = constantsIni.GetBooleanValue(ConstantsSectionName, nameof(InstallPathAtHKLM), InstallPathAtHKLM);
             OpenFileDialogFilter = constantsIni.GetStringValue(ConstantsSectionName, nameof(OpenFileDialogFilter), OpenFileDialogFilter);
 
             EnableIniInclude = constantsIni.GetBooleanValue(ConstantsSectionName, nameof(EnableIniInclude), EnableIniInclude);
@@ -121,6 +154,9 @@ namespace TSMapEditor
 
             MaxWaypoint = constantsIni.GetIntValue(ConstantsSectionName, nameof(MaxWaypoint), MaxWaypoint);
 
+            MapPreviewMaxWidth = constantsIni.GetIntValue(ConstantsSectionName, nameof(MapPreviewMaxWidth), MapPreviewMaxWidth);
+            MapPreviewMaxHeight = constantsIni.GetIntValue(ConstantsSectionName, nameof(MapPreviewMaxHeight), MapPreviewMaxHeight);
+
             RulesIniPath = constantsIni.GetStringValue(FilePathsSectionName, "Rules", "INI/Rules.ini");
             FirestormIniPath = constantsIni.GetStringValue(FilePathsSectionName, "Firestorm", "INI/Enhance.ini");
             ArtIniPath = constantsIni.GetStringValue(FilePathsSectionName, "Art", "INI/Art.ini");
@@ -129,6 +165,17 @@ namespace TSMapEditor
             FirestormAIIniPath = constantsIni.GetStringValue(FilePathsSectionName, "AIFS", "INI/AIE.ini");
             TutorialIniPath = constantsIni.GetStringValue(FilePathsSectionName, "Tutorial", "INI/Tutorial.ini");
             ThemeIniPath = constantsIni.GetStringValue(FilePathsSectionName, "Theme", "INI/Theme.ini");
+            EvaIniPath = constantsIni.GetStringValue(FilePathsSectionName, "EVA", "INI/Eva.ini");
+            SoundIniPath = constantsIni.GetStringValue(FilePathsSectionName, "Sound", "INI/Sound01.ini");
+
+            InitUIConstants();
+        }
+
+        public static void InitUIConstants()
+        {
+            IniFile uiConstantsIni = new IniFile(Environment.CurrentDirectory + "/Config/UI/UIConstants.ini");
+
+            UITreeViewLineHeight = uiConstantsIni.GetIntValue("UI", nameof(UITreeViewLineHeight), UITreeViewLineHeight);
         }
     }
 }

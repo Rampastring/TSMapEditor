@@ -21,6 +21,12 @@ namespace TSMapEditor.Models.ArtConfig
         /// </summary>
         public int StartTurretFrame { get; set; } = -1;
 
+        /// <summary>
+        /// Palette override introduced in Red Alert 2.
+        /// Not actually used by game for vehicles without Phobos.
+        /// </summary>
+        public string Palette { get; set; }
+
         public void ReadFromIniSection(IniSection iniSection)
         {
             if (iniSection == null)
@@ -40,6 +46,8 @@ namespace TSMapEditor.Models.ArtConfig
             StandingFrames = iniSection.GetIntValue(nameof(StandingFrames), WalkFrames); // intentionally defaults to walkframes, the game does that too
             Facings = iniSection.GetIntValue(nameof(Facings), Facings);
             StartTurretFrame = iniSection.GetIntValue(nameof(StartTurretFrame), StartTurretFrame);
+
+            Palette = iniSection.GetStringValue(nameof(Palette), Palette);
         }
     }
 }

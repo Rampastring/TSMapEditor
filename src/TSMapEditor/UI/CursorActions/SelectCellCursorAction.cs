@@ -1,6 +1,5 @@
 ﻿using System;
 using TSMapEditor.GameMath;
-using TSMapEditor.Rendering;
 
 namespace TSMapEditor.UI.CursorActions
 {

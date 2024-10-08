@@ -7,7 +7,7 @@ namespace TSMapEditor.UI
     /// <summary>
     /// Combines many terrain objects into a single entry.
     /// </summary>
-    public class TerrainObjectCollection
+    public class TerrainObjectCollection : ObjectTypeCollection
     {
         public struct TerrainObjectCollectionEntry
         {
@@ -19,13 +19,13 @@ namespace TSMapEditor.UI
             }
         }
 
-        public string Name { get; set; }
         public TerrainObjectCollectionEntry[] Entries;
 
         public static TerrainObjectCollection InitFromIniSection(IniSection iniSection, List<TerrainType> terrainTypes)
         {
             var terrainObjectCollection = new TerrainObjectCollection();
             terrainObjectCollection.Name = iniSection.GetStringValue("Name", "Unnamed Collection");
+            terrainObjectCollection.AllowedTheaters = iniSection.GetListValue("AllowedTheaters", ',', s => s);
 
             var entryList = new List<TerrainObjectCollectionEntry>();
 

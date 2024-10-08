@@ -1,4 +1,6 @@
 ﻿using CNCMaps.FileFormats.Encodings;
+using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Graphics;
 using Rampastring.Tools;
 using System;
 using System.Collections.Generic;
@@ -98,58 +100,13 @@ namespace TSMapEditor.Initialization
             // Add 4 padding bytes
             buffer.AddRange(new byte[4]);
 
-            const int maxOutputSize = 8192;
-            // generate IsoMapPack5 blocks
-            int processedBytes = 0;
-            List<byte> finalData = new List<byte>();
-            List<byte> block = new List<byte>(maxOutputSize);
-            while (buffer.Count > processedBytes)
-            {
-                ushort blockOutputSize = (ushort)Math.Min(buffer.Count - processedBytes, maxOutputSize);
-                for (int i = processedBytes; i < processedBytes + blockOutputSize; i++)
-                {
-                    block.Add(buffer[i]);
-                }
-
-                byte[] compressedBlock = MiniLZO.MiniLZO.Compress(block.ToArray());
-                // InputSize
-                finalData.AddRange(BitConverter.GetBytes((ushort)compressedBlock.Length));
-                // OutputSize
-                finalData.AddRange(BitConverter.GetBytes(blockOutputSize));
-                // actual data
-                finalData.AddRange(compressedBlock);
-
-                processedBytes += blockOutputSize;
-                block.Clear();
-            }
+            // LZO encode
+            byte[] finalData = GenerateLZOBlocksFromData(buffer);
 
             // Base64 encode
             var section = new IniSection(sectionName);
             mapIni.AddSection(section);
-            WriteBase64ToSection(finalData.ToArray(), section);
-        }
-
-        /// <summary>
-        /// Generic method for writing a byte array as a 
-        /// base64-encoded line-length-limited block of data to a INI section.
-        /// Used for writing IsoMapPack5, OverlayPack and OverlayDataPack.
-        /// </summary>
-        private static void WriteBase64ToSection(byte[] data, IniSection section)
-        {
-            string base64String = Convert.ToBase64String(data.ToArray());
-            const int maxIsoMapPackEntryLineLength = 70;
-            int lineIndex = 1; // TS/RA2 IsoMapPack5, OverlayPack and OverlayDataPack is indexed starting from 1
-            int processedChars = 0;
-
-            while (processedChars < base64String.Length)
-            {
-                int length = Math.Min(base64String.Length - processedChars, maxIsoMapPackEntryLineLength);
-
-                string substring = base64String.Substring(processedChars, length);
-                section.SetStringValue(lineIndex.ToString(), substring);
-                lineIndex++;
-                processedChars += length;
-            }
+            WriteBase64ToSection(finalData, section);
         }
 
         public static void WriteOverlays(IMap map, IniFile mapIni)
@@ -252,27 +209,29 @@ namespace TSMapEditor.Initialization
             map.Waypoints.ForEach(w => w.WriteToIniFile(mapIni));
         }
 
-        public static void WriteTaskForces(IMap map, IniFile mapIni)
+        public static void WriteTaskForces(IMap map, IniFile mapIni) => WriteTaskForces(map.TaskForces, mapIni);
+
+        public static void WriteTaskForces(List<TaskForce> taskForces, IniFile iniFile)
         {
             const string sectionName = "TaskForces";
-            mapIni.RemoveSection(sectionName);
+            iniFile.RemoveSection(sectionName);
 
-            if (map.TaskForces.Count == 0)
+            if (taskForces.Count == 0)
                 return;
 
             var taskForcesSection = new IniSection(sectionName);
-            mapIni.AddSection(taskForcesSection);
+            iniFile.AddSection(taskForcesSection);
 
-            for (int i = 0; i < map.TaskForces.Count; i++)
+            for (int i = 0; i < taskForces.Count; i++)
             {
-                TaskForce taskForce = map.TaskForces[i];
+                TaskForce taskForce = taskForces[i];
 
                 taskForcesSection.SetStringValue(i.ToString(), taskForce.ININame);
 
-                mapIni.RemoveSection(taskForce.ININame);
+                iniFile.RemoveSection(taskForce.ININame);
 
                 var taskForceSection = new IniSection(taskForce.ININame);
-                mapIni.AddSection(taskForceSection);
+                iniFile.AddSection(taskForceSection);
                 taskForce.Write(taskForceSection);
             }
         }
@@ -321,80 +280,96 @@ namespace TSMapEditor.Initialization
             }
         }
 
-        public static void WriteScripts(IMap map, IniFile mapIni)
+        public static void WriteScripts(IMap map, IniFile mapIni) => WriteScripts(map.Scripts, mapIni);
+
+        public static void WriteScripts(List<Script> scripts, IniFile iniFile)
         {
             const string sectionName = "ScriptTypes";
-            mapIni.RemoveSection(sectionName);
+            const string editorSectionName = "EditorScriptInfo";
 
-            if (map.Scripts.Count == 0)
+            iniFile.RemoveSection(sectionName);
+            iniFile.RemoveSection(editorSectionName);            
+
+            if (scripts.Count == 0)
                 return;
 
             var scriptTypesSection = new IniSection(sectionName);
-            mapIni.AddSection(scriptTypesSection);
-            for (int i = 0; i < map.Scripts.Count; i++)
+            iniFile.AddSection(scriptTypesSection);            
+
+            for (int i = 0; i < scripts.Count; i++)
             {
-                Script script = map.Scripts[i];
+                Script script = scripts[i];
                 scriptTypesSection.SetStringValue(i.ToString(), script.ININame);
 
-                mapIni.RemoveSection(script.ININame);
+                iniFile.RemoveSection(script.ININame);
                 var scriptSection = new IniSection(script.ININame);
-                mapIni.AddSection(scriptSection);
+                iniFile.AddSection(scriptSection);
                 script.WriteToIniSection(scriptSection);
+                script.WriteEditorProperties(iniFile);
             }
         }
 
         public static void WriteTeamTypes(IMap map, IniFile mapIni, List<TeamTypeFlag> teamTypeFlags)
+            => WriteTeamTypes(map.TeamTypes, mapIni, teamTypeFlags);
+
+        public static void WriteTeamTypes(List<TeamType> teamTypes, IniFile iniFile, List<TeamTypeFlag> teamTypeFlags)
         {
             const string sectionName = "TeamTypes";
-            mapIni.RemoveSection(sectionName);
+            const string editorSectionName = "EditorTeamTypeInfo";
 
-            if (map.TeamTypes.Count == 0)
+            iniFile.RemoveSection(sectionName);
+            iniFile.RemoveSection(editorSectionName);
+
+            if (teamTypes.Count == 0)
                 return;
 
             var teamTypesSection = new IniSection(sectionName);
-            mapIni.AddSection(teamTypesSection);
-            for (int i = 0; i < map.TeamTypes.Count; i++)
+            iniFile.AddSection(teamTypesSection);
+            for (int i = 0; i < teamTypes.Count; i++)
             {
-                TeamType teamType = map.TeamTypes[i];
+                TeamType teamType = teamTypes[i];
                 teamTypesSection.SetStringValue(i.ToString(), teamType.ININame);
 
-                mapIni.RemoveSection(teamType.ININame);
+                iniFile.RemoveSection(teamType.ININame);
                 var teamTypeSection = new IniSection(teamType.ININame);
-                mapIni.AddSection(teamTypeSection);
+                iniFile.AddSection(teamTypeSection);
                 teamType.WriteToIniSection(teamTypeSection, teamTypeFlags);
+                teamType.WriteEditorProperties(iniFile);
             }
         }
 
-        public static void WriteAITriggerTypes(IMap map, IniFile mapIni)
+        public static void WriteAITriggerTypes(IMap map, IniFile mapIni) => WriteAITriggerTypes(map.AITriggerTypes, mapIni);
+
+        public static void WriteAITriggerTypes(List<AITriggerType> aiTriggerTypes, IniFile iniFile)
         {
             const string sectionName = "AITriggerTypes";
-            mapIni.RemoveSection(sectionName);
+            iniFile.RemoveSection(sectionName);
 
-            if (map.AITriggerTypes.Count == 0)
+            if (aiTriggerTypes.Count == 0)
                 return;
 
             var aiTriggerTypesSection = new IniSection(sectionName);
-            mapIni.AddSection(aiTriggerTypesSection);
-            for (int i = 0; i < map.AITriggerTypes.Count; i++)
+            iniFile.AddSection(aiTriggerTypesSection);
+            for (int i = 0; i < aiTriggerTypes.Count; i++)
             {
-                AITriggerType aiTriggerType = map.AITriggerTypes[i];
+                AITriggerType aiTriggerType = aiTriggerTypes[i];
                 aiTriggerType.WriteToIniSection(aiTriggerTypesSection);
             }
 
             const string enablesSectionName = "AITriggerTypesEnable";
-            var enablesSection = mapIni.GetSection(enablesSectionName);
+            var enablesSection = iniFile.GetSection(enablesSectionName);
             if (enablesSection == null)
             {
                 enablesSection = new IniSection(enablesSectionName);
-                mapIni.AddSection(enablesSection);
+                iniFile.AddSection(enablesSection);
             }
 
             // Enable local AI triggers that haven't been enabled or disabled
             // by the user yet
-            for (int i = 0; i < map.AITriggerTypes.Count; i++)
+            for (int i = 0; i < aiTriggerTypes.Count; i++)
             {
-                if (!enablesSection.KeyExists(map.AITriggerTypes[i].ININame))
-                    enablesSection.SetStringValue(map.AITriggerTypes[i].ININame, "yes");
+                if (!enablesSection.KeyExists(aiTriggerTypes[i].ININame))
+                    enablesSection.SetStringValue(aiTriggerTypes[i].ININame, "yes");
             }
         }
 
@@ -402,7 +377,7 @@ namespace TSMapEditor.Initialization
         {
             var houseTypes = map.HouseTypes;
 
-            string sectionName = Constants.UseCountries ? "Countries" : "Houses";
+            string sectionName = Constants.IsRA2YR ? "Countries" : "Houses";
             mapIni.RemoveSection(sectionName);
 
             if (map.HouseTypes.Count == 0)
@@ -423,7 +398,7 @@ namespace TSMapEditor.Initialization
                 houseType.WriteToIniSection(houseTypeSection);
             }
 
-            if (Constants.UseCountries)
+            if (Constants.IsRA2YR)
             {
                 // Write Rules house types that have been modified in the map
                 for (int i = 0; i < map.Rules.RulesHouseTypes.Count; i++)
@@ -456,7 +431,7 @@ namespace TSMapEditor.Initialization
                 housesSection.SetStringValue(house.ID > -1 ? house.ID.ToString() : i.ToString(), house.ININame);
 
                 // When countries are not in use, the section is already removed by WriteHouseTypes
-                if (Constants.UseCountries)
+                if (Constants.IsRA2YR)
                 {
                     // Only remove the section if no similarly-named modified HouseType exists - if one does,
                     // the section was possibly already removed by WriteHouseTypes
@@ -653,6 +628,111 @@ namespace TSMapEditor.Initialization
                     directionsString += ",-1"; // Directions need to end with -1
 
                 section.SetStringValue(i.ToString(), $"{tube.EntryPoint.X},{tube.EntryPoint.Y},{(int)tube.UnitInitialFacing},{tube.ExitPoint.X},{tube.ExitPoint.Y},{directionsString}");
+            }
+        }
+
+        public static void WriteDummyPreview(IMap map, IniFile mapIni)
+        {
+            // Vanilla (Steam) TS as well as RA2/YR will crash if the map has no preview.
+            // And the preview sections need to be the first sections in the INI file.
+            // We write a dummy preview to the file if necessary.
+            if (!mapIni.SectionExists("Preview") || !mapIni.SectionExists("PreviewPack"))
+            {
+                mapIni.SetStringValue("Preview", "Size", "0,0,106,61");
+                mapIni.SetStringValue("PreviewPack", "1", "yAsAIAXQ5PDQ5PDQ6JQATAEE6PDQ4PDI4JgBTAFEAkgAJyAATAG0AydEAEABpAJIA0wBVA");
+                mapIni.SetStringValue("PreviewPack", "2", "BIACcgAEwBtAMnRABAAaQCSANMAVQASAAnIABMAbQDJ0QAQAGkAkgDTAFUAEgAJyAATAG0");
+            }
+
+            mapIni.MoveSectionToFirst("PreviewPack");
+            mapIni.MoveSectionToFirst("Preview");
+        }
+
+        public static void WriteActualPreview(Texture2D texture, IniFile mapIni)
+        {
+            mapIni.RemoveSection("PreviewPack");
+
+            mapIni.SetStringValue("Preview", "Size", $"0,0,{texture.Width},{texture.Height}");
+
+            var textureData = new Color[texture.Width * texture.Height];
+            texture.GetData(textureData);
+
+            // Preview is in BGR888 format
+            byte[] input = new byte[textureData.Length * 3];
+            for (int i = 0; i < textureData.Length; i++)
+            {
+                input[i * 3] = textureData[i].R;
+                input[i * 3 + 1] = textureData[i].G;
+                input[i * 3 + 2] = textureData[i].B;
+            }
+
+            var buffer = new List<byte>(input);
+
+            // Add 4 padding bytes
+            // buffer.AddRange(new byte[4]);
+
+            // LZO + Base64 encode
+            var section = new IniSection("PreviewPack");
+            mapIni.AddSection(section);
+            WriteBase64ToSection(GenerateLZOBlocksFromData(buffer), section);
+
+            // Original games (TS and YR) expect these sections to be the first in the map file
+            mapIni.MoveSectionToFirst("PreviewPack");
+            mapIni.MoveSectionToFirst("Preview");
+        }
+
+        /// <summary>
+        /// Splits a buffer into LZO-compressed blocks.
+        /// Returns an array that contains the buffer's contents as LZO-compressed blocks.
+        /// </summary>
+        private static byte[] GenerateLZOBlocksFromData(List<byte> buffer)
+        {
+            const int maxOutputSize = 8192;
+            // generate blocks
+            int processedBytes = 0;
+            List<byte> finalData = new List<byte>();
+            List<byte> block = new List<byte>(maxOutputSize);
+            while (buffer.Count > processedBytes)
+            {
+                ushort blockOutputSize = (ushort)Math.Min(buffer.Count - processedBytes, maxOutputSize);
+                for (int i = processedBytes; i < processedBytes + blockOutputSize; i++)
+                {
+                    block.Add(buffer[i]);
+                }
+
+                byte[] compressedBlock = MiniLZO.MiniLZO.Compress(block.ToArray());
+                // InputSize
+                finalData.AddRange(BitConverter.GetBytes((ushort)compressedBlock.Length));
+                // OutputSize
+                finalData.AddRange(BitConverter.GetBytes(blockOutputSize));
+                // actual data
+                finalData.AddRange(compressedBlock);
+
+                processedBytes += blockOutputSize;
+                block.Clear();
+            }
+
+            return finalData.ToArray();
+        }
+
+        /// <summary>
+        /// Generic method for writing a byte array as a 
+        /// base64-encoded line-length-limited block of data to a INI section.
+        /// </summary>
+        private static void WriteBase64ToSection(byte[] data, IniSection section)
+        {
+            string base64String = Convert.ToBase64String(data.ToArray());
+            const int maxIsoMapPackEntryLineLength = 70;
+            int lineIndex = 1; // TS/RA2 IsoMapPack5, OverlayPack and OverlayDataPack is indexed starting from 1
+            int processedChars = 0;
+
+            while (processedChars < base64String.Length)
+            {
+                int length = Math.Min(base64String.Length - processedChars, maxIsoMapPackEntryLineLength);
+
+                string substring = base64String.Substring(processedChars, length);
+                section.SetStringValue(lineIndex.ToString(), substring);
+                lineIndex++;
+                processedChars += length;
             }
         }
 

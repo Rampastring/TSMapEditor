@@ -4,7 +4,6 @@ using Rampastring.XNAUI.Input;
 using TSMapEditor.GameMath;
 using TSMapEditor.Models;
 using TSMapEditor.Mutations.Classes;
-using TSMapEditor.Rendering;
 
 namespace TSMapEditor.UI.CursorActions
 {
@@ -57,7 +56,7 @@ namespace TSMapEditor.UI.CursorActions
                 color);
         }
 
-        public override void OnKeyPressed(KeyPressEventArgs e)
+        public override void OnKeyPressed(KeyPressEventArgs e, Point2D cellCoords)
         {
             if (e.PressedKey == Microsoft.Xna.Framework.Input.Keys.Escape)
             {

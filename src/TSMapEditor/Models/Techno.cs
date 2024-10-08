@@ -9,6 +9,8 @@ namespace TSMapEditor.Models
             ObjectType = objectType;
         }
 
+        public override GameObjectType GetObjectType() => ObjectType;
+
         public override double GetWeaponRange() => ObjectType.GetWeaponRange();
 
         public override double GetGuardRange()
@@ -26,6 +28,8 @@ namespace TSMapEditor.Models
         public override double GetSensorArrayRange() => 0.0;
 
         public override Color GetRadialColor() => Owner?.XNAColor ?? Color.White;
+
+        public override bool IsInvisibleInGame() => ObjectType.InvisibleInGame;
 
         public T ObjectType { get; }
     }

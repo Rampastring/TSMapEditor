@@ -208,7 +208,7 @@ namespace TSMapEditor.UI.Windows
             if (editedTaskForce == null)
                 return;
 
-            if (Keyboard.IsKeyHeldDown(KeyboardCommands.Instance.SkipConfirmationKey))
+            if (Keyboard.IsShiftHeldDown())
             {
                 DeleteTaskForce();
             }
@@ -216,8 +216,9 @@ namespace TSMapEditor.UI.Windows
             {
                 var messageBox = EditorMessageBox.Show(WindowManager,
                     "Confirm",
-                    $"Are you sure you wish to delete '{editedTaskForce.Name}'?\r\n\r\n" +
-                    $"You'll need to manually fix any TeamTypes using the TaskForce.",
+                    $"Are you sure you wish to delete '{editedTaskForce.Name}'?" + Environment.NewLine + Environment.NewLine +
+                    $"You'll need to manually fix any TeamTypes using the TaskForce." + Environment.NewLine + Environment.NewLine +
+                    "(You can hold Shift to skip this confirmation dialog.)",
                     MessageBoxButtons.YesNo);
                 messageBox.YesClickedAction = _ => DeleteTaskForce();
             }
@@ -232,7 +233,7 @@ namespace TSMapEditor.UI.Windows
                     tt.TaskForce = null;
             });
             ListTaskForces();
-            lbTaskForces.SelectedIndex = -1;
+            RefreshSelectedTaskForce();
         }
 
         private void BtnNewTaskForce_LeftClick(object sender, System.EventArgs e)
@@ -320,11 +321,14 @@ namespace TSMapEditor.UI.Windows
             tbUnitCount.TextChanged += TbUnitCount_TextChanged;
         }
 
-        private void LbTaskForces_SelectedIndexChanged(object sender, System.EventArgs e)
+        private void LbTaskForces_SelectedIndexChanged(object sender, EventArgs e) => RefreshSelectedTaskForce();
+
+        private void RefreshSelectedTaskForce()
         {
             var selectedItem = lbTaskForces.SelectedItem;
             if (selectedItem == null)
             {
+                lbTaskForces.SelectedIndex = -1;
                 EditTaskForce(null);
                 return;
             }

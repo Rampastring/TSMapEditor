@@ -29,6 +29,8 @@
             return GetFrameIndex(frameCount) + (frameCount / 2);
         }
 
+        public override bool HasShadow() => !ObjectType.NoShadow;
+
         public override bool Remapable() => ObjectType.ArtConfig.Remapable;
 
         public override int GetHashCode()

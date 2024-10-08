@@ -3,10 +3,10 @@ using Rampastring.Tools;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using TSMapEditor.Extensions;
 using TSMapEditor.Initialization;
 using TSMapEditor.Models.ArtConfig;
-using TSMapEditor.UI;
 
 namespace TSMapEditor.Models
 {
@@ -27,6 +27,8 @@ namespace TSMapEditor.Models
         public List<AnimType> AnimTypes = new List<AnimType>();
         public List<GlobalVariable> GlobalVariables = new List<GlobalVariable>();
         public List<Weapon> Weapons = new List<Weapon>();
+        public List<SuperWeaponType> SuperWeaponTypes = new List<SuperWeaponType>();
+        public List<ParticleSystemType> ParticleSystemTypes = new List<ParticleSystemType>();
 
         public List<TaskForce> TaskForces = new List<TaskForce>();
         public List<Script> Scripts = new List<Script>();
@@ -36,6 +38,12 @@ namespace TSMapEditor.Models
 
         public TutorialLines TutorialLines { get; set; }
         public Themes Themes { get; set; }
+        public EvaSpeeches Speeches { get; set; }
+        public Sounds Sounds { get; set; }
+
+        public double ExtraUnitLight { get; set; }
+        public double ExtraInfantryLight { get; set; }
+        public double ExtraAircraftLight { get; set; }
 
         /// <summary>
         /// Initializes rules types from an INI file.
@@ -52,10 +60,13 @@ namespace TSMapEditor.Models
             InitFromTypeSection(iniFile, "Animations", AnimTypes);
             InitFromTypeSection(iniFile, "Weapons", Weapons);      // TS CnCNet ts-patches + Vinifera
             InitFromTypeSection(iniFile, "WeaponTypes", Weapons);  // YR Ares
+            InitFromTypeSection(iniFile, "SuperWeaponTypes", SuperWeaponTypes);
+            InitFromTypeSection(iniFile, "ParticleSystems", ParticleSystemTypes);
+            InitFromTypeSection(iniFile, "Tiberiums", TiberiumTypes);
 
             if (!isMapIni)
             {
-                if (Constants.UseCountries)
+                if (Constants.IsRA2YR)
                     InitFromTypeSection(iniFile, "Countries", RulesHouseTypes);
                 else
                     InitFromTypeSection(iniFile, "Houses", RulesHouseTypes);
@@ -70,16 +81,25 @@ namespace TSMapEditor.Models
             OverlayTypes.ForEach(ot => initializer.ReadObjectTypePropertiesFromINI(ot, iniFile));
             SmudgeTypes.ForEach(ot => initializer.ReadObjectTypePropertiesFromINI(ot, iniFile));
             Weapons.ForEach(w => initializer.ReadObjectTypePropertiesFromINI(w, iniFile));
+            SuperWeaponTypes.ForEach(sw => initializer.ReadObjectTypePropertiesFromINI(sw, iniFile));
+            ParticleSystemTypes.ForEach(ps => initializer.ReadObjectTypePropertiesFromINI(ps, iniFile));
             AnimTypes.ForEach(a => initializer.ReadObjectTypePropertiesFromINI(a, iniFile));
             RulesHouseTypes.ForEach(ht => initializer.ReadObjectTypePropertiesFromINI(ht, iniFile));
+            TiberiumTypes.ForEach(ht => initializer.ReadObjectTypePropertiesFromINI(ht, iniFile));
 
             if (!isMapIni)
                 InitColors(iniFile);
 
-            if (!isMapIni)
-                InitTiberiums(iniFile);
+            TiberiumTypes.ForEach(tt =>
+            {
+                var rulesColor = Colors.Find(c => c.Name == tt.Color);
+                if (rulesColor != null)
+                    tt.XNAColor = rulesColor.XNAColor;
+            });
 
             InitSides(iniFile);
+
+            InitAudioVisual(iniFile);
 
             if (!isMapIni)
             {
@@ -118,30 +138,6 @@ namespace TSMapEditor.Models
             });
         }
 
-        private void InitTiberiums(IniFile iniFile)
-        {
-            var tiberiumsSection = iniFile.GetSection("Tiberiums");
-            if (tiberiumsSection != null)
-            {
-                for (int i = 0; i < tiberiumsSection.Keys.Count; i++)
-                {
-                    var kvp = tiberiumsSection.Keys[i];
-                    var tiberiumType = new TiberiumType(kvp.Value, i);
-
-                    var tiberiumTypeSection = iniFile.GetSection(kvp.Value);
-                    if (tiberiumTypeSection != null)
-                    {
-                        tiberiumType.ReadPropertiesFromIniSection(tiberiumTypeSection);
-
-                        TiberiumTypes.Add(tiberiumType);
-                        var rulesColor = Colors.Find(c => c.Name == tiberiumType.Color);
-                        if (rulesColor != null)
-                            tiberiumType.XNAColor = rulesColor.XNAColor;
-                    }
-                }
-            }
-        }
-
         private void InitSides(IniFile iniFile)
         {
             var sidesSection = iniFile.GetSection("Sides");
@@ -151,6 +147,18 @@ namespace TSMapEditor.Models
                 {
                     Sides.Add(kvp.Key);
                 }
+            }
+        }
+
+        private void InitAudioVisual(IniFile iniFile)
+        {
+            var audioVisualSection = iniFile.GetSection("AudioVisual");
+
+            if (audioVisualSection != null)
+            {
+                ExtraUnitLight = audioVisualSection.GetDoubleValue(nameof(ExtraUnitLight), ExtraUnitLight);
+                ExtraInfantryLight = audioVisualSection.GetDoubleValue(nameof(ExtraInfantryLight), ExtraInfantryLight);
+                ExtraAircraftLight = audioVisualSection.GetDoubleValue(nameof(ExtraAircraftLight), ExtraAircraftLight);
             }
         }
 
@@ -247,27 +255,49 @@ namespace TSMapEditor.Models
             foreach (var kvp in houseTypesSection.Keys)
             {
                 string houseTypeName = kvp.Value;
-                var houseType = new HouseType(houseTypeName);
-                houseType.Index = Conversions.IntFromString(kvp.Key, -1);
+                HouseType houseType = null;
+                bool existsInRules = true;
+                if (Constants.IsRA2YR)
+                {
+                    // Since RA2/YR maps _always_ utilize HouseTypes from Rules,
+                    // if we are in RA2/YR mode, we need to first search for the HouseType from Rules
+                    // to prevent duplicate object instances for the same HouseType in both
+                    // StandardHouseTypes as well as RulesHouseTypes.
+                    houseType = RulesHouseTypes.Find(ht => ht.ININame == houseTypeName);
+                }
 
-                if (houseType.Index < 0 || houseTypes.Exists(ht => ht.Index == houseType.Index))
-                    throw new INIConfigException($"Invalid index for HouseType in standard houses. Section: {sectionName}, HouseType name: {houseTypeName}");
+                if (houseType == null)
+                {
+                    existsInRules = false;
+                    houseType = new HouseType(houseTypeName);
+                    houseType.Index = Conversions.IntFromString(kvp.Key, -1);
 
-                InitHouseType(iniFile, houseType);
-                houseTypes.Add(houseType);
+                    if (houseType.Index < 0 || houseTypes.Exists(ht => ht.Index == houseType.Index))
+                        throw new INIConfigException($"Invalid index for HouseType in standard houses. Section: {sectionName}, HouseType name: {houseTypeName}");
+                }
+
+                // Always initialize the HouseType and read its properties,
+                // regardless of whether it was found from Rules or created above.
+                InitHouseType(iniFile, houseType, existsInRules);
+
+                if (!existsInRules)
+                    houseTypes.Add(houseType);
             }
 
             return houseTypes;
         }
 
-        private void InitHouseType(IniFile iniFile, HouseType houseType)
+        private void InitHouseType(IniFile iniFile, HouseType houseType, bool isRulesHouseType)
         {
-            // Fetch some default properties from Rules so they don't need to be duplicated in EditorRules.
-            // Aside from the color most of these aren't used, but maybe they might be useful one day.
-            var rulesHouseType = RulesHouseTypes.Find(ht => ht.ININame == houseType.ININame);
-            if (rulesHouseType != null)
+            if (!isRulesHouseType)
             {
-                houseType.CopyBasicPropertiesFrom(rulesHouseType);
+                // Fetch some default properties from Rules so they don't need to be duplicated in EditorRules.
+                // Aside from the color most of these aren't used, but maybe they might be useful one day.
+                var rulesHouseType = RulesHouseTypes.Find(ht => ht.ININame == houseType.ININame);
+                if (rulesHouseType != null)
+                {
+                    houseType.CopyBasicPropertiesFrom(rulesHouseType);
+                }
             }
 
             var section = iniFile.GetSection(houseType.ININame);
@@ -368,9 +398,15 @@ namespace TSMapEditor.Models
                 existing = new InfantrySequence(infantrySequenceName);
                 var section = artIni.GetSection(infantrySequenceName);
                 if (section == null)
-                    throw new KeyNotFoundException("Infantry sequence not found: " + infantrySequenceName);
+                {
+                    // Can't fast-fail, vanilla TS has a missing sequence...
+                    Logger.Log("WARNING: Section for infantry sequence not found: " + infantrySequenceName);
+                }
+                else
+                {
+                    existing.ParseFromINISection(section);
+                }
 
-                existing.ParseFromINISection(section);
                 InfantrySequences.Add(existing);
             }
 
@@ -419,26 +455,45 @@ namespace TSMapEditor.Models
         {
             var anims = new List<AnimType>();
 
-            foreach (var buildingAnimType in type.ArtConfig.BuildingAnimTypes)
+            foreach (var buildingAnimConfig in type.ArtConfig.BuildingAnimConfigs)
             {
-                AnimType anim = AnimTypes.Find(at => at.ININame == buildingAnimType.ININame);
+                AnimType anim = AnimTypes.Find(at => at.ININame == buildingAnimConfig.ININame);
                 if (anim != null)
                 {
-                    anim.ArtConfig.IsBuildingAnim = true;
-                    anim.ArtConfig.BuildingAnimYSort = buildingAnimType.YSort;
-                    anim.ArtConfig.BuildingAnimZAdjust = buildingAnimType.ZAdjust;
+                    anim.ArtConfig.ParentBuildingType = type;
                     anims.Add(anim);
                 }
             }
 
             type.ArtConfig.Anims = anims.ToArray();
 
+            var powerUpAnims = new List<AnimType>();
+
+            foreach (var powerUpType in BuildingTypes.Where(bt => !string.IsNullOrWhiteSpace(bt.PowersUpBuilding) &&
+                                                                  bt.PowersUpBuilding.Equals(type.ININame, StringComparison.OrdinalIgnoreCase)))
+            {
+                string image = powerUpType.ArtConfig.Image;
+                if (string.IsNullOrWhiteSpace(image))
+                    image = powerUpType.Image;
+                if (string.IsNullOrWhiteSpace(image))
+                    image = powerUpType.ININame;
+
+                AnimType anim = AnimTypes.Find(at => at.ININame == image);
+                if (anim != null)
+                {
+                    anim.ArtConfig.ParentBuildingType = type;
+                    powerUpAnims.Add(anim);
+                }
+            }
+
+            type.ArtConfig.PowerUpAnims = powerUpAnims.ToArray();
+
             if (type.Turret && !type.TurretAnimIsVoxel)
             {
                 var turretAnim = AnimTypes.Find(at => at.ININame == type.TurretAnim);
                 if (turretAnim != null)
                 {
-                    turretAnim.ArtConfig.IsBuildingAnim = true;
+                    turretAnim.ArtConfig.ParentBuildingType = type;
                     type.ArtConfig.TurretAnim = turretAnim;
                 }
             }

@@ -1,10 +1,8 @@
 ﻿using System;
 using Rampastring.XNAUI.Input;
-using Rampastring.XNAUI.XNAControls;
 using TSMapEditor.GameMath;
 using TSMapEditor.Models;
 using TSMapEditor.Mutations.Classes;
-using TSMapEditor.Rendering;
 
 namespace TSMapEditor.UI.CursorActions
 {

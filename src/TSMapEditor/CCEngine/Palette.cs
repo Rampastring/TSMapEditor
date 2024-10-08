@@ -1,5 +1,6 @@
 ﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
+using TSMapEditor.Models;
 
 namespace TSMapEditor.CCEngine
 {
@@ -8,24 +9,62 @@ namespace TSMapEditor.CCEngine
     /// </summary>
     public class XNAPalette : Palette
     {
-        public XNAPalette(string name, byte[] buffer, GraphicsDevice graphicsDevice) : base(name, buffer)
+        public XNAPalette(string name, byte[] buffer, GraphicsDevice graphicsDevice, bool hasFullyBrightColors) : base(name, buffer)
         {
-            CreateTexture(graphicsDevice);
+            PaletteWithLight = new(name, buffer);
+            Texture = CreateTexture(graphicsDevice, this);
+            TextureWithLight = CreateTexture(graphicsDevice, PaletteWithLight);
+            HasFullyBrightColors = hasFullyBrightColors;
         }
 
-        public Texture2D Texture;
+        private Texture2D Texture;
+        private Texture2D TextureWithLight;
+        private Palette PaletteWithLight;
+        private bool HasFullyBrightColors;
 
-        private void CreateTexture(GraphicsDevice graphicsDevice)
+        public Texture2D GetTexture()
         {
-            Texture = new Texture2D(graphicsDevice, LENGTH, 1, false, SurfaceFormat.Color);
+            return Texture;
+        }
+
+        public Palette GetPalette()
+        {
+            return this;
+        }
+
+        private Texture2D CreateTexture(GraphicsDevice graphicsDevice, Palette palette)
+        {
+            Texture2D texture = new(graphicsDevice, LENGTH, 1, false, SurfaceFormat.Color);
 
             Color[] colorData = new Color[LENGTH];
             colorData[0] = Color.Transparent;
             for (int i = 1; i < colorData.Length; i++)
             {
-                colorData[i] = Data[i].ToXnaColor();
+                colorData[i] = palette.Data[i].ToXnaColor();
             }
-            Texture.SetData(colorData);
+            texture.SetData(colorData);
+
+            return texture;
+        }
+
+        private void AdjustColor(int i, Color[] colorData, MapColor color)
+        {
+            RGBColor newColor = Data[i] * color;
+            PaletteWithLight.Data[i] = newColor;
+            colorData[i] = newColor.ToXnaColor();
+        }
+
+        public void ApplyLighting(MapColor color)
+        {
+            Color[] colorData = new Color[LENGTH];
+            int last = HasFullyBrightColors ? LENGTH - 16 : 255;
+
+            for (int i = 1; i < last; i++)
+                AdjustColor(i, colorData, color);
+
+            AdjustColor(255, colorData, color);
+
+            TextureWithLight.SetData(colorData);
         }
     }
 

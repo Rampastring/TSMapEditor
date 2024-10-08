@@ -17,7 +17,7 @@ namespace TSMapEditor.UI.Windows
             base.Initialize();
 
             var lblVersion = FindChild<XNALabel>("lblVersion");
-            lblVersion.Text = "Version " + Assembly.GetExecutingAssembly().GetName().Version.ToString();
+            lblVersion.Text = "Version " + Constants.ReleaseVersion + ", Build " + Assembly.GetExecutingAssembly().GetName().Version.ToString();
         }
 
         public void Open() => Show();

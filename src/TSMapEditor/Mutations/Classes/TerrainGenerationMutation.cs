@@ -7,6 +7,7 @@ using TSMapEditor.CCEngine;
 using TSMapEditor.GameMath;
 using TSMapEditor.Models;
 using TSMapEditor.Rendering;
+using TSMapEditor.UI;
 
 namespace TSMapEditor.Mutations.Classes
 {
@@ -224,6 +225,8 @@ namespace TSMapEditor.Mutations.Classes
 
     public class TerrainGeneratorTileGroup
     {
+        private const string CommaReplacement = "{comma}";
+
         public TerrainGeneratorTileGroup(TileSet tileSet, List<int> tileIndicesInSet, double openChance, double overlapChance)
         {
             TileSet = tileSet ?? throw new ArgumentNullException(nameof(tileSet));
@@ -239,7 +242,7 @@ namespace TSMapEditor.Mutations.Classes
 
         public string GetConfigString()
         {
-            string config = $"{OpenChance},{OverlapChance},{TileSet.SetName}";
+            string config = $"{OpenChance},{OverlapChance},{TileSet.SetName.Replace(",", CommaReplacement)}";
             if (TileIndicesInSet != null && TileIndicesInSet.Count > 0)
             {
                 config += "," + string.Join(",", TileIndicesInSet);
@@ -257,7 +260,13 @@ namespace TSMapEditor.Mutations.Classes
 
             double openChance = Conversions.DoubleFromString(parts[0], 0.0);
             double overlapChance = Conversions.DoubleFromString(parts[1], 0.0);
-            var tileSet = allTileSets.Find(ts => ts.AllowToPlace && ts.LoadedTileCount > 0 && ts.SetName == parts[2]);
+
+            string tileSetName = parts[2];
+            // Hack to support comma in tileset name, YR unfortunately has one in an important LAT
+            // and unlike objects, tilesets have no ININame that we could use instead
+            tileSetName = parts[2].Replace(CommaReplacement, ",");
+
+            var tileSet = allTileSets.Find(ts => ts.AllowToPlace && ts.LoadedTileCount > 0 && ts.SetName == tileSetName);
             if (tileSet == null)
                 return null;
 
@@ -582,7 +591,17 @@ namespace TSMapEditor.Mutations.Classes
             maxY++;
             minX--;
             maxX++;
-            ApplyGenericAutoLAT(minX, minY, maxX, maxY);
+
+            // Did we place a LAT ground?
+            var latTileSet = terrainGeneratorConfiguration.TileGroups.Select(tg => tg.TileSet).FirstOrDefault(ts => Map.TheaterInstance.Theater.LATGrounds.Exists(lg => lg.GroundTileSet == ts));
+            if (latTileSet != null)
+            {
+                ApplyAutoLATForTileSetPlacement(latTileSet.Index, minX, minY, maxX, maxY);
+            }
+            else
+            {
+                ApplyGenericAutoLAT(minX, minY, maxX, maxY);
+            }
         }
 
         private void PlaceTerrainTileAt(ITileImage tile, Point2D cellCoords)

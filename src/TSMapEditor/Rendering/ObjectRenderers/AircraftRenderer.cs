@@ -1,5 +1,4 @@
 ﻿using Microsoft.Xna.Framework;
-using System;
 using TSMapEditor.CCEngine;
 using TSMapEditor.GameMath;
 using TSMapEditor.Models;
@@ -23,11 +22,16 @@ namespace TSMapEditor.Rendering.ObjectRenderers
             };
         }
 
-        protected override void Render(Aircraft gameObject, int heightOffset, Point2D drawPoint, in CommonDrawParams drawParams)
+        protected override float GetDepthAddition(Aircraft gameObject)
         {
-            DrawVoxelModel(gameObject, drawParams, drawParams.MainVoxel,
+            return Constants.DepthEpsilon * ObjectDepthAdjustments.Aircraft;
+        }
+
+        protected override void Render(Aircraft gameObject, Point2D drawPoint, in CommonDrawParams drawParams)
+        {
+            DrawVoxelModel(gameObject, drawParams.MainVoxel,
                 gameObject.Facing, RampType.None, Color.White, true, gameObject.GetRemapColor(),
-                drawPoint, heightOffset);
+                Constants.VoxelsAffectedByLighting, drawPoint, 0f, true);
         }
     }
 }

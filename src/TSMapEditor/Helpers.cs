@@ -3,12 +3,13 @@ using Microsoft.Xna.Framework.Graphics;
 using Rampastring.Tools;
 using Rampastring.XNAUI;
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using TSMapEditor.GameMath;
-using TSMapEditor.Initialization;
 using TSMapEditor.Models;
 using TSMapEditor.Models.Enums;
+using TSMapEditor.Rendering;
 
 namespace TSMapEditor
 {
@@ -99,8 +100,29 @@ namespace TSMapEditor
             }
         }
 
+        public static int LandTypeToInt(LandType landType)
+        {
+            return landType switch 
+            { 
+                LandType.Clear => 0x0,
+                LandType.Ice => 0x1,
+                LandType.Tunnel => 0x5,
+                LandType.Railroad => 0x6,
+                LandType.Rock => 0x7,
+                LandType.Water => 0x9,
+                LandType.Beach => 0xA,
+                LandType.Road => 0xB,
+                LandType.Rough => 0xE,
+                LandType.Tiberium => 0x0, // ?? can't find any sources on this
+                LandType.Weeds => 0x0, // ?? can't find any sources on this
+                _ => 0x0
+            };
+        }
+
         public static bool IsLandTypeImpassable(int landType, bool considerLandUnitsOnly = false)
         {
+            // TODO make this dependent on SpeedType and Rules.ini values
+
             switch (landType)
             {
                 case 0x1:
@@ -119,6 +141,24 @@ namespace TSMapEditor
             }
         }
 
+        public static bool IsLandTypeImpassableForNavalUnits(int landType)
+        {
+            // TODO make this dependent on SpeedType and Rules.ini values
+
+            switch (landType)
+            {
+                case 0x1:
+                case 0x2:
+                case 0x3:
+                case 0x4:
+                case 0x9:
+                case 0xA:
+                    return false;
+                default:
+                    return true;
+            }
+        }
+
         public static bool IsLandTypeImpassable(LandType landType, bool considerLandUnitsOnly)
         {
             return landType == LandType.Rock || (considerLandUnitsOnly && landType == LandType.Water);
@@ -134,38 +174,44 @@ namespace TSMapEditor
             if (string.IsNullOrEmpty(str))
                 return -1;
 
-            if (str.Length < 1 || str.Length > 2 ||
-                str[0] < 'A' || str[0] > 'Z' || (str.Length == 2 && (str[1] < 'A' || str[1] > 'Z')))
-                throw new InvalidOperationException("Waypoint values are only valid between A and ZZ. Invalid value: " + str);
+            const int charCount = 26;
+            str = str.ToUpperInvariant();
 
-            if (str.Length == 1)
-                return str[0] - 'A';
+            int n = 0;
+            for (int i = str.Length - 1, j = 1; i >= 0; i--, j *= charCount)
+            {
+                int c = str[i];
 
-            const int CharCount = 26;
+                if (c is < 'A' or > 'Z')
+                    throw new InvalidOperationException("Waypoints may only contain characters A through Z, invalid input: " + str);
 
-            int multiplier = (str[0] - 'A' + 1);
-            return (multiplier * CharCount) + (str[1] - 'A');
+                n += (c - '@') * j; // '@' = 'A' - 1
+            }
+
+            return (n - 1);
         }
 
         public static string WaypointNumberToAlphabeticalString(int waypointNumber)
         {
-            if (waypointNumber < 0)
+            Span<char> buffer = stackalloc char[8];
+            const int charCount = 26;
+
+           if (waypointNumber < 0)
                 return string.Empty;
 
-            const int WAYPOINT_MAX = 701;
+            waypointNumber++;
+            int pos = buffer.Length;
 
-            if (waypointNumber > WAYPOINT_MAX)
-                return "A"; // matches 0
+            while (waypointNumber > 0)
+            {
+                pos--;
+                int m = waypointNumber % charCount;
+                if (m == 0) m = charCount;
+                buffer[pos] = (char)(m + '@'); // '@' = 'A' - 1
+                waypointNumber = (waypointNumber - m) / charCount;
+            }
 
-            const int CharCount = 26;
-
-            int firstLetterValue = (waypointNumber / CharCount);
-            int secondLetterValue = waypointNumber % CharCount;
-
-            if (firstLetterValue == 0)
-                return ((char)('A' + secondLetterValue)).ToString();
-
-            return ((char)('A' + (firstLetterValue - 1))).ToString() + ((char)('A' + secondLetterValue)).ToString();
+            return buffer.Slice(pos).ToString();
         }
 
         private static Point2D[] visualDirectionToPointTable = new Point2D[]
@@ -176,6 +222,19 @@ namespace TSMapEditor
         };
 
         public static Point2D VisualDirectionToPoint(Direction direction) => visualDirectionToPointTable[(int)direction];
+
+        public static List<Direction> GetDirectionsInMask(byte mask)
+        {
+            List<Direction> directions = new List<Direction>();
+
+            for (int direction = 0; direction < (int)Direction.Count; direction++)
+            {
+                if ((mask & (byte)(0b10000000 >> direction)) > 0)
+                    directions.Add((Direction)direction);
+            }
+
+            return directions;
+        }
 
         /// <summary>
         /// Creates and returns a new UI texture.
@@ -260,8 +319,7 @@ namespace TSMapEditor
 
         public static Point2D ScreenCoordsFromWorldLeptons(Vector2 coords)
         {
-            const int cellSideInLeptons = 256;
-            coords /= cellSideInLeptons;
+            coords /= Constants.CellSizeInLeptons;
             int screenX = Convert.ToInt32((coords.X - coords.Y) * Constants.CellSizeX / 2);
             int screenY = Convert.ToInt32((coords.X + coords.Y) * Constants.CellSizeY / 2);
             return new Point2D(screenX, screenY);
@@ -339,6 +397,311 @@ namespace TSMapEditor
             return Path.GetFullPath(new Uri(path).LocalPath)
                 .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
                 .ToUpperInvariant();
+        }
+
+        public static Texture2D RenderTextureAsSmaller(Texture2D existingTexture, RenderTarget2D renderTarget, GraphicsDevice graphicsDevice)
+        {
+            Renderer.BeginDraw();
+            Renderer.PushRenderTarget(renderTarget);
+            graphicsDevice.Clear(Color.Transparent);
+
+            Point maxNewTextureSize = new Point(Math.Min(renderTarget.Width, existingTexture.Width), Math.Min(renderTarget.Height, existingTexture.Height));
+
+            double ratioX = (double)existingTexture.Width / maxNewTextureSize.X;
+            double ratioY = (double)existingTexture.Height / maxNewTextureSize.Y;
+            double ratio = Math.Max(ratioX, ratioY);
+            Point newSize = new Point((int)(existingTexture.Width / ratio), (int)(existingTexture.Height / ratio));
+
+            // Workaround to avoid crashing for too small textures, hopefully it's also better for visibility
+            if (newSize.X < 1 && existingTexture.Width > 0)
+                newSize.X = 1;
+
+            if (newSize.Y < 1 && existingTexture.Height > 0)
+                newSize.Y = 1;
+
+            Rectangle destinationRectangle = new Rectangle(0, 0, newSize.X, newSize.Y);
+
+            Renderer.DrawTexture(existingTexture, new Rectangle(0, 0, existingTexture.Width, existingTexture.Height),
+                destinationRectangle, Color.White);
+            Renderer.PopRenderTarget();
+            Renderer.EndDraw();
+
+            var texture = new Texture2D(graphicsDevice, destinationRectangle.Width, destinationRectangle.Height, false, SurfaceFormat.Color);
+            var colorData = new Color[destinationRectangle.Width * destinationRectangle.Height];
+            renderTarget.GetData(0, destinationRectangle, colorData, 0, destinationRectangle.Width * destinationRectangle.Height);
+            texture.SetData(colorData);
+            return texture;
+        }
+
+        public static (Texture2D texture, Point2D positionOffset) CropTextureToVisiblePortion(Texture2D existingTexture, GraphicsDevice graphicsDevice)
+        {
+            var textureData = new Color[existingTexture.Width * existingTexture.Height];
+            existingTexture.GetData(textureData);
+
+            int firstNonTransparentX = int.MaxValue;
+            int firstNonTransparentY = int.MaxValue;
+            int lastNonTransparentX = -1;
+            int lastNonTransparentY = -1;
+
+            // Scan through the whole image.
+            // For every visible pixel, we check whether we should "expand" the bounds.
+            for (int y = 0; y < existingTexture.Height; y++)
+            {
+                for (int x = 0; x < existingTexture.Width; x++)
+                {
+                    int index = y * existingTexture.Width + x;
+
+                    Color color = textureData[index];
+                    if (color.A > 0)
+                    {
+                        if (x < firstNonTransparentX)
+                            firstNonTransparentX = x;
+
+                        if (y < firstNonTransparentY)
+                            firstNonTransparentY = y;
+
+                        if (x > lastNonTransparentX)
+                            lastNonTransparentX = x;
+
+                        if (y > lastNonTransparentY)
+                            lastNonTransparentY = y;
+                    }
+                }
+            }
+
+            int width = lastNonTransparentX - firstNonTransparentX;
+            int height = lastNonTransparentY - firstNonTransparentY;
+
+            // If there are no visible pixels then set the texture size to 1 to avoid crashes.
+            if (width <= 0)
+                width = 1;
+
+            if (height <= 0)
+                height = 1;
+
+            // Now we know the exact rectangle of the texture that is visible.
+            // Create a new texture and render only the visible portion into it.
+            var renderTarget = new RenderTarget2D(graphicsDevice, width, height, false, SurfaceFormat.Color, DepthFormat.None);
+
+            Renderer.PushRenderTarget(renderTarget);
+            graphicsDevice.Clear(Color.Transparent);
+            Renderer.DrawTexture(existingTexture, new Rectangle(firstNonTransparentX, firstNonTransparentY, width, height),
+                new Rectangle(0, 0, width, height), Color.White);
+            Renderer.PopRenderTarget();
+
+            var texture = new Texture2D(graphicsDevice, width, height, false, SurfaceFormat.Color);
+            var colorData = new Color[width * height];
+            renderTarget.GetData(colorData);
+            texture.SetData(colorData);
+            renderTarget.Dispose();
+
+            // Calculate offset
+            Point2D oldcenter = new Point2D(existingTexture.Width / 2, existingTexture.Height / 2);
+            Point2D newcenter = new Point2D(firstNonTransparentX + width / 2, firstNonTransparentY + height / 2);
+
+            return (texture, new Point2D(newcenter.X - oldcenter.X, newcenter.Y - oldcenter.Y));
+        }
+
+        /// <summary>
+        /// Gets map tile coordinates for an enclosed 'fill area' around a target tile.
+        /// </summary>
+        /// <param name="targetTile">Target map tile.</param>
+        /// <param name="map">Map instance.</param>
+        /// <param name="theaterGraphics">Theater graphics instance.</param>
+        /// <returns>Collection of map tile coordinates.</returns>
+        public static IEnumerable<Point2D> GetFillAreaTiles(MapTile targetTile, Map map, TheaterGraphics theaterGraphics)
+        {
+            TileImage tileGraphics = theaterGraphics.GetTileGraphics(targetTile.TileIndex);
+            MGTMPImage subCellImage = tileGraphics.TMPImages[targetTile.SubTileIndex];
+
+            byte terrainType = subCellImage.TmpImage.TerrainType;
+            int tileSetId = tileGraphics.TileSetId;
+            var tilesToCheck = new LinkedList<Point2D>(); // list of pending tiles to check
+            var tileCheckHashSet = new HashSet<int>();    // hash set of tiles that have been added to the list of
+                                                          // tiles to check at some point and so should not be added there again
+            tilesToCheck.AddFirst(targetTile.CoordsToPoint());
+            tileCheckHashSet.Add(targetTile.CoordsToPoint().GetHashCode());
+
+            var tilesToSkip = new HashSet<int>();         // tiles that have been confirmed as not being part of the area to fill
+
+            // tiles that have been confirmed as being part of the area to fill
+            var tilesToProcess = new List<Point2D>();
+
+            while (tilesToCheck.First != null)
+            {
+                var coords = tilesToCheck.First.Value;
+                tilesToCheck.RemoveFirst();
+
+                if (tilesToSkip.Contains(coords.GetHashCode()))
+                    continue;
+
+                var cell = map.GetTile(coords);
+                if (cell == null)
+                {
+                    tilesToSkip.Add(coords.GetHashCode());
+                    continue;
+                }
+
+                if (cell.Level != targetTile.Level)
+                {
+                    tilesToSkip.Add(coords.GetHashCode());
+                    continue;
+                }
+
+                tileGraphics = theaterGraphics.GetTileGraphics(cell.TileIndex);
+                if (tileGraphics.TileSetId != tileSetId)
+                {
+                    tilesToSkip.Add(coords.GetHashCode());
+                    continue;
+                }
+
+                subCellImage = tileGraphics.TMPImages[cell.SubTileIndex];
+                if (subCellImage.TmpImage.TerrainType != terrainType)
+                {
+                    tilesToSkip.Add(coords.GetHashCode());
+                    continue;
+                }
+
+                // Mark this cell as one to process and nearby tiles as ones to check
+                tilesToProcess.Add(coords);
+
+                for (int y = -1; y <= 1; y++)
+                {
+                    for (int x = -1; x <= 1; x++)
+                    {
+                        if (y == 0 && x == 0)
+                            continue;
+
+                        var newCellCoords = new Point2D(x, y) + coords;
+                        int hash = newCellCoords.GetHashCode();
+                        if (!tilesToSkip.Contains(hash) && !tileCheckHashSet.Contains(hash))
+                        {
+                            tileCheckHashSet.Add(hash);
+                            tilesToCheck.AddLast(newCellCoords);
+                        }
+                    }
+                }
+            }
+
+            return tilesToProcess;
+        }
+
+        /// <summary>
+        /// Converts a name that includes a difficulty to instead have a different difficulty.
+        /// Useful for cloning purposes of any type of object named by users to additional difficulty levels.
+        /// </summary>
+        /// <param name="name">Original name to convert.</param>
+        /// <param name="fromDifficulty">Current difficulty to convert the name from (replace).</param>
+        /// <param name="toDifficulty">New difficulty to convert the name to (replace).</param>
+        /// <returns>New name after it was converted to the desired difficulty.</returns>
+        public static string ConvertNameToNewDifficulty(string name, Difficulty fromDifficulty, Difficulty toDifficulty)
+        {
+            string fromDifficultyString = fromDifficulty.ToString();
+            string toDifficultyString = toDifficulty.ToString();
+
+            string newName;
+
+            if (name.Contains(fromDifficultyString))
+            {
+                // Replace full difficulty string
+                newName = name.Replace(fromDifficultyString, toDifficultyString);
+            }
+            else if (name.StartsWith($"{fromDifficultyString[0]} "))
+            {
+                // Replace single-character difficulty identifier in beginning of string
+                newName = $"{toDifficultyString[0]} " + name[2..];
+            }
+            else if (name.EndsWith($" {fromDifficultyString[0]}"))
+            {
+                // Replace single-character difficulty identifier in end of string
+                newName = name[..^2] + $" {toDifficultyString[0]}";
+            }
+            else
+            {
+                // Couldn't find anything to replace, return original name
+                newName = name;
+            }
+
+            return newName;
+        }
+
+        /// <summary>
+        /// Generates outline edges for a foundation of cells
+        /// </summary>
+        /// <param name="maxWidth">Maximum possible length of a horizontal edge in cells.</param>
+        /// <param name="maxHeight">Maximum possible length of a vertical edge in cells.</param>
+        public static Point2D[][] CreateEdges(int maxWidth, int maxHeight, IEnumerable<Point2D> foundationCells)
+        {
+            // Create a padded map of every cell occupied by building foundation.
+            var occupyCells = new int[maxWidth + 2, maxHeight + 2];
+            foreach (var cell in foundationCells)
+                occupyCells[cell.X + 1, cell.Y + 1] = 1;
+
+            var edges = new List<Point2D[]>();
+
+            // Horizontal edge scanning.
+            for (int y = 0; y < maxHeight + 1; y++)
+            {
+                int startX = -1;
+                int endX = -1;
+                for (int x = 0; x < maxWidth + 2; x++)
+                {
+                    // If we found an edge...
+                    if (occupyCells[x, y] + occupyCells[x, y + 1] == 1)
+                    {
+                        // ...and we're not continuing an existing edge, then start a new one.
+                        if (startX == -1)
+                        {
+                            startX = x - 1;
+                            endX = x;
+                        }
+                        // ... and we're continuing an existing edge, then make it longer.
+                        else
+                        {
+                            endX++;
+                        }
+                    }
+                    // ...otherwise end and save the current edge if there's one.
+                    else if (startX != -1)
+                    {
+                        edges.Add(new Point2D[] { new Point2D(startX, y), new Point2D(endX, y) });
+                        startX = -1;
+                    }
+                }
+            }
+
+            // Vertical edge scanning, the same idea as with horizontal edges.
+            for (int x = 0; x < maxWidth + 1; x++)
+            {
+                int startY = -1;
+                int endY = -1;
+                for (int y = 0; y < maxHeight + 2; y++)
+                {
+                    // If we found an edge...
+                    if (occupyCells[x, y] + occupyCells[x + 1, y] == 1)
+                    {
+                        // ...and we're not continuing an existing edge, then start a new one.
+                        if (startY == -1)
+                        {
+                            startY = y - 1;
+                            endY = y;
+                        }
+                        // ... and we're continuing an existing edge, then make it longer.
+                        else
+                        {
+                            endY++;
+                        }
+                    }
+                    // ...otherwise end and save the current edge if there's one.
+                    else if (startY != -1)
+                    {
+                        edges.Add(new Point2D[] { new Point2D(x, startY), new Point2D(x, endY) });
+                        startY = -1;
+                    }
+                }
+            }
+
+            return edges.ToArray();
         }
     }
 }

@@ -9,6 +9,8 @@
 #define PS_SHADERMODEL ps_4_0
 #endif
 
+float4 Lighting;
+
 sampler2D SpriteTextureSampler : register(s0)
 {
     Texture = (SpriteTexture); // this is set by spritebatch
@@ -42,7 +44,7 @@ float4 MainPS(VertexShaderOutput input) : COLOR
     // Get color from palette
     float4 paletteColor = tex2D(PaletteTextureSampler, float2(tex.a, 0.5));
 
-    return paletteColor;
+    return paletteColor * Lighting;
 }
 
 technique SpriteDrawing

@@ -39,7 +39,7 @@ namespace TSMapEditor.UI.Windows
 
             foreach (BuildingType buildingType in map.Rules.BuildingTypes)
             {
-                lbObjectList.AddItem(new XNAListBoxItem() { Text = $"{buildingType.Index} {buildingType.GetEditorDisplayName()}", Tag = buildingType });
+                lbObjectList.AddItem(new XNAListBoxItem() { Text = $"{buildingType.Index} {buildingType.GetEditorDisplayName()} ({buildingType.ININame})", Tag = buildingType });
                 if (buildingType == SelectedObject)
                     lbObjectList.SelectedIndex = lbObjectList.Items.Count - 1;
             }

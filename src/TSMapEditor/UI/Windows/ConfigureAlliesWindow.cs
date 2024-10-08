@@ -89,7 +89,7 @@ namespace TSMapEditor.UI.Windows
                     isSecondColumn = !isSecondColumn;
             }
 
-            panelCheckBoxes.Height = y - Constants.UIVerticalSpacing;
+            panelCheckBoxes.Height = checkBoxes.Count > 0 ? checkBoxes[checkBoxes.Count - 1].Bottom : 0;
             btnApply.Y = panelCheckBoxes.Bottom + Constants.UIEmptyTopSpace;
             Height = btnApply.Bottom + Constants.UIEmptyBottomSpace;
 

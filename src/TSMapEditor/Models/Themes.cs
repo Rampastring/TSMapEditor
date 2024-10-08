@@ -1,6 +1,8 @@
 ﻿using Rampastring.Tools;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using TSMapEditor.Extensions;
+using TSMapEditor.Misc;
 
 namespace TSMapEditor.Models
 {
@@ -25,6 +27,11 @@ namespace TSMapEditor.Models
         public int Side { get; set; }
         public bool Repeat { get; set; }
 
+        public override string ToString()
+        {
+            return $"{Index} {Name}";
+        }
+
         public void ReadFromSection(IniSection iniSection)
         {
             ReadPropertiesFromIniSection(iniSection);
@@ -38,15 +45,21 @@ namespace TSMapEditor.Models
             Initialize(themeIni);
         }
 
-        private List<Theme> themes;
+        public ImmutableList<Theme> List { get; private set; }
 
-        public List<Theme> GetThemes() => new List<Theme>(themes);
+        public Theme Get(int index)
+        {
+            return List.GetElementIfInRange(index);
+        }
 
-        public Theme GetByIndex(int index) => (index < 0 || index >= themes.Count) ? null : themes[index];
+        public Theme Get(string name)
+        {
+            return List.Find(theme => theme.Name == name);
+        }
 
         private void Initialize(IniFileEx themeIni)
         {
-            themes = new List<Theme>();
+            var themes = new List<Theme>();
 
             const string definitionsSectionName = "Themes";
 
@@ -70,6 +83,8 @@ namespace TSMapEditor.Models
                 if (themeSection != null)
                     theme.ReadFromSection(themeSection);
             }
+
+            List = ImmutableList.Create(themes.ToArray());
         }
     }
 }

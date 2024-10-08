@@ -8,13 +8,14 @@ using TSMapEditor.Rendering;
 using TSMapEditor.UI.Controls;
 using TSMapEditor.UI.CursorActions;
 using TSMapEditor.UI.CursorActions.HeightActions;
+using TSMapEditor.UI.Windows;
 
 namespace TSMapEditor.UI.TopBar
 {
     public class EditorControlsPanel : INItializableWindow
     {
         public EditorControlsPanel(WindowManager windowManager, Map map, TheaterGraphics theaterGraphics,
-            EditorConfig editorConfig, EditorState editorState,
+            EditorConfig editorConfig, EditorState editorState, WindowController windowController,
             PlaceTerrainCursorAction terrainPlacementAction,
             PlaceWaypointCursorAction placeWaypointCursorAction,
             ICursorActionTarget cursorActionTarget) : base(windowManager)
@@ -23,8 +24,10 @@ namespace TSMapEditor.UI.TopBar
             this.theaterGraphics = theaterGraphics;
             this.editorConfig = editorConfig;
             this.editorState = editorState;
+            this.windowController = windowController;
             this.terrainPlacementAction = terrainPlacementAction;
             this.placeWaypointCursorAction = placeWaypointCursorAction;
+            this.cursorActionTarget = cursorActionTarget;
 
             deletionModeCursorAction = new DeletionModeCursorAction(cursorActionTarget);
             fsRaiseGroundCursorAction = new FSRaiseGroundCursorAction(cursorActionTarget);
@@ -40,6 +43,8 @@ namespace TSMapEditor.UI.TopBar
         private readonly TheaterGraphics theaterGraphics;
         private readonly EditorConfig editorConfig;
         private readonly EditorState editorState;
+        private readonly WindowController windowController;
+        private readonly ICursorActionTarget cursorActionTarget;
         private readonly PlaceTerrainCursorAction terrainPlacementAction;
         private readonly PlaceWaypointCursorAction placeWaypointCursorAction;
         private readonly DeletionModeCursorAction deletionModeCursorAction;
@@ -123,6 +128,18 @@ namespace TSMapEditor.UI.TopBar
             if (btn2DMode != null)
                 btn2DMode.LeftClick += (s, e) => editorState.Is2DMode = !editorState.Is2DMode;
 
+            var btnGenerateTerrain = FindChild<EditorButton>("btnGenerateTerrain", true);
+            if (btnGenerateTerrain != null)
+                btnGenerateTerrain.LeftClick += (s, e) => EnterTerrainGenerator();
+
+            var btnTerrainGeneratorOptions = FindChild<EditorButton>("btnTerrainGeneratorOptions", true);
+            if (btnTerrainGeneratorOptions != null)
+                btnTerrainGeneratorOptions.LeftClick += (s, e) => windowController.TerrainGeneratorConfigWindow.Open();
+
+            var btnDrawConnectedTiles = FindChild<EditorButton>("btnDrawConnectedTiles", true);
+            if (btnDrawConnectedTiles != null)
+                btnDrawConnectedTiles.LeftClick += (s, e) => windowController.SelectConnectedTileWindow.Open();
+
             KeyboardCommands.Instance.NextBrushSize.Triggered += NextBrushSize_Triggered;
             KeyboardCommands.Instance.PreviousBrushSize.Triggered += PreviousBrushSize_Triggered;
             KeyboardCommands.Instance.ToggleAutoLAT.Triggered += ToggleAutoLAT_Triggered;
@@ -134,6 +151,19 @@ namespace TSMapEditor.UI.TopBar
             editorState.BrushSizeChanged += (s, e) => ddBrushSize.SelectedIndex = map.EditorConfig.BrushSizes.FindIndex(bs => bs == editorState.BrushSize);
 
             InitLATPanel();
+        }
+
+        private void EnterTerrainGenerator()
+        {
+            if (windowController.TerrainGeneratorConfigWindow.TerrainGeneratorConfig == null)
+            {
+                windowController.TerrainGeneratorConfigWindow.Open();
+                return;
+            }
+
+            var generateTerrainCursorAction = new GenerateTerrainCursorAction(cursorActionTarget);
+            generateTerrainCursorAction.TerrainGeneratorConfiguration = windowController.TerrainGeneratorConfigWindow.TerrainGeneratorConfig;
+            editorState.CursorAction = generateTerrainCursorAction;
         }
 
         private void CheckForMapWideOverlay()

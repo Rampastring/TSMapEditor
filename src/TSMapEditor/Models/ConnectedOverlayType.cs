@@ -1,11 +1,9 @@
 using System;
 using Rampastring.Tools;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 using TSMapEditor.GameMath;
-using TSMapEditor.Rendering;
 using TSMapEditor.UI;
 
 namespace TSMapEditor.Models

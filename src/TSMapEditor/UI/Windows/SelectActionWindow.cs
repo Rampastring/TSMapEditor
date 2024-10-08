@@ -15,6 +15,8 @@ namespace TSMapEditor.UI.Windows
 
         private readonly Map map;
 
+        public bool IsAddingNew { get; set; }
+
         public override void Initialize()
         {
             Name = nameof(SelectActionWindow);

@@ -1,7 +1,6 @@
 ﻿using Rampastring.Tools;
 using System;
 using System.Collections.Generic;
-using TSMapEditor.Initialization;
 using TSMapEditor.Models;
 
 namespace TSMapEditor.Extensions
@@ -45,6 +44,8 @@ namespace TSMapEditor.Extensions
             if (section == null)
                 return;
 
+            var editorInfoSection = iniFile.GetSection("EditorScriptInfo");
+
             foreach (var kvp in section.Keys)
             {
                 var script = Script.ParseScript(kvp.Value, iniFile.GetSection(kvp.Value));
@@ -54,6 +55,11 @@ namespace TSMapEditor.Extensions
                     errorLogger($"Failed to load Script {kvp.Value}. It might be missing a section or be otherwise invalid.");
 
                     continue;
+                }
+
+                if (editorInfoSection != null)
+                {
+                    script.EditorColor = editorInfoSection.GetStringValue(script.ININame, null);
                 }
 
                 int existingIndex = scriptList.FindIndex(tf => tf.ININame == kvp.Value);
@@ -100,21 +106,18 @@ namespace TSMapEditor.Extensions
                 string taskForceId = teamTypeSection.GetStringValue("TaskForce", string.Empty);
                 string tagId = teamTypeSection.GetStringValue("Tag", string.Empty);
 
-                teamType.HouseType = houseTypeFinder(houseTypeIniName);
+                if (!Helpers.IsStringNoneValue(houseTypeIniName))
+                {
+                    teamType.HouseType = houseTypeFinder(houseTypeIniName);
+
+                    if (teamType.HouseType == null)
+                    {
+                        errorLogger($"TeamType {teamType.ININame} has an invalid owner ({houseTypeIniName}) specified!");
+                    }
+                }
+
                 teamType.Script = scriptFinder(scriptId);
                 teamType.TaskForce = taskForceFinder(taskForceId);
-                teamType.Tag = tagFinder == null ? null : tagFinder(tagId);
-
-                teamTypeFlags.ForEach(ttflag =>
-                {
-                    if (teamTypeSection.GetBooleanValue(ttflag.Name, false))
-                        teamType.EnableFlag(ttflag.Name);
-                });
-
-                if (teamType.HouseType == null)
-                {
-                    errorLogger($"TeamType {teamType.ININame} has an invalid owner ({houseTypeIniName}) specified!");
-                }
 
                 if (teamType.Script == null)
                 {
@@ -124,6 +127,28 @@ namespace TSMapEditor.Extensions
                 if (teamType.TaskForce == null)
                 {
                     errorLogger($"TeamType {teamType.ININame} has an invalid TaskForce ({taskForceId}) specified!");
+                }
+
+                if (tagFinder != null && !string.IsNullOrWhiteSpace(tagId))
+                {
+                    teamType.Tag = tagFinder(tagId);
+
+                    if (teamType.Tag == null)
+                    {
+                        errorLogger($"TeamType {teamType.ININame} has an invalid tag ({tagId}) specified!");
+                    }
+                }
+
+                teamTypeFlags.ForEach(ttflag =>
+                {
+                    if (teamTypeSection.GetBooleanValue(ttflag.Name, false))
+                        teamType.EnableFlag(ttflag.Name);
+                });
+
+                var editorSectionName = iniFile.GetSection("EditorTeamTypeInfo");
+                if (editorSectionName != null)
+                {
+                    teamType.EditorColor = editorSectionName.GetStringValue(teamType.ININame, null);
                 }
 
                 teamTypeList.Add(teamType);

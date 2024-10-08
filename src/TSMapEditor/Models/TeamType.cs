@@ -3,6 +3,7 @@ using Rampastring.Tools;
 using System;
 using System.Collections.Generic;
 using System.Text;
+using TSMapEditor.Misc;
 
 namespace TSMapEditor.Models
 {
@@ -30,7 +31,7 @@ namespace TSMapEditor.Models
         public string TransportWaypoint { get; set; }
         public int? MindControlDecision { get; set; }
         public int TechLevel { get; set; }
-        public int VeteranLevel { get; set; }
+        public int VeteranLevel { get; set; } = 1;
 
         [INI(false)]
         public List<string> EnabledTeamTypeFlags { get; private set; } = new List<string>();
@@ -73,7 +74,7 @@ namespace TSMapEditor.Models
 
             stringBuilder.Append("Waypoint: " + (string.IsNullOrWhiteSpace(Waypoint) ? Constants.NoneValue2 : Helpers.GetWaypointNumberFromAlphabeticalString(Waypoint)));
 
-            if (Constants.UseCountries)
+            if (Constants.IsRA2YR)
             {
                 stringBuilder.Append("TransportWaypoint: " + (string.IsNullOrWhiteSpace(TransportWaypoint) ? Constants.NoneValue2 : Helpers.GetWaypointNumberFromAlphabeticalString(TransportWaypoint)));
             }
@@ -128,7 +129,7 @@ namespace TSMapEditor.Models
         {
             var clone = MemberwiseClone() as TeamType;
             clone.ININame = iniName;
-            clone.Name = "Clone of " + Name;
+            clone.Name = Name + " (Clone)";
 
             clone.EnabledTeamTypeFlags = new List<string>(EnabledTeamTypeFlags);
 
@@ -142,17 +143,30 @@ namespace TSMapEditor.Models
 
             if (HouseType != null)
                 iniSection.SetStringValue("House", HouseType.ININame);
+            else
+                iniSection.SetStringValue("House", Constants.NoneValue1);
+
             if (Script != null)
                 iniSection.SetStringValue("Script", Script.ININame);
+
             if (TaskForce != null)
                 iniSection.SetStringValue("TaskForce", TaskForce.ININame);
+
             if (Tag != null)
                 iniSection.SetStringValue("Tag", Tag.ID);
 
             teamTypeFlags.ForEach(flag =>
             {
                 iniSection.SetBooleanValue(flag.Name, IsFlagEnabled(flag.Name), BooleanStringStyle.YESNO_LOWERCASE);
-            });
+            });            
+        }
+
+        public void WriteEditorProperties(IniFile iniFile)
+        {
+            if (EditorColor == null)
+                return;
+
+            iniFile.SetStringValue("EditorTeamTypeInfo", ININame, EditorColor);
         }
 
         public override RTTIType WhatAmI()
@@ -160,6 +174,39 @@ namespace TSMapEditor.Models
             return RTTIType.TeamType;
         }
 
-        public Color GetXNAColor() => Helpers.GetHouseTypeUITextColor(HouseType);
+        public static NamedColor[] SupportedColors => NamedColors.GenericSupportedNamedColors;
+
+        private string _editorColor;
+        public string EditorColor
+        {
+            get => _editorColor;
+            set
+            {
+                _editorColor = value;
+
+                if (_editorColor != null)
+                {
+                    int index = Array.FindIndex(SupportedColors, c => c.Name == value);
+                    if (index > -1)
+                    {
+                        EditorColorValue = SupportedColors[index].Value;
+                    }
+                    else
+                    {
+                        // Only allow assigning colors that actually exist in the color table
+                        _editorColor = null;
+                    }
+                }
+            }
+        }
+
+        private Color EditorColorValue;
+        public Color GetXNAColor() 
+        {
+            if (EditorColor != null) 
+                return EditorColorValue;
+
+            return Helpers.GetHouseTypeUITextColor(HouseType);
+        }
     }
 }

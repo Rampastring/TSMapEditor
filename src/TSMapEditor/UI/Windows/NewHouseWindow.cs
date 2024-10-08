@@ -37,7 +37,7 @@ namespace TSMapEditor.UI.Windows
             ddParentCountry.SelectedIndexChanged += DdParentCountry_SelectedIndexChanged;
             btnAdd.LeftClick += BtnAdd_LeftClick;
 
-            if (!Constants.UseCountries)
+            if (!Constants.IsRA2YR)
             {
                 ddParentCountry.Visible = false;
                 FindChild<XNALabel>("lblParentCountry").Visible = false;
@@ -69,7 +69,7 @@ namespace TSMapEditor.UI.Windows
             var newHouseType = new HouseType(houseTypeName)
             {
                 ParentCountry = ParentCountry.ININame,
-                Index = map.GetHouseTypes().Count,
+                Index = map.Rules.RulesHouseTypes.Count + map.HouseTypes.Count,
                 Side = ParentCountry.Side,
                 Color = ParentCountry.Color,
                 XNAColor = ParentCountry.XNAColor
@@ -118,7 +118,7 @@ namespace TSMapEditor.UI.Windows
 
         public void Open()
         {
-            if (!Constants.UseCountries)
+            if (!Constants.IsRA2YR)
                 throw new NotSupportedException(nameof(NewHouseWindow) + " should only be used with Countries.");
 
             Show();

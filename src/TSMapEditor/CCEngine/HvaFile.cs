@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.IO;
 using CNCMaps.FileFormats.VirtualFileSystem;
 using Microsoft.Xna.Framework;
-using Rampastring.Tools;
 
 namespace TSMapEditor.CCEngine
 {

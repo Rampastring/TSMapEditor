@@ -18,36 +18,31 @@ namespace TSMapEditor.Rendering.ObjectRenderers
             {
                 IniName = gameObject.ObjectType.ININame,
                 ShapeImage = TheaterGraphics.InfantryTextures[gameObject.ObjectType.Index]
-        };
+            };
         }
 
-        protected override void Render(Infantry gameObject, int heightOffset, Point2D drawPoint, in CommonDrawParams drawParams)
+        protected override float GetDepthAddition(Infantry gameObject)
         {
-            switch (gameObject.SubCell)
-            {
-                case SubCell.Top:
-                    drawPoint += new Point2D(0, Constants.CellSizeY / -4);
-                    break;
-                case SubCell.Bottom:
-                    drawPoint += new Point2D(0, Constants.CellSizeY / 4);
-                    break;
-                case SubCell.Left:
-                    drawPoint += new Point2D(Constants.CellSizeX / -4, 0);
-                    break;
-                case SubCell.Right:
-                    drawPoint += new Point2D(Constants.CellSizeX / 4, 0);
-                    break;
-                case SubCell.Center:
-                default:
-                    break;
-            }
+            return Constants.DepthEpsilon * ObjectDepthAdjustments.Infantry;
+        }
 
+        public override Point2D GetDrawPoint(Infantry gameObject)
+        {
+            Point2D drawPoint = base.GetDrawPoint(gameObject);
+            Point2D subCellOffset = CellMath.GetSubCellOffset(gameObject.SubCell);
+
+            return drawPoint + subCellOffset;
+        }
+
+        protected override void Render(Infantry gameObject, Point2D drawPoint, in CommonDrawParams drawParams)
+        {
             if (!gameObject.ObjectType.NoShadow)
-                DrawShadow(gameObject, drawParams, drawPoint, heightOffset);
+                DrawShadow(gameObject);
 
-            DrawShapeImage(gameObject, drawParams, drawParams.ShapeImage, 
+            DrawShapeImage(gameObject, drawParams.ShapeImage, 
                 gameObject.GetFrameIndex(drawParams.ShapeImage.GetFrameCount()), 
-                Color.White, false, true, gameObject.GetRemapColor(), drawPoint, heightOffset);
+                Color.White, true, gameObject.GetRemapColor(),
+                false, true, drawPoint);
         }
     }
 }

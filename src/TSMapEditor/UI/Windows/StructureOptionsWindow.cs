@@ -1,8 +1,8 @@
-﻿using System;
+﻿using Rampastring.XNAUI;
+using Rampastring.XNAUI.XNAControls;
+using System;
 using System.Collections.Generic;
 using System.Globalization;
-using Rampastring.XNAUI;
-using Rampastring.XNAUI.XNAControls;
 using TSMapEditor.Models;
 using TSMapEditor.UI.Controls;
 
@@ -167,6 +167,8 @@ namespace TSMapEditor.UI.Windows
             structure.Upgrades[1] = (BuildingType)ddUpgrade2.SelectedItem.Tag;
             structure.Upgrades[2] = (BuildingType)ddUpgrade3.SelectedItem.Tag;
             structure.AttachedTag = (Tag)attachedTagSelector.Tag;
+
+            structure.UpdatePowerUpAnims();
 
             Hide();
         }

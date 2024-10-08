@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using Rampastring.XNAUI;
 using Rampastring.XNAUI.XNAControls;
 using TSMapEditor.Models;
@@ -14,6 +13,8 @@ namespace TSMapEditor.UI.Windows
         }
 
         private readonly Map map;
+
+        public bool IncludeNone { get; set; }
 
         public override void Initialize()
         {
@@ -36,11 +37,14 @@ namespace TSMapEditor.UI.Windows
         {
             lbObjectList.Clear();
 
+            if (IncludeNone)
+                lbObjectList.AddItem("None");
+
             var technoTypes = map.GetAllTechnoTypes();
 
             foreach (var technoType in technoTypes)
             {
-                lbObjectList.AddItem(new XNAListBoxItem() { Text = technoType.ININame, Tag = technoType });
+                lbObjectList.AddItem(new XNAListBoxItem() { Text = $"{technoType.Index} {technoType.Name} ({technoType.ININame})", Tag = technoType });
                 if (technoType == SelectedObject)
                     lbObjectList.SelectedIndex = lbObjectList.Items.Count - 1;
             }

@@ -5,7 +5,6 @@ using System.Globalization;
 using TSMapEditor.Models;
 using TSMapEditor.Models.ArtConfig;
 using TSMapEditor.Models.Enums;
-using TSMapEditor.UI;
 
 namespace TSMapEditor.Initialization
 {
@@ -158,6 +157,23 @@ namespace TSMapEditor.Initialization
 
             buildingType.RadialColor = section.KeyExists(nameof(buildingType.RadialColor)) ?
                 Helpers.ColorFromString(section.GetStringValue(nameof(buildingType.RadialColor), null)) : buildingType.RadialColor;
+
+            // WW often made dumb typos where instead of a dot '.', they used a comma ',' in the values of lighting keys
+            buildingType.LightRedTint = FloatTypoFix(buildingType, section, "LightRedTint", buildingType.LightRedTint);
+            buildingType.LightGreenTint = FloatTypoFix(buildingType, section, "LightGreenTint", buildingType.LightGreenTint);
+            buildingType.LightBlueTint = FloatTypoFix(buildingType, section, "LightBlueTint", buildingType.LightBlueTint);
+        }
+
+        private double FloatTypoFix(BuildingType buildingType, IniSection section, string keyName, double current)
+        {
+            string value = section.GetStringValue(keyName, string.Empty);
+            if (string.IsNullOrWhiteSpace(value))
+                return current;
+
+            if (value.Contains(','))
+                return Conversions.DoubleFromString(value.Replace(',', '.'), current);
+
+            return current;
         }
 
         private void InitInfantryType(INIDefineable obj, IniFile rulesIni, IniSection section)
@@ -200,8 +216,6 @@ namespace TSMapEditor.Initialization
 
         private static void InitOverlayType(INIDefineable obj, IniFile rulesIni, IniSection section)
         {
-            var overlayType = (OverlayType)obj;
-            overlayType.Land = (LandType)Enum.Parse(typeof(LandType), section.GetStringValue("Land", LandType.Clear.ToString()));
         }
 
         private static void InitTerrainType(INIDefineable obj, IniFile rulesIni, IniSection section)

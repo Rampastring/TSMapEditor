@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using TSMapEditor.GameMath;
-using TSMapEditor.Rendering;
 using TSMapEditor.UI;
 
 namespace TSMapEditor.Mutations.Classes

@@ -69,7 +69,7 @@ namespace TSMapEditor.UI.Windows
             foreach (RulesColor rulesColor in map.Rules.Colors.OrderBy(c => c.Name))
                 ddColor.AddItem(rulesColor.Name, rulesColor.XNAColor);
 
-            if (Constants.UseCountries)
+            if (Constants.IsRA2YR)
             {
                 foreach (var property in typeof(HouseType).GetProperties())
                 {
@@ -200,6 +200,8 @@ namespace TSMapEditor.UI.Windows
             chkMultiplayPassive.CheckedChanged -= ChkMultiplayPassive_CheckedChanged;
             chkWallOwner.CheckedChanged -= ChkWallOwner_CheckedChanged;
 
+            ddParentCountry.Items.Clear();
+
             if (!map.Rules.RulesHouseTypes.Contains(editedCountry))
             {
                 foreach (var houseType in map.Rules.RulesHouseTypes)
@@ -210,7 +212,6 @@ namespace TSMapEditor.UI.Windows
             }
             else
             {
-                ddParentCountry.Items.Clear();
                 ddParentCountry.AddItem("Standard country - no parent");
                 ddParentCountry.SelectedIndex = 0;
                 ddParentCountry.AllowDropDown = false;

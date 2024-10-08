@@ -46,7 +46,7 @@ namespace TSMapEditor.UI.Sidebar
 
         protected XNAScrollBar ScrollBar;
 
-        private int _lineHeight = 20;
+        private int _lineHeight = Constants.UITreeViewLineHeight;
 
         /// <summary>
         /// Gets or sets the height of a single item text in the tree view.
@@ -468,7 +468,9 @@ namespace TSMapEditor.UI.Sidebar
                             }
 
                             x = TextBorderDistance + NODE_INDENTATION;
-                            DrawStringWithShadow(node.Text, Constants.UIDefaultFont, new Vector2(x, y), UISettings.ActiveSettings.AltColor);
+                            int textHeight = (int)Renderer.GetTextDimensions(node.Text, Constants.UIDefaultFont).Y;
+                            int textY = y + ((LineHeight - textHeight) / 2);
+                            DrawStringWithShadow(node.Text, Constants.UIDefaultFont, new Vector2(x, textY), UISettings.ActiveSettings.AltColor);
 
                             if (node.Texture != null)
                             {

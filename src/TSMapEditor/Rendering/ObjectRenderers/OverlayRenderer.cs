@@ -21,39 +21,44 @@ namespace TSMapEditor.Rendering.ObjectRenderers
             };
         }
 
-        protected override void Render(Overlay gameObject, int heightOffset, Point2D drawPoint, in CommonDrawParams drawParams)
+        protected override float GetDepthAddition(Overlay gameObject)
         {
-            int tiberiumIndex = gameObject.OverlayType.GetTiberiumIndex(Constants.UseCountries);
-
-            Color remapColor = Color.White;
-            if (tiberiumIndex > -1 && tiberiumIndex < Map.Rules.TiberiumTypes.Count)
-                remapColor = Map.Rules.TiberiumTypes[tiberiumIndex].XNAColor;
-
-            int overlayIndex = gameObject.OverlayType.Index;
-
-            if (!RenderDependencies.EditorState.Is2DMode)
+            if (gameObject.OverlayType.HighBridgeDirection == BridgeDirection.None)
             {
-                foreach (var bridge in Map.EditorConfig.Bridges)
-                {
-                    if (bridge.Kind == BridgeKind.High)
-                    {
-                        if (bridge.EastWest.Pieces.Contains(overlayIndex))
-                        {
-                            drawPoint.Y -= Constants.CellHeight + 1;
-                            break;
-                        }
+                // Draw overlays above smudges
+                return Constants.DepthEpsilon * ObjectDepthAdjustments.Overlay;
+            }
 
-                        if (bridge.NorthSouth.Pieces.Contains(overlayIndex))
-                        {
-                            drawPoint.Y -= Constants.CellHeight * 2 + 1;
-                            break;
-                        }
-                    }
+            const int bridgeHeight = 4;
+
+            var tile = Map.GetTile(gameObject.Position);
+            return (Constants.DepthEpsilon * ObjectDepthAdjustments.Overlay) + ((tile.Level + bridgeHeight) * Constants.CellHeight / (float)Map.HeightInPixelsWithCellHeight);
+        }
+
+        protected override void Render(Overlay gameObject, Point2D drawPoint, in CommonDrawParams drawParams)
+        {
+            Color remapColor = Color.White;
+            if (gameObject.OverlayType.TiberiumType != null)
+                remapColor = gameObject.OverlayType.TiberiumType.XNAColor;
+
+            if (!RenderDependencies.EditorState.Is2DMode && gameObject.OverlayType.HighBridgeDirection != BridgeDirection.None)
+            {
+                if (gameObject.OverlayType.HighBridgeDirection == BridgeDirection.EastWest)
+                {
+                    drawPoint.Y -= Constants.CellHeight + 1;
+                }
+                else
+                {
+                    drawPoint.Y -= Constants.CellHeight * 2 + 1;
                 }
             }
 
-            DrawShadow(gameObject, drawParams, drawPoint, heightOffset);
-            DrawShapeImage(gameObject, drawParams, drawParams.ShapeImage, gameObject.FrameIndex, Color.White, false, true, remapColor, drawPoint, heightOffset);
+            bool affectedByLighting = drawParams.ShapeImage.SubjectToLighting;
+            bool affectedByAmbient = !gameObject.OverlayType.Tiberium && !affectedByLighting;
+
+            DrawShadow(gameObject);
+            DrawShapeImage(gameObject, drawParams.ShapeImage, gameObject.FrameIndex, Color.White,
+                true, remapColor, affectedByLighting, affectedByAmbient, drawPoint);
         }
     }
 }

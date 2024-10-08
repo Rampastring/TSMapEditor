@@ -15,6 +15,8 @@ namespace TSMapEditor.UI.Windows.TerrainGenerator
     /// </summary>
     public class TerrainGeneratorSmudgeGroupsPanel : EditorPanel
     {
+        private const int MaxSmudgeTypeGroupCount = 8;
+
         public TerrainGeneratorSmudgeGroupsPanel(WindowManager windowManager, Map map) : base(windowManager)
         {
             this.map = map;
@@ -28,8 +30,6 @@ namespace TSMapEditor.UI.Windows.TerrainGenerator
 
         public override void Initialize()
         {
-            const int MaxSmudgeTypeGroupCount = 8;
-
             smudgeTypeTextBoxes = new EditorTextBox[MaxSmudgeTypeGroupCount];
             smudgeTypeOpenChances = new EditorNumberTextBox[MaxSmudgeTypeGroupCount];
             smudgeTypeOccupiedChances = new EditorNumberTextBox[MaxSmudgeTypeGroupCount];
@@ -128,7 +128,7 @@ namespace TSMapEditor.UI.Windows.TerrainGenerator
 
         public void LoadConfig(TerrainGeneratorConfiguration configuration)
         {
-            for (int i = 0; i < configuration.SmudgeGroups.Count; i++)
+            for (int i = 0; i < configuration.SmudgeGroups.Count && i < MaxSmudgeTypeGroupCount; i++)
             {
                 var smudgeGroup = configuration.SmudgeGroups[i];
 

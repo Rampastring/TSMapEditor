@@ -15,6 +15,8 @@ namespace TSMapEditor.UI.Windows.TerrainGenerator
     /// </summary>
     public class TerrainGeneratorTerrainTypeGroupsPanel : EditorPanel
     {
+        private const int MaxTerrainTypeGroupCount = 8;
+
         public TerrainGeneratorTerrainTypeGroupsPanel(WindowManager windowManager, Map map) : base(windowManager)
         {
             this.map = map;
@@ -28,8 +30,6 @@ namespace TSMapEditor.UI.Windows.TerrainGenerator
 
         public override void Initialize()
         {
-            const int MaxTerrainTypeGroupCount = 8;
-
             terrainTypeTextBoxes = new EditorTextBox[MaxTerrainTypeGroupCount];
             terrainTypeOpenChances = new EditorNumberTextBox[MaxTerrainTypeGroupCount];
             terrainTypeOccupiedChances = new EditorNumberTextBox[MaxTerrainTypeGroupCount];
@@ -130,7 +130,7 @@ namespace TSMapEditor.UI.Windows.TerrainGenerator
 
         public void LoadConfig(TerrainGeneratorConfiguration configuration)
         {
-            for (int i = 0; i < configuration.TerrainTypeGroups.Count; i++)
+            for (int i = 0; i < configuration.TerrainTypeGroups.Count && i < MaxTerrainTypeGroupCount; i++)
             {
                 var ttGroup = configuration.TerrainTypeGroups[i];
 

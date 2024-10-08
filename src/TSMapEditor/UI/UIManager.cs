@@ -15,7 +15,6 @@ using TSMapEditor.UI.Sidebar;
 using TSMapEditor.UI.TopBar;
 using TSMapEditor.UI.Windows;
 using TSMapEditor.UI.Windows.MainMenuWindows;
-using TSMapEditor.UI.Windows.TerrainGenerator;
 
 namespace TSMapEditor.UI
 {
@@ -56,7 +55,7 @@ namespace TSMapEditor.UI
         private TheaterGraphics theaterGraphics;
         private EditorGraphics editorGraphics;
 
-        private MapView mapView;
+        private MapUI mapUI;
         private TileSelector tileSelector;
         private OverlayFrameSelector overlayFrameSelector;
         private EditorSidebar editorSidebar;
@@ -69,7 +68,8 @@ namespace TSMapEditor.UI
         private ChangeTechnoOwnerAction changeTechnoOwnerAction;
         private PlaceWaypointCursorAction placeWaypointCursorAction;
         private OverlayPlacementAction overlayPlacementAction;
-        private CopyTerrainCursorAction copyTerrainCursorAction;
+        private CopyRectangularTerrainCursorAction copyRectangularTerrainCursorAction;
+        private CopyCustomShapedTerrainCursorAction copyCustomShapedTerrainCursorAction;
         private PasteTerrainCursorAction pasteTerrainCursorAction;
 
         private WindowController windowController;
@@ -109,22 +109,22 @@ namespace TSMapEditor.UI
             editorState.BrushSize = map.EditorConfig.BrushSizes[0];
             mutationManager = new MutationManager();
 
-            InitMapView();
+            InitMapUI();
 
-            placeTerrainCursorAction = new PlaceTerrainCursorAction(mapView);
-            placeWaypointCursorAction = new PlaceWaypointCursorAction(mapView);
-            changeTechnoOwnerAction = new ChangeTechnoOwnerAction(mapView);
+            placeTerrainCursorAction = new PlaceTerrainCursorAction(mapUI);
+            placeWaypointCursorAction = new PlaceWaypointCursorAction(mapUI);
+            changeTechnoOwnerAction = new ChangeTechnoOwnerAction(mapUI);
             editorState.ObjectOwnerChanged += (s, e) => editorState.CursorAction = changeTechnoOwnerAction;
 
-            overlayPlacementAction = new OverlayPlacementAction(mapView);
+            overlayPlacementAction = new OverlayPlacementAction(mapUI);
 
-            editorSidebar = new EditorSidebar(WindowManager, editorState, map, theaterGraphics, mapView, overlayPlacementAction);
+            editorSidebar = new EditorSidebar(WindowManager, editorState, map, theaterGraphics, mapUI, overlayPlacementAction);
             editorSidebar.Width = UserSettings.Instance.SidebarWidth.GetValue();
             editorSidebar.Y = Constants.UITopBarMenuHeight;
             editorSidebar.Height = WindowManager.RenderResolutionY - editorSidebar.Y;
             AddChild(editorSidebar);
 
-            tileSelector = new TileSelector(WindowManager, theaterGraphics, placeTerrainCursorAction, editorState);
+            tileSelector = new TileSelector(WindowManager, map, theaterGraphics, placeTerrainCursorAction, editorState);
             tileSelector.X = editorSidebar.Right;
             tileSelector.Width = WindowManager.RenderResolutionX - tileSelector.X;
             tileSelector.Height = 300;
@@ -146,19 +146,19 @@ namespace TSMapEditor.UI
             tileInfoDisplay = new TileInfoDisplay(WindowManager, map, theaterGraphics, editorState);
             AddChild(tileInfoDisplay);
             tileInfoDisplay.X = Width - tileInfoDisplay.Width;
-            mapView.TileInfoDisplay = tileInfoDisplay;
+            mapUI.TileInfoDisplay = tileInfoDisplay;
 
             InitNotificationManager();
-            windowController.Initialize(this, map, editorState, mapView);
+            windowController.Initialize(this, map, editorState, mapUI);
 
-            topBarMenu = new TopBarMenu(WindowManager, mutationManager, mapView, map, windowController);
+            topBarMenu = new TopBarMenu(WindowManager, mutationManager, mapUI, map, windowController);
             topBarMenu.Width = editorSidebar.Width;
             topBarMenu.OnFileSelected += OpenMapWindow_OnFileSelected;
             topBarMenu.MapWideOverlayLoadRequested += TopBarMenu_MapWideOverlayLoadRequested;
             AddChild(topBarMenu);
 
             var editorControlsPanel = new EditorControlsPanel(WindowManager, map, theaterGraphics,
-                map.EditorConfig, editorState, placeTerrainCursorAction, placeWaypointCursorAction, mapView);
+                map.EditorConfig, editorState, windowController, placeTerrainCursorAction, placeWaypointCursorAction, mapUI);
             editorControlsPanel.X = topBarMenu.Right;
             AddChild(editorControlsPanel);
 
@@ -171,8 +171,9 @@ namespace TSMapEditor.UI
             editorState.CursorActionChanged += EditorState_CursorActionChanged;
             overlayPlacementAction.OverlayTypeChanged += OverlayPlacementAction_OverlayTypeChanged;
 
-            copyTerrainCursorAction = new CopyTerrainCursorAction(mapView);
-            pasteTerrainCursorAction = new PasteTerrainCursorAction(mapView, Keyboard);
+            copyRectangularTerrainCursorAction = new CopyRectangularTerrainCursorAction(mapUI);
+            copyCustomShapedTerrainCursorAction = new CopyCustomShapedTerrainCursorAction(mapUI);
+            pasteTerrainCursorAction = new PasteTerrainCursorAction(mapUI, Keyboard);
 
             InitAutoSaveAndSaveNotifications();
 
@@ -273,6 +274,7 @@ namespace TSMapEditor.UI
                 Height = WindowManager.RenderResolutionY;
 
                 Parser.Instance.RefreshResolutionConstants(WindowManager);
+                SetNotificationManagerSizeAndPosition();
             }
         }
 
@@ -304,7 +306,8 @@ namespace TSMapEditor.UI
             KeyboardCommands.Instance = new KeyboardCommands();
             KeyboardCommands.Instance.Undo.Triggered += UndoAction;
             KeyboardCommands.Instance.Redo.Triggered += RedoAction;
-            KeyboardCommands.Instance.Copy.Triggered += CopyAction;
+            KeyboardCommands.Instance.Copy.Triggered += CopyRectanglularAreaAction;
+            KeyboardCommands.Instance.CopyCustomShape.Triggered += CopyCustomShapedAreaAction;
             KeyboardCommands.Instance.Paste.Triggered += PasteAction;
 
             KeyboardCommands.Instance.ReadFromSettings();
@@ -316,19 +319,28 @@ namespace TSMapEditor.UI
 
             KeyboardCommands.Instance.Undo.Triggered -= UndoAction;
             KeyboardCommands.Instance.Redo.Triggered -= RedoAction;
-            KeyboardCommands.Instance.Copy.Triggered -= CopyAction;
+            KeyboardCommands.Instance.Copy.Triggered -= CopyRectanglularAreaAction;
+            KeyboardCommands.Instance.CopyCustomShape.Triggered -= CopyCustomShapedAreaAction;
             KeyboardCommands.Instance.Paste.Triggered -= PasteAction;
         }
 
-        private void InitMapView()
+        private void InitMapUI()
         {
-            mapView = new MapView(WindowManager, map, theaterGraphics, editorGraphics, editorState, mutationManager, windowController);
-            AddChild(mapView);
+            mapUI = new MapUI(WindowManager, map, theaterGraphics, editorGraphics, editorState, mutationManager, windowController);
+            AddChild(mapUI);
         }
 
         private void InitNotificationManager()
         {
             notificationManager = new NotificationManager(WindowManager);
+            SetNotificationManagerSizeAndPosition();
+        }
+
+        private void SetNotificationManagerSizeAndPosition()
+        {
+            if (notificationManager == null)
+                return;
+
             notificationManager.X = editorSidebar.X + Constants.UIEmptySideSpace;
             notificationManager.Width = WindowManager.RenderResolutionX - (notificationManager.X * 2);
             notificationManager.Y = 100;
@@ -393,8 +405,10 @@ namespace TSMapEditor.UI
 
         private void TopBarMenu_MapWideOverlayLoadRequested(object sender, EventArgs e)
         {
-            mapView.MapWideOverlay.LoadMapWideOverlay(GraphicsDevice);
-            editorState.MapWideOverlayExists = mapView.MapWideOverlay.HasTexture;
+            mapUI.MapWideOverlay.LoadMapWideOverlay(GraphicsDevice);
+            editorState.MapWideOverlayExists = mapUI.MapWideOverlay.HasTexture;
+            if (editorState.MapWideOverlayExists)
+                editorState.DrawMapWideOverlay = true;
         }
 
         private void TopBarMenu_InputFileReloadRequested(object sender, EventArgs e)
@@ -493,7 +507,7 @@ namespace TSMapEditor.UI
             editorGraphics.DisposeAll();
             editorGraphics = null;
 
-            mapView.Clear();
+            mapUI.Clear();
 
             GC.Collect();
         }
@@ -636,7 +650,7 @@ namespace TSMapEditor.UI
 
         private void TileDisplay_SelectedTileChanged(object sender, EventArgs e)
         {
-            mapView.CursorAction = placeTerrainCursorAction;
+            mapUI.CursorAction = placeTerrainCursorAction;
             placeTerrainCursorAction.Tile = tileSelector.TileDisplay.SelectedTile;
             if (placeTerrainCursorAction.Tile != null)
             {
@@ -658,14 +672,24 @@ namespace TSMapEditor.UI
 
         private void RedoAction(object sender, EventArgs e) => mutationManager.Redo();
 
-        private void CopyAction(object sender, EventArgs e)
+        private void CopyRectanglularAreaAction(object sender, EventArgs e)
         {
-            copyTerrainCursorAction.StartCellCoords = null;
-            copyTerrainCursorAction.EntryTypes = windowController.CopiedEntryTypesWindow.GetEnabledEntryTypes();
-            mapView.CursorAction = copyTerrainCursorAction;
+            copyRectangularTerrainCursorAction.StartCellCoords = null;
+            ApplyCopyAction(copyRectangularTerrainCursorAction);
         }
 
-        private void PasteAction(object sender, EventArgs e) => mapView.CursorAction = pasteTerrainCursorAction;
+        private void CopyCustomShapedAreaAction(object sender, EventArgs e)
+        {
+            ApplyCopyAction(copyCustomShapedTerrainCursorAction);
+        }
+
+        private void ApplyCopyAction(CopyTerrainCursorActionBase copyAction)
+        {
+            copyAction.EntryTypes = windowController.CopiedEntryTypesWindow.GetEnabledEntryTypes();
+            mapUI.CursorAction = copyAction;
+        }
+
+        private void PasteAction(object sender, EventArgs e) => mapUI.CursorAction = pasteTerrainCursorAction;
 
         private void UpdateMapFileWatcher()
         {
@@ -699,7 +723,14 @@ namespace TSMapEditor.UI
             }
             else
             {
-                autosaveTimer.Update(gameTime.ElapsedGameTime);
+                string error = autosaveTimer.Update(gameTime.ElapsedGameTime);
+                if (error != null)
+                {
+                    NotificationManager.AddNotification("Failed to auto-save the map." + Environment.NewLine + Environment.NewLine + 
+                        "Please make sure that you are not running the editor from a write-protected directory (such as Program Files)." + Environment.NewLine + Environment.NewLine + 
+                        "Returned OS error: " + error);
+                }
+
                 UpdateMapFileWatcher();
             }
 

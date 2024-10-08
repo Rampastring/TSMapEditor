@@ -54,7 +54,7 @@ namespace TSMapEditor.UI.Windows
             if (newHeight <= 0 || newHeight > Constants.MaxMapHeight)
             {
                 EditorMessageBox.Show(WindowManager, "Invalid height",
-                    $"The given values would make the map's height {newHeight}.\r\nIt should be between 0 and {Constants.MaxMapWidth}.",
+                    $"The given values would make the map's height {newHeight}.\r\nIt should be between 0 and {Constants.MaxMapHeight}.",
                     MessageBoxButtons.OK);
 
                 return;
@@ -65,17 +65,17 @@ namespace TSMapEditor.UI.Windows
             int expandWest = tbExpandWest.Value;
 
             // Determine shift for expanding map to north.
-            // Expanding to the south doesn't require any changes to these.
-            int eastShift;
+            // Expanding to the south doesn't require any changes to existing coords.
+            // These shifts consider the in-game compass; shifting east means
+            // increasing the X coord, while shifting south means increasing the Y coord.
+            int eastShift = expandNorth;
             int southShift = expandNorth;
 
             // Determine shift for expanding map to east
-            eastShift = expandEast / -2;
-            southShift += expandEast / 2;
+            southShift += expandEast;
 
             // Determine shift for expanding map to west
-            eastShift += expandWest / 2;
-            southShift += expandWest / 2;
+            eastShift += expandWest;
 
             map.Resize(new Point2D(newWidth, newHeight), eastShift, southShift);
             Hide();

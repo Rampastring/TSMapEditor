@@ -42,7 +42,7 @@ namespace TSMapEditor.Rendering
 
         public int TileSetId { get; }
         public TmpImage TmpImage { get; private set; }
-        public XNAPalette Palette { get; private set; }
+        private XNAPalette Palette { get; set; }
 
         public void Dispose()
         {
@@ -180,6 +180,11 @@ namespace TSMapEditor.Rendering
 
             texture.SetData(colorData);
             return texture;
-        }        
+        }
+
+        public Texture2D GetPaletteTexture()
+        {
+            return Palette.GetTexture();
+        }
     }
 }

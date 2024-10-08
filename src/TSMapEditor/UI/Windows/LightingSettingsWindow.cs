@@ -1,18 +1,22 @@
 ﻿using Rampastring.XNAUI;
 using Rampastring.XNAUI.XNAControls;
 using TSMapEditor.Models;
+using TSMapEditor.Models.Enums;
+using TSMapEditor.Rendering;
 using TSMapEditor.UI.Controls;
 
 namespace TSMapEditor.UI.Windows
 {
     public class LightingSettingsWindow : INItializableWindow
     {
-        public LightingSettingsWindow(WindowManager windowManager, Map map) : base(windowManager)
+        public LightingSettingsWindow(WindowManager windowManager, Map map, EditorState state) : base(windowManager)
         {
             this.map = map;
+            this.state = state;
         }
 
         private readonly Map map;
+        private readonly EditorState state;
 
         private EditorNumberTextBox tbAmbientNormal;
         private EditorNumberTextBox tbLevelNormal;
@@ -35,6 +39,8 @@ namespace TSMapEditor.UI.Windows
         private EditorNumberTextBox tbRedDominator;
         private EditorNumberTextBox tbGreenDominator;
         private EditorNumberTextBox tbBlueDominator;
+
+        private XNADropDown ddLightingPreview;
 
         public override void Initialize()
         {
@@ -63,6 +69,8 @@ namespace TSMapEditor.UI.Windows
             tbGreenDominator = FindChild<EditorNumberTextBox>(nameof(tbGreenDominator));
             tbBlueDominator = FindChild<EditorNumberTextBox>(nameof(tbBlueDominator));
 
+            ddLightingPreview = FindChild<XNADropDown>(nameof(ddLightingPreview));
+
             FindChild<EditorButton>("btnApply").LeftClick += BtnApply_LeftClick;
         }
 
@@ -84,7 +92,7 @@ namespace TSMapEditor.UI.Windows
             tbGreenIS.Text = map.Lighting.IonGreen.ToString(format);
             tbBlueIS.Text = map.Lighting.IonBlue.ToString(format);
 
-            if (Constants.UseCountries)
+            if (Constants.IsRA2YR)
             {
                 tbAmbientDominator.Text = (map.Lighting.DominatorAmbient ?? 0).ToString(format);
                 tbAmbientChangeRateDominator.Text = (map.Lighting.DominatorAmbientChangeRate ?? 0).ToString(format);
@@ -94,6 +102,8 @@ namespace TSMapEditor.UI.Windows
                 tbGreenDominator.Text = (map.Lighting.DominatorGreen ?? 0).ToString(format);
                 tbBlueDominator.Text = (map.Lighting.DominatorBlue ?? 0).ToString(format);
             }
+
+            ddLightingPreview.SelectedIndex = (int)state.LightingPreviewState;
 
             Show();
         }
@@ -114,7 +124,7 @@ namespace TSMapEditor.UI.Windows
             map.Lighting.IonGreen = tbGreenIS.DoubleValue;
             map.Lighting.IonBlue = tbBlueIS.DoubleValue;
 
-            if (Constants.UseCountries)
+            if (Constants.IsRA2YR)
             {
                 map.Lighting.DominatorAmbient = tbAmbientDominator.DoubleValue;
                 map.Lighting.DominatorAmbientChangeRate = tbAmbientChangeRateDominator.DoubleValue;
@@ -124,6 +134,10 @@ namespace TSMapEditor.UI.Windows
                 map.Lighting.DominatorGreen = tbGreenDominator.DoubleValue;
                 map.Lighting.DominatorBlue = tbBlueDominator.DoubleValue;
             }
+
+            state.LightingPreviewState = (LightingPreviewMode)ddLightingPreview.SelectedIndex;
+
+            map.Lighting.RefreshLightingColors();
 
             Hide();
         }

@@ -4,7 +4,6 @@ using Rampastring.XNAUI;
 using Rampastring.XNAUI.XNAControls;
 using System;
 using System.IO;
-using TSMapEditor.GameMath;
 using TSMapEditor.Settings;
 using TSMapEditor.UI.Controls;
 using TSMapEditor.UI.Windows;
@@ -54,6 +53,7 @@ namespace TSMapEditor.UI
 
             tbGameDirectory = new EditorTextBox(WindowManager);
             tbGameDirectory.Name = nameof(tbGameDirectory);
+            tbGameDirectory.AllowSemicolon = true;
             tbGameDirectory.X = Constants.UIEmptySideSpace;
             tbGameDirectory.Y = lblGameDirectory.Bottom + Constants.UIVerticalSpacing;
             tbGameDirectory.Width = Width - Constants.UIEmptySideSpace * 3 - BrowseButtonWidth;
@@ -62,6 +62,16 @@ namespace TSMapEditor.UI
             {
                 ReadGameInstallDirectoryFromRegistry();
             }
+
+#if DEBUG
+            // When debugging we might often switch between configs - make it a bit more convenient
+            string expectedPath = Path.Combine(tbGameDirectory.Text, Constants.ExpectedClientExecutableName);
+            if (!File.Exists(expectedPath))
+            {
+                ReadGameInstallDirectoryFromRegistry();
+            }
+#endif
+
             tbGameDirectory.TextChanged += TbGameDirectory_TextChanged;
             AddChild(tbGameDirectory);
 
@@ -84,6 +94,7 @@ namespace TSMapEditor.UI
 
             tbMapPath = new EditorTextBox(WindowManager);
             tbMapPath.Name = nameof(tbMapPath);
+            tbMapPath.AllowSemicolon = true;
             tbMapPath.X = Constants.UIEmptySideSpace;
             tbMapPath.Y = lblMapPath.Bottom + Constants.UIVerticalSpacing;
             tbMapPath.Width = Width - Constants.UIEmptySideSpace * 3 - BrowseButtonWidth;
@@ -149,13 +160,18 @@ namespace TSMapEditor.UI
 
             if (!string.IsNullOrWhiteSpace(tbGameDirectory.Text))
             {
-                if (Path.IsPathRooted(tbMapPath.Text))
+                directoryPath = tbGameDirectory.Text;
+
+                if (!string.IsNullOrWhiteSpace(tbMapPath.Text))
                 {
-                    directoryPath = Path.GetDirectoryName(tbMapPath.Text);
-                }
-                else
-                {
-                    directoryPath = Path.GetDirectoryName(tbGameDirectory.Text + tbMapPath.Text);
+                    if (Path.IsPathRooted(tbMapPath.Text))
+                    {
+                        directoryPath = Path.GetDirectoryName(tbMapPath.Text);
+                    }
+                    else
+                    {
+                        directoryPath = Path.GetDirectoryName(tbGameDirectory.Text + tbMapPath.Text);
+                    }
                 }
 
                 directoryPath = directoryPath.Replace('/', Path.DirectorySeparatorChar).Replace('\\', Path.DirectorySeparatorChar);
@@ -207,7 +223,16 @@ namespace TSMapEditor.UI
             try
             {
                 RegistryKey key;
-                key = Registry.CurrentUser.OpenSubKey(Constants.GameRegistryInstallPath);
+
+                if (Constants.InstallPathAtHKLM)
+                {
+                    key = Registry.LocalMachine.OpenSubKey(Constants.GameRegistryInstallPath);
+                }
+                else
+                {
+                    key = Registry.CurrentUser.OpenSubKey(Constants.GameRegistryInstallPath);
+                }
+
                 object value = key.GetValue("InstallPath", string.Empty);
                 if (!(value is string valueAsString))
                 {
@@ -215,7 +240,10 @@ namespace TSMapEditor.UI
                 }
                 else
                 {
-                    tbGameDirectory.Text = valueAsString;
+                    if (File.Exists(valueAsString))
+                        tbGameDirectory.Text = Path.GetDirectoryName(valueAsString);
+                    else
+                        tbGameDirectory.Text = valueAsString;
                 }
 
                 key.Close();

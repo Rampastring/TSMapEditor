@@ -4,6 +4,7 @@ using Rampastring.XNAUI.XNAControls;
 using System;
 using System.Linq;
 using TSMapEditor.CCEngine;
+using TSMapEditor.Models;
 using TSMapEditor.Rendering;
 using TSMapEditor.UI.Controls;
 using TSMapEditor.UI.CursorActions;
@@ -15,9 +16,10 @@ namespace TSMapEditor.UI
         private const int TileSetListWidth = 180;
         private const int ResizeDragThreshold = 30;
 
-        public TileSelector(WindowManager windowManager, TheaterGraphics theaterGraphics,
+        public TileSelector(WindowManager windowManager, Map map, TheaterGraphics theaterGraphics,
             PlaceTerrainCursorAction placeTerrainCursorAction, EditorState editorState) : base(windowManager)
         {
+            this.map = map;
             this.theaterGraphics = theaterGraphics;
             this.placeTerrainCursorAction = placeTerrainCursorAction;
             this.editorState = editorState;
@@ -36,6 +38,7 @@ namespace TSMapEditor.UI
             base.OnClientRectangleUpdated();
         }
 
+        private readonly Map map;
         private readonly TheaterGraphics theaterGraphics;
         private readonly PlaceTerrainCursorAction placeTerrainCursorAction;
         private readonly EditorState editorState;
@@ -68,7 +71,7 @@ namespace TSMapEditor.UI
             lbTileSetList.SelectedIndexChanged += LbTileSetList_SelectedIndexChanged;
             AddChild(lbTileSetList);
 
-            TileDisplay = new TileDisplay(WindowManager, theaterGraphics, placeTerrainCursorAction, editorState);
+            TileDisplay = new TileDisplay(WindowManager, map, theaterGraphics, placeTerrainCursorAction, editorState);
             TileDisplay.Name = nameof(TileDisplay);
             TileDisplay.Height = Height;
             TileDisplay.Width = Width - TileSetListWidth;

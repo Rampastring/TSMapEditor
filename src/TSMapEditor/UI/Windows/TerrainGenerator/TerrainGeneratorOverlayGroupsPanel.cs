@@ -17,6 +17,8 @@ namespace TSMapEditor.UI.Windows.TerrainGenerator
     /// </summary>
     public class TerrainGeneratorOverlayGroupsPanel : EditorPanel
     {
+        private const int MaxOverlayGroupCount = 8;
+
         public TerrainGeneratorOverlayGroupsPanel(WindowManager windowManager, Map map) : base(windowManager)
         {
             this.map = map;
@@ -31,8 +33,6 @@ namespace TSMapEditor.UI.Windows.TerrainGenerator
 
         public override void Initialize()
         {
-            const int MaxOverlayGroupCount = 8;
-
             overlayNames = new EditorTextBox[MaxOverlayGroupCount];
             frameIndices = new EditorTextBox[MaxOverlayGroupCount];
             overlayGroupOpenChances = new EditorNumberTextBox[MaxOverlayGroupCount];
@@ -157,7 +157,7 @@ namespace TSMapEditor.UI.Windows.TerrainGenerator
 
         public void LoadConfig(TerrainGeneratorConfiguration configuration)
         {
-            for (int i = 0; i < configuration.OverlayGroups.Count; i++)
+            for (int i = 0; i < configuration.OverlayGroups.Count && i < MaxOverlayGroupCount; i++)
             {
                 var overlayGroup = configuration.OverlayGroups[i];
 

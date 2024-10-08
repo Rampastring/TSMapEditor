@@ -1,10 +1,7 @@
-﻿using System.Collections.Generic;
-using System;
+﻿using System;
 using TSMapEditor.CCEngine;
 using TSMapEditor.GameMath;
-using TSMapEditor.Models.Enums;
 using TSMapEditor.Models;
-using TSMapEditor.Rendering;
 using TSMapEditor.UI;
 
 namespace TSMapEditor.Mutations.Classes.HeightMutations

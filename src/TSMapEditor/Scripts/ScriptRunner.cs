@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Rampastring.Tools;
+using System;
 using System.IO;
 using System.Reflection;
 using TSMapEditor.Models;
@@ -18,6 +19,8 @@ namespace TSMapEditor.Scripts
             if (scriptClassInstance == null || performMethod == null || getSuccessMessageMethod == null)
                 throw new InvalidOperationException("Script not properly compiled!");
 
+            Logger.Log("Running script from " + scriptPath);
+
             try
             {
                 performMethod.Invoke(scriptClassInstance, new object[] { map });
@@ -25,24 +28,36 @@ namespace TSMapEditor.Scripts
             }
             catch (Exception ex) // rare case where catching Exception is OK, we cannot know what the script can throw
             {
-                return "An error occurred while running the script. Returned error message: " + Environment.NewLine + Environment.NewLine + ex.Message;
+                string errorMessage = ex.Message;
+
+                while (ex.InnerException != null)
+                {
+                    ex = ex.InnerException;
+                    errorMessage += Environment.NewLine + Environment.NewLine + 
+                        "Inner exception message: " + ex.Message + Environment.NewLine + 
+                        "Stack trace: " + ex.StackTrace;
+                }
+
+                Logger.Log("Exception while running script. Returned exception message: " + errorMessage);
+
+                return "An error occurred while running the script. Returned error message: " + Environment.NewLine + Environment.NewLine + errorMessage;
             }
         }
 
-        public static string GetDescriptionFromScript(Map map, string scriptPath)
+        public static (string error, string description) GetDescriptionFromScript(Map map, string scriptPath)
         {
             if (!File.Exists(scriptPath))
-                return null;
+                return ("The script file does not exist!", null);
 
             var sourceCode = File.ReadAllText(scriptPath);
-            bool compileSuccess = CompileSource(map, sourceCode);
-            if (!compileSuccess)
-                return null;
+            string error = CompileSource(map, sourceCode);
+            if (error != null)
+                return (error, null);
 
-            return (string)getDescriptionMethod.Invoke(scriptClassInstance, null);
+            return (null, (string)getDescriptionMethod.Invoke(scriptClassInstance, null));
         }
 
-        private static bool CompileSource(Map map, string source)
+        private static string CompileSource(Map map, string source)
         {
             var script = new CSharpScriptExecution() { SaveGeneratedCode = true };
             script.AddLoadedReferences();
@@ -56,8 +71,11 @@ namespace TSMapEditor.Scripts
             getSuccessMessageMethod = null;
 
             object instance = script.CompileClass(source);
+
             if (script.Error)
-                return false;
+            {
+                return script.ErrorMessage;
+            }
 
             scriptClassInstance = instance;
             Type classType = instance.GetType();
@@ -69,7 +87,7 @@ namespace TSMapEditor.Scripts
                     getDescriptionMethod = method;
 
                     if (getDescriptionMethod.ReturnType != typeof(string))
-                        return false;
+                        return "GetDescription does not return a string!";
                 }
                 else if (method.Name == "Perform")
                 {
@@ -80,11 +98,16 @@ namespace TSMapEditor.Scripts
                     getSuccessMessageMethod = method;
 
                     if (getSuccessMessageMethod.ReturnType != typeof(string))
-                        return false;
+                        return "GetSuccessMessage does not return a string!";
                 }
             }
 
-            return getDescriptionMethod != null && performMethod != null && getSuccessMessageMethod != null;
+            if (getDescriptionMethod == null || performMethod == null || getSuccessMessageMethod == null)
+            {
+                return "The script does not declare one or more required methods.";
+            }
+
+            return null;
         }
     }
 }

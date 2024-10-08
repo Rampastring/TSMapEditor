@@ -6,9 +6,11 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Text;
+using TSMapEditor.CCEngine;
 using TSMapEditor.Extensions;
 using TSMapEditor.GameMath;
 using TSMapEditor.Models;
+using TSMapEditor.Models.Enums;
 using TSMapEditor.Models.MapFormat;
 using TSMapEditor.Rendering;
 
@@ -358,6 +360,13 @@ namespace TSMapEditor.Initialization
                                 continue;
                             }
 
+                            if (appliedUpgrades >= buildingType.Upgrades)
+                            {
+                                AddMapLoadError($"Building {buildingTypeId} at {building.Position} has more upgrades ({appliedUpgrades + 1}) " +
+                                    $"than specified by its Upgrades= value ({buildingType.Upgrades}) in Rules. Skipping adding one or more of the building's upgrades.");
+                                break;
+                            }
+
                             building.Upgrades[appliedUpgrades] = upgradeBuildingType;
                             appliedUpgrades++;
                         }
@@ -398,7 +407,11 @@ namespace TSMapEditor.Initialization
                     var tile = map.GetTile(building.Position + offset);
                     tile.Structures.Add(building);
                 });
+
+                building.LightTiles(map.Tiles);
             }
+
+            map.Structures.ForEach(s => s.UpdatePowerUpAnims());
 
             Logger.Log("Structures read successfully.");
         }
@@ -724,8 +737,26 @@ namespace TSMapEditor.Initialization
                 var tile = map.GetTile(waypoint.Position.X, waypoint.Position.Y);
                 if (tile == null)
                 {
-                    AddMapLoadError($"Waypoint {waypoint.Identifier} at {waypoint.Position} is not within the valid map area.");
-                    continue;
+                    Point2D oldPosition = waypoint.Position;
+
+                    // Find new cell to move waypoint to
+                    // Lazy and inefficient implementation, but waypoints outside the map aren't common
+                    int lowestDistance = int.MaxValue;
+                    Point2D nearestCell = Point2D.NegativeOne;
+                    map.DoForAllValidTiles(cell =>
+                    {
+                        int distance = cell.CoordsToPoint().DistanceTo(waypoint.Position);
+                        if (distance < lowestDistance)
+                        {
+                            lowestDistance = distance;
+                            nearestCell = cell.CoordsToPoint();
+                        }
+                    });
+
+                    waypoint.Position = nearestCell;
+                    tile = map.GetTile(waypoint.Position);
+
+                    AddMapLoadError($"Waypoint {waypoint.Identifier} at {oldPosition} was not within the valid map area. It has been moved to {waypoint.Position}.");
                 }
 
                 if (tile.Waypoints.Count > 0)
@@ -786,6 +817,62 @@ namespace TSMapEditor.Initialization
             }
 
             Logger.Log("Triggers read successfully.");
+
+            TriggerFix(map);
+        }
+
+        /// <summary>
+        /// Checks for triggers having invalid values for uncustomizable parameters.
+        /// Some earlier versions of WAE could set these parameters wrong, so we are
+        /// cleaning up any potential mess we caused.
+        /// </summary>
+        private static void TriggerFix(IMap map)
+        {
+            Logger.Log("Checking for bugged triggers.");
+
+            // Check for mismatched uncustomizable trigger action parameters
+            foreach (var trigger in map.Triggers)
+            {
+                foreach (var action in trigger.Actions)
+                {
+                    if (!map.EditorConfig.TriggerActionTypes.TryGetValue(action.ActionIndex, out var triggerActionType))
+                        continue;
+
+                    for (int i = 0; i < triggerActionType.Parameters.Length - 1; i++)
+                    {
+                        var paramType = triggerActionType.Parameters[i].TriggerParamType;
+
+                        string valueToSet = null;
+
+                        if ((int)paramType < 0 && Conversions.IntFromString(action.Parameters[i], 0) != Math.Abs((int)paramType))
+                        {
+                            valueToSet = Math.Abs((int)paramType).ToString(CultureInfo.InvariantCulture);
+                        }
+
+                        if (paramType == TriggerParamType.Unused && action.Parameters[i] != "0")
+                        {
+                            valueToSet = "0";
+                        }
+
+                        if (valueToSet != null)
+                        {
+                            AddMapLoadError($"Trigger \"{trigger.Name}\" had action \"{triggerActionType.Name}\" with invalid value for uncustomizable parameter #{i}: \"{action.Parameters[i]}\". It has been automatically corrected to \"{valueToSet}\".");
+                            action.Parameters[i] = valueToSet;
+                        }
+                    }
+
+                    const int lastParamIndex = TriggerActionType.MAX_PARAM_COUNT - 1;
+                    // Handle P7 separately due to WaypointZZ hardcoding
+                    if (triggerActionType.Parameters[lastParamIndex].TriggerParamType == TriggerParamType.Unused && action.Parameters[lastParamIndex] != "A")
+                    {
+                        string valueToSet = "A";
+                        AddMapLoadError($"Trigger '{trigger.Name}' had action \"{triggerActionType.Name}\" with invalid value for uncustomizable parameter #{lastParamIndex}: \"{action.Parameters[lastParamIndex]}\". It has been automatically corrected to \"{valueToSet}\".");
+                        action.Parameters[lastParamIndex] = valueToSet;
+                    }
+                }
+            }
+
+            Logger.Log("Checking for bugged triggers completed.");
         }
 
         public static void ReadTags(IMap map, IniFile mapIni)
@@ -908,7 +995,7 @@ namespace TSMapEditor.Initialization
                         AddMapLoadError($"AITriggerType {kvp.Key} has a non-existent condition object \"{parts[5]}\"");
                     }
 
-                    aiTriggerType.ConditionObjectString = parts[5];
+                    aiTriggerType.ConditionObject = conditionObject;
                 }
 
                 aiTriggerType.LoadedComparatorString = parts[6];
@@ -930,7 +1017,7 @@ namespace TSMapEditor.Initialization
 
                 if (!Helpers.IsStringNoneValue(parts[14]) )
                 {
-                    aiTriggerType.SecondaryTeam = map.TeamTypes.Concat(map.Rules.TeamTypes).First(tt => tt.ININame == parts[1]);
+                    aiTriggerType.SecondaryTeam = map.TeamTypes.Concat(map.Rules.TeamTypes).FirstOrDefault(tt => tt.ININame == parts[14]);
 
                     if (aiTriggerType.SecondaryTeam == null)
                     {
@@ -950,9 +1037,9 @@ namespace TSMapEditor.Initialization
 
         public static void ReadHouseTypes(IMap map, IniFile mapIni)
         {
-            Logger.Log("Reading HouseTypes. Using countries: " + Constants.UseCountries);
+            Logger.Log("Reading HouseTypes. Using countries: " + Constants.IsRA2YR);
 
-            var section = mapIni.GetSection(Constants.UseCountries ? "Countries" : "Houses");
+            var section = mapIni.GetSection(Constants.IsRA2YR ? "Countries" : "Houses");
             if (section == null)
                 return;
 
@@ -961,9 +1048,12 @@ namespace TSMapEditor.Initialization
             {
                 IniSection houseTypeSection = mapIni.GetSection(kvp.Value);
 
-                // HouseTypes can't be redefined, check if the HouseType already exists.
-                // If it does and we are using countries, still read the HouseType's properties.
-                if (Constants.UseCountries)
+                // HouseTypes can't be redefined, so check if the HouseType already exists.
+                // If it does, in Tiberian Sun we can skip it.
+                // In RA2/YR we need to search for the HouseType from Rules as well as the map itself.
+                // In case it exists in either, we still need to read the HouseType's properties,
+                // but skip adding the HouseType to the list of map-specific HouseTypes.
+                if (Constants.IsRA2YR)
                 {
                     var existingHouseType = map.FindHouseType(kvp.Value);
                     if (existingHouseType != null)
@@ -984,7 +1074,7 @@ namespace TSMapEditor.Initialization
                 }
 
                 var houseType = new HouseType(kvp.Value);
-                houseType.Index = id + (Constants.UseCountries ? map.Rules.RulesHouseTypes.Count : 0);
+                houseType.Index = id + (Constants.IsRA2YR ? map.Rules.RulesHouseTypes.Count : 0);
                 id++;
 
                 if (houseTypeSection != null)
@@ -1052,14 +1142,14 @@ namespace TSMapEditor.Initialization
                     house.BaseNodes.Remove(bn);
                 });
 
-                if (Constants.UseCountries)
+                if (Constants.IsRA2YR)
                 {
                     if (house.Country != null)
                         houseType = map.FindHouseType(house.Country);
 
                     if (houseType == null)
                     {
-                        houseType = map.StandardHouseTypes[0];
+                        houseType = map.GetHouseTypes()[0];
                         AddMapLoadError($"Nonexistent Country= or no Country= specified for House {houseName}. This makes it default to the first standard Country ({houseType.ININame}).");
                     }
                 }

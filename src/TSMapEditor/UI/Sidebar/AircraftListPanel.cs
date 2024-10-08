@@ -1,4 +1,5 @@
 ﻿using System;
+using Microsoft.Xna.Framework.Graphics;
 using Rampastring.XNAUI;
 using TSMapEditor.Models;
 using TSMapEditor.Rendering;
@@ -26,9 +27,19 @@ namespace TSMapEditor.UI.Sidebar
 
         private readonly AircraftPlacementAction aircraftPlacementAction;
 
+        private RenderTarget2D renderTarget;
+
+        protected override (Texture2D regular, Texture2D remap) GetObjectTextures<T>(T objectType, ShapeImage[] textures)
+        {
+            const byte facingSouthEast = 64;
+            return GetTextureForVoxel(objectType, TheaterGraphics.AircraftModels, renderTarget, facingSouthEast);
+        }
+
         protected override void InitObjects()
         {
+            renderTarget = new RenderTarget2D(GraphicsDevice, ObjectTreeView.Width, ObjectTreeView.LineHeight, false, SurfaceFormat.Color, DepthFormat.None);
             InitObjectsBase(Map.Rules.AircraftTypes, null);
+            renderTarget.Dispose();
         }
 
         protected override void ObjectSelected()

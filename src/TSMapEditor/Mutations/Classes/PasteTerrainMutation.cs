@@ -5,7 +5,7 @@ using System.IO;
 using System.Text;
 using TSMapEditor.GameMath;
 using TSMapEditor.Models;
-using TSMapEditor.Rendering;
+using TSMapEditor.UI;
 
 namespace TSMapEditor.Mutations.Classes
 {
@@ -706,7 +706,7 @@ namespace TSMapEditor.Mutations.Classes
                 if (cell.Structures.Count > 0 && !allowOverlap)
                 {
                     bool isFoundationClear = true;
-                    buildingType.ArtConfig.DoForFoundationCoords(offset =>
+                    buildingType.ArtConfig.DoForFoundationCoordsOrOrigin(offset =>
                     {
                         Point2D foundationCellCoords = offset + cellCoords;
                         MapTile foundationCell = MutationTarget.Map.GetTile(foundationCellCoords);

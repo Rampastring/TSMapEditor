@@ -16,6 +16,7 @@ namespace TSMapEditor.UI
                 Save,
                 ConfigureCopiedObjects,
                 Copy,
+                CopyCustomShape,
                 Paste,
                 NextTile,
                 PreviousTile,
@@ -46,6 +47,7 @@ namespace TSMapEditor.UI
                 ToggleFullscreen,
                 AdjustTileHeightUp,
                 AdjustTileHeightDown,
+                PlaceConnectedTile,
 
                 AircraftMenu,
                 BuildingMenu,
@@ -97,6 +99,7 @@ namespace TSMapEditor.UI
         public KeyboardCommand Save { get; } = new KeyboardCommand("Save", "Save Map", new KeyboardCommandInput(Keys.S, KeyboardModifiers.Ctrl));
         public KeyboardCommand ConfigureCopiedObjects { get; } = new KeyboardCommand("ConfigureCopiedObjects", "Configure Copied Objects", new KeyboardCommandInput(Keys.None, KeyboardModifiers.None), false);
         public KeyboardCommand Copy { get; } = new KeyboardCommand("Copy", "Copy", new KeyboardCommandInput(Keys.C, KeyboardModifiers.Ctrl));
+        public KeyboardCommand CopyCustomShape { get; } = new KeyboardCommand("CopyCustomShape", "Copy Custom Shape", new KeyboardCommandInput(Keys.C, KeyboardModifiers.Alt));
         public KeyboardCommand Paste { get; } = new KeyboardCommand("Paste", "Paste", new KeyboardCommandInput(Keys.V, KeyboardModifiers.Ctrl));
         public KeyboardCommand NextTile { get; } = new KeyboardCommand("NextTile", "Select Next Tile", new KeyboardCommandInput(Keys.M, KeyboardModifiers.None));
         public KeyboardCommand PreviousTile { get; } = new KeyboardCommand("PreviousTile", "Select Previous Tile", new KeyboardCommandInput(Keys.N, KeyboardModifiers.None));
@@ -127,7 +130,7 @@ namespace TSMapEditor.UI
         public KeyboardCommand ToggleFullscreen { get; } = new KeyboardCommand("ToggleFullscreen", "Toggle Full Screen", new KeyboardCommandInput(Keys.F11, KeyboardModifiers.None));
         public KeyboardCommand AdjustTileHeightUp { get; } = new KeyboardCommand("AdjustTileHeightUp", "Adjust Tile Height Up", new KeyboardCommandInput(Keys.PageUp, KeyboardModifiers.None), forActionsOnly:true);
         public KeyboardCommand AdjustTileHeightDown { get; } = new KeyboardCommand("AdjustTileHeightDown", "Adjust Tile Height Down", new KeyboardCommandInput(Keys.PageDown, KeyboardModifiers.None), forActionsOnly:true);
-
+        public KeyboardCommand PlaceConnectedTile { get; } = new KeyboardCommand("PlaceConnectedTile", "Place Connected Tile", new KeyboardCommandInput(Keys.D, KeyboardModifiers.Ctrl));
 
         public KeyboardCommand AircraftMenu { get; } = new KeyboardCommand("AircraftMenu", "Aircraft Menu", new KeyboardCommandInput(Keys.D1, KeyboardModifiers.None));
         public KeyboardCommand BuildingMenu { get; } = new KeyboardCommand("BuildingMenu", "Building Menu", new KeyboardCommandInput(Keys.D2, KeyboardModifiers.None));
@@ -137,7 +140,5 @@ namespace TSMapEditor.UI
         public KeyboardCommand TerrainObjectMenu { get; } = new KeyboardCommand("TerrainObjectMenu", "Terrain Objects Menu", new KeyboardCommandInput(Keys.D6, KeyboardModifiers.None));
         public KeyboardCommand OverlayMenu { get; } = new KeyboardCommand("OverlayMenu", "Overlay Menu", new KeyboardCommandInput(Keys.D7, KeyboardModifiers.None));
         public KeyboardCommand SmudgeMenu { get; } = new KeyboardCommand("SmudgeMenu", "Smudge Menu", new KeyboardCommandInput(Keys.D8, KeyboardModifiers.None));
-
-        public Keys SkipConfirmationKey { get; } = Keys.LeftAlt;
     }
 }

@@ -7,7 +7,7 @@ namespace TSMapEditor.UI
     /// <summary>
     /// Combines many smudges into a single entry.
     /// </summary>
-    public class SmudgeCollection
+    public class SmudgeCollection : ObjectTypeCollection
     {
         public struct SmudgeCollectionEntry
         {
@@ -19,13 +19,13 @@ namespace TSMapEditor.UI
             }
         }
 
-        public string Name { get; set; }
         public SmudgeCollectionEntry[] Entries;
 
         public static SmudgeCollection InitFromIniSection(IniSection iniSection, List<SmudgeType> smudgeTypes)
         {
             var smudgeCollection = new SmudgeCollection();
             smudgeCollection.Name = iniSection.GetStringValue("Name", "Unnamed Collection");
+            smudgeCollection.AllowedTheaters = iniSection.GetListValue("AllowedTheaters", ',', s => s);
 
             var entryList = new List<SmudgeCollectionEntry>();
 

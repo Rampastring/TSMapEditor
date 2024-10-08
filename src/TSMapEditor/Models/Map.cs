@@ -1,4 +1,5 @@
 using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Graphics;
 using Rampastring.Tools;
 using System;
 using System.Collections.Generic;
@@ -35,6 +36,7 @@ namespace TSMapEditor.Models
         public event EventHandler LocalSizeChanged;
         public event EventHandler MapResized;
         public event EventHandler MapHeightChanged;
+        public event EventHandler<CellLightingEventArgs> CellLightingModified;
         public event EventHandler MapManuallySaved;
         public event EventHandler MapAutoSaved;
         public event EventHandler PreSave;
@@ -97,10 +99,15 @@ namespace TSMapEditor.Models
 
         /// <summary>
         /// The list of standard house types loaded from EditorRules.ini, or Rules.ini as a fallback.
-        /// Relevant when the map itself has no house types specified.
+        /// Relevant only when the map itself has no house types specified.
+        ///
         /// New house types might be added to this list if the map has
         /// objects whose owner does not exist in the map's list of house types
-        /// or in the Rules.ini standard house type list.
+        /// or in the Rules.ini house type list.
+        ///
+        /// In Yuri's Revenge mode, this only contains "bonus house types" defined in EditorRules.ini
+        /// that do not exist in Rules. In YR, this list must be appended into the Rules house type
+        /// list for most use cases (if the map itself has no houses defined; see <see cref="HouseTypes"/>).
         /// </summary>
         public List<HouseType> StandardHouseTypes { get; set; }
         public List<House> StandardHouses { get; set; }
@@ -118,12 +125,12 @@ namespace TSMapEditor.Models
         public List<HouseType> HouseTypes { get; protected set; } = new List<HouseType>();
         public List<HouseType> GetHouseTypes()
         {
-            if (Constants.UseCountries)
+            if (Constants.IsRA2YR)
             {
                 if (HouseTypes.Count > 0)
                     return Rules.RulesHouseTypes.Concat(HouseTypes).ToList();
                 else
-                    return StandardHouseTypes;
+                    return Rules.RulesHouseTypes.Concat(StandardHouseTypes).ToList();
             }
             else
             {
@@ -167,6 +174,8 @@ namespace TSMapEditor.Models
         public int WidthInPixels => Size.X * Constants.CellSizeX;
 
         public int HeightInPixels => Size.Y * Constants.CellSizeY;
+
+        public int HeightInPixelsWithCellHeight => Size.Y * Constants.CellSizeY + Constants.MapYBaseline;
 
         public string TheaterName { get; set; }
         public ITheater TheaterInstance { get; set; }
@@ -327,7 +336,7 @@ namespace TSMapEditor.Models
         {
             PreSave?.Invoke(this, EventArgs.Empty);
 
-            LoadedINI.Comment = "Written by the World-Altering Editor (WAE)\r\n; all comments have been truncated\r\n; github.com/Rampastring/TSMapEditor\r\n; if you wish to support the editor, you can subscribe at patreon.com/rampastring\r\n; or buy me a coffee at ko-fi.com/rampastring";
+            LoadedINI.Comment = "Written by the World-Altering Editor (WAE)\r\n; all comments have been truncated\r\n; github.com/Rampastring/WorldAlteringEditor\r\n; if you wish to support the editor, you can subscribe at patreon.com/rampastring\r\n; or buy me a coffee at ko-fi.com/rampastring";
 
             MapWriter.WriteMapSection(this, LoadedINI);
             MapWriter.WriteBasicSection(this, LoadedINI);
@@ -359,12 +368,17 @@ namespace TSMapEditor.Models
             MapWriter.WriteInfantry(this, LoadedINI);
             MapWriter.WriteBuildings(this, LoadedINI);
 
+            if (Constants.DefaultPreview)
+                MapWriter.WriteDummyPreview(this, LoadedINI);
+
             string savePath = filePath ?? LoadedINI.FileName;
 
             LoadedINI.WriteIniFile(savePath);
 
             PostSave?.Invoke(this, EventArgs.Empty);
         }
+
+        public void WritePreview(Texture2D texture) => MapWriter.WriteActualPreview(texture, LoadedINI);
 
         public HouseType FindHouseType(string houseTypeName)
         {
@@ -530,6 +544,9 @@ namespace TSMapEditor.Models
         /// objects should be moved to the south.</param>
         public void Resize(Point2D newSize, int eastShift, int southShift)
         {
+            // Remove lighting
+            Structures.ForEach(s => s.ClearLitTiles());
+
             // Copy current cell list to preserve it
             MapTile[][] cells = Tiles;
 
@@ -540,16 +557,8 @@ namespace TSMapEditor.Models
                 return totalCellList.Concat(nonNullValues).ToList();
             });
 
-            // Handle east-shift
-            // We can shift a cell one point towards the east by 
-            // adding 1 to its X coordinate and subtracting 1 from its Y coordinate
-            allCellsInList.ForEach(mapCell => { mapCell.ShiftPosition(eastShift, -eastShift); });
-
-            // Handle south-shift
-            // We can shift a cell one point towards the south by 
-            // adding 1 to both its X and Y coordinates
-            allCellsInList.ForEach(mapCell => { mapCell.ShiftPosition(southShift, southShift); });
-
+            // Shift all cells
+            allCellsInList.ForEach(mapCell => { mapCell.ShiftPosition(eastShift, southShift); });
 
             // Then the "fun" part. Shift every object, waypoint, celltag etc. similarly!
             ShiftObjectsInList(Aircraft, eastShift, southShift);
@@ -605,6 +614,9 @@ namespace TSMapEditor.Models
                 house.BaseNodes.ForEach(bn => RegisterBaseNode(house, bn));
             }
 
+            // Apply lighting
+            Structures.ForEach(s => s.LightTiles(Tiles));
+
             // We're done!
             MapResized?.Invoke(this, EventArgs.Empty);
         }
@@ -616,14 +628,8 @@ namespace TSMapEditor.Models
 
         private void ShiftObject(IPositioned movableObject, int eastShift, int southShift)
         {
-            int x = movableObject.Position.X;
-            int y = movableObject.Position.Y;
-
-            x += eastShift;
-            y -= eastShift;
-
-            x += southShift;
-            y += southShift;
+            int x = movableObject.Position.X + eastShift;
+            int y = movableObject.Position.Y + southShift;
 
             movableObject.Position = new Point2D(x, y);
         }
@@ -833,7 +839,7 @@ namespace TSMapEditor.Models
             if (HouseTypes.Remove(houseType))
             {
                 for (int i = 0; i < HouseTypes.Count; i++)
-                    HouseTypes[i].Index = i + (Constants.UseCountries ? Rules.RulesHouseTypes.Count : 0);
+                    HouseTypes[i].Index = i + (Constants.IsRA2YR ? Rules.RulesHouseTypes.Count : 0);
 
                 return true;
             }
@@ -863,7 +869,7 @@ namespace TSMapEditor.Models
 
         public void PlaceBuilding(Structure structure)
         {
-            structure.ObjectType.ArtConfig.DoForFoundationCoords(offset =>
+            structure.ObjectType.ArtConfig.DoForFoundationCoordsOrOrigin(offset =>
             {
                 var cell = GetTile(structure.Position + offset);
                 if (cell == null)
@@ -871,26 +877,27 @@ namespace TSMapEditor.Models
 
                 cell.Structures.Add(structure);
             });
-
-            if (structure.ObjectType.ArtConfig.Foundation.Width == 0 && structure.ObjectType.ArtConfig.Foundation.Height == 0)
-            {
-                GetTile(structure.Position).Structures.Add(structure);
-            }
             
             Structures.Add(structure);
+            if (structure.ObjectType.LightVisibility > 0)
+            {
+                structure.LightTiles(Tiles);
+                CellLightingModified?.Invoke(this, new CellLightingEventArgs() {AffectedTiles = structure.LitTiles});
+            }
         }
 
         public void RemoveBuildingsFrom(Point2D cellCoords)
         {
             var cell = GetTile(cellCoords);
-
             while (cell.Structures.Count > 0)
+            {
                 RemoveBuilding(cell.Structures[0]);
+            }
         }
 
         public void RemoveBuilding(Structure structure)
         {
-            structure.ObjectType.ArtConfig.DoForFoundationCoords(offset =>
+            structure.ObjectType.ArtConfig.DoForFoundationCoordsOrOrigin(offset =>
             {
                 var cell = GetTile(structure.Position + offset);
                 if (cell == null)
@@ -900,12 +907,13 @@ namespace TSMapEditor.Models
                     cell.Structures.Remove(structure);
             });
 
-            if (structure.ObjectType.ArtConfig.Foundation.Width == 0 && structure.ObjectType.ArtConfig.Foundation.Height == 0)
-            {
-                GetTile(structure.Position).Structures.Remove(structure);
-            }
-
             Structures.Remove(structure);
+            if (structure.ObjectType.LightVisibility > 0)
+            {
+                List<MapTile> affectedTiles = new List<MapTile>(structure.LitTiles);
+                structure.ClearLitTiles();
+                CellLightingModified?.Invoke(this, new CellLightingEventArgs() { AffectedTiles = affectedTiles });
+            }
         }
 
         public void MoveBuilding(Structure structure, Point2D newCoords)
@@ -1061,9 +1069,11 @@ namespace TSMapEditor.Models
 
             if (movable.WhatAmI() == RTTIType.Building)
             {
+                var buildingArtConfig = ((Structure)movable).ObjectType.ArtConfig;
+
                 bool canPlace = true;
 
-                ((Structure)movable).ObjectType.ArtConfig.DoForFoundationCoords(offset =>
+                buildingArtConfig.DoForFoundationCoordsOrOrigin(offset =>
                 {
                     MapTile foundationCell = GetTile(newCoords + offset);
                     if (foundationCell == null)
@@ -1080,59 +1090,95 @@ namespace TSMapEditor.Models
             return cell.CanAddObject((GameObject)movable, blocksSelf, overlapObjects);
         }
 
-        public void DeleteObjectFromCell(Point2D cellCoords, DeletionMode deletionMode)
+        public AbstractObject DeleteObjectFromCell(Point2D cellCoords, DeletionMode deletionMode)
         {
             var tile = GetTile(cellCoords.X, cellCoords.Y);
             if (tile == null)
-                return;
+                return null;
+
+            AbstractObject returnValue = null;
 
             if (deletionMode.HasFlag(DeletionMode.CellTags) && tile.CellTag != null)
             {
+                returnValue = tile.CellTag;
                 RemoveCellTagFrom(tile.CoordsToPoint());
-                return;
             }
-
-            if (deletionMode.HasFlag(DeletionMode.Waypoints) && tile.Waypoints.Count > 0)
+            else if (deletionMode.HasFlag(DeletionMode.Waypoints) && tile.Waypoints.Count > 0)
             {
-                RemoveWaypointsFrom(tile.CoordsToPoint());
-                return;
+                returnValue = tile.Waypoints[0];
+                RemoveWaypoint(tile.Waypoints[0]);
             }
-
-            if (deletionMode.HasFlag(DeletionMode.Infantry))
+            else if (deletionMode.HasFlag(DeletionMode.Infantry) && tile.HasInfantry())
             {
                 for (int i = 0; i < tile.Infantry.Length; i++)
                 {
                     if (tile.Infantry[i] != null)
                     {
+                        returnValue = tile.Infantry[i];
                         RemoveInfantry(tile.Infantry[i]);
-                        return;
                     }
                 }
             }
-
-            if (deletionMode.HasFlag(DeletionMode.Aircraft) && tile.Aircraft.Count > 0)
+            else if (deletionMode.HasFlag(DeletionMode.Aircraft) && tile.Aircraft.Count > 0)
             {
-                RemoveAircraftFrom(tile.CoordsToPoint());
-                return;
+                returnValue = tile.Aircraft[0];
+                RemoveAircraft(tile.Aircraft[0]);
             }
-
-            if (deletionMode.HasFlag(DeletionMode.Vehicles) && tile.Vehicles.Count > 0)
+            else if (deletionMode.HasFlag(DeletionMode.Vehicles) && tile.Vehicles.Count > 0)
             {
-                RemoveUnitsFrom(tile.CoordsToPoint());
-                return;
+                returnValue = tile.Vehicles[0];
+                RemoveUnit(tile.Vehicles[0]);
             }
-
-            if (deletionMode.HasFlag(DeletionMode.Structures) && tile.Structures.Count > 0)
+            else if (deletionMode.HasFlag(DeletionMode.Structures) && tile.Structures.Count > 0)
             {
-                RemoveBuildingsFrom(tile.CoordsToPoint());
-                return;
+                returnValue = tile.Structures[0];
+                RemoveBuilding(tile.Structures[0]);
             }
-
-            if (deletionMode.HasFlag(DeletionMode.TerrainObjects) && tile.TerrainObject != null)
+            else if (deletionMode.HasFlag(DeletionMode.TerrainObjects) && tile.TerrainObject != null)
             {
+                returnValue = tile.TerrainObject;
                 RemoveTerrainObject(tile.CoordsToPoint());
-                return;
             }
+
+            return returnValue;
+        }
+
+        public bool HasObjectToDelete(Point2D cellCoords, DeletionMode deletionMode)
+        {
+            var tile = GetTile(cellCoords.X, cellCoords.Y);
+            if (tile == null)
+                return false;
+
+            if (deletionMode.HasFlag(DeletionMode.CellTags) && tile.CellTag != null)
+            {
+                return true;
+            }
+            else if (deletionMode.HasFlag(DeletionMode.Waypoints) && tile.Waypoints.Count > 0)
+            {
+                return true;
+            }
+            else if (deletionMode.HasFlag(DeletionMode.Infantry) && tile.HasInfantry())
+            {
+                return true;
+            }
+            else if (deletionMode.HasFlag(DeletionMode.Aircraft) && tile.Aircraft.Count > 0)
+            {
+                return true;
+            }
+            else if (deletionMode.HasFlag(DeletionMode.Vehicles) && tile.Vehicles.Count > 0)
+            {
+                return true;
+            }
+            else if (deletionMode.HasFlag(DeletionMode.Structures) && tile.Structures.Count > 0)
+            {
+                return true;
+            }
+            else if (deletionMode.HasFlag(DeletionMode.TerrainObjects) && tile.TerrainObject != null)
+            {
+                return true;
+            }
+
+            return false;
         }
 
         public List<TechnoType> GetAllTechnoTypes()
@@ -1195,7 +1241,7 @@ namespace TSMapEditor.Models
             }
         }
 
-        public void DoForRectangle(int startX, int startY, int endX, int endY, Action<MapTile> action, bool callForNullTiles)
+        public void DoForRectangle(int startX, int startY, int endX, int endY, Action<MapTile> action)
         {
             for (int y = startY; y <= endY; y++)
             {
@@ -1203,11 +1249,39 @@ namespace TSMapEditor.Models
                 {
                     MapTile tile = GetTile(x, y);
 
-                    if (tile == null && !callForNullTiles)
+                    if (tile == null)
                         continue;
 
                     action(tile);
                 }
+            }
+        }
+
+        public void DoForRectangleBorder(int startX, int startY, int endX, int endY, Action<MapTile> action)
+        {
+            // Top and bottom rows
+            for (int x = startX; x <= endX; x++)
+            {
+                MapTile topCell = GetTile(x, startY);
+                if (topCell != null)
+                    action(topCell);
+
+                MapTile bottomCell = GetTile(x, endY);
+                if (bottomCell != null)
+                    action(bottomCell);
+            }
+
+            // Left and right rows
+            // We can ignore the corners here because the loop for top and bottom rows already handled them
+            for (int y = startY + 1; y <= endY - 1; y++)
+            {
+                MapTile leftCell = GetTile(startX, y);
+                if (leftCell != null)
+                    action(leftCell);
+
+                MapTile rightCell = GetTile(endX, y);
+                if (rightCell != null)
+                    action(rightCell);
             }
         }
 
@@ -1232,11 +1306,11 @@ namespace TSMapEditor.Models
 
         public void SortWaypoints() => Waypoints = Waypoints.OrderBy(wp => wp.Identifier).ToList();
 
-        public int GetAutoLATIndex(MapTile mapTile, int baseLATTileSetIndex, int transitionLATTileSetIndex, Func<TileSet, bool> miscChecker)
+        public int GetAutoLATIndex(MapTile mapTile, int baseLATTileSetIndex, int transitionLATTileSetIndex, bool usePreview, Func<TileSet, bool> miscChecker)
         {
             foreach (var autoLatData in AutoLATType.AutoLATData)
             {
-                if (TransitionArrayDataMatches(autoLatData.TransitionMatchArray, mapTile, baseLATTileSetIndex, transitionLATTileSetIndex, miscChecker))
+                if (TransitionArrayDataMatches(autoLatData.TransitionMatchArray, mapTile, baseLATTileSetIndex, transitionLATTileSetIndex, usePreview, miscChecker))
                 {
                     return autoLatData.TransitionTypeIndex;
                 }
@@ -1245,7 +1319,29 @@ namespace TSMapEditor.Models
             return -1;
         }
 
+        public void RefreshCellLighting(LightingPreviewMode lightingPreviewMode, List<MapTile> affectedTiles)
+        {
+            if (affectedTiles == null)
+            {
+                if (lightingPreviewMode == LightingPreviewMode.NoLighting)
+                {
+                    DoForAllValidTiles(cell => cell.CellLighting = new MapColor(1.0, 1.0, 1.0));
+                    return;
+                }
 
+                DoForAllValidTiles(cell => cell.RefreshLighting(Lighting, lightingPreviewMode));
+            }
+            else
+            {
+                if (lightingPreviewMode == LightingPreviewMode.NoLighting)
+                {
+                    affectedTiles.ForEach(cell => cell.CellLighting = new MapColor(1.0, 1.0, 1.0));
+                    return;
+                }
+
+                affectedTiles.ForEach(cell => cell.RefreshLighting(Lighting, lightingPreviewMode));
+            }
+        }
 
         /// <summary>
         /// Convenience structure for <see cref="TransitionArrayDataMatches(int[], MapTile, int, int)"/>.
@@ -1268,7 +1364,7 @@ namespace TSMapEditor.Models
         /// Checks if specific transition data matches for a tile.
         /// If it does, then the tile should use the LAT transition index related to the data.
         /// </summary>
-        private bool TransitionArrayDataMatches(int[] transitionData, MapTile mapTile, int desiredTileSetId1, int desiredTileSetId2, Func<TileSet, bool> miscChecker)
+        private bool TransitionArrayDataMatches(int[] transitionData, MapTile mapTile, int desiredTileSetId1, int desiredTileSetId2, bool usePreview, Func<TileSet, bool> miscChecker)
         {
             var nearbyTiles = new NearbyTileData[]
             {
@@ -1282,7 +1378,7 @@ namespace TSMapEditor.Models
             foreach (var nearbyTile in nearbyTiles)
             {
                 if (!TileSetMatchesExpected(mapTile.X + nearbyTile.XOffset, mapTile.Y + nearbyTile.YOffset,
-                    transitionData, nearbyTile.DirectionIndex, desiredTileSetId1, desiredTileSetId2, miscChecker))
+                    transitionData, nearbyTile.DirectionIndex, desiredTileSetId1, desiredTileSetId2, usePreview, miscChecker))
                 {
                     return false;
                 }
@@ -1291,7 +1387,7 @@ namespace TSMapEditor.Models
             return true;
         }
 
-        private bool TileSetMatchesExpected(int x, int y, int[] transitionData, int transitionDataIndex, int desiredTileSetId1, int desiredTileSetId2, Func<TileSet, bool> miscChecker)
+        private bool TileSetMatchesExpected(int x, int y, int[] transitionData, int transitionDataIndex, int desiredTileSetId1, int desiredTileSetId2, bool usePreview, Func<TileSet, bool> miscChecker)
         {
             var tile = GetTile(x, y);
 
@@ -1300,7 +1396,8 @@ namespace TSMapEditor.Models
 
             bool shouldMatch = transitionData[transitionDataIndex] > 0;
 
-            int tileSetId = TheaterInstance.GetTileSetId(tile.TileIndex);
+            int tileIndex = (usePreview && tile.PreviewTileImage != null) ? tile.PreviewTileImage.TileID : tile.TileIndex;
+            int tileSetId = TheaterInstance.GetTileSetId(tileIndex);
             var tileSet = TheaterInstance.Theater.TileSets[tileSetId];
             if (shouldMatch && (tileSetId != desiredTileSetId1 && tileSetId != desiredTileSetId2 && (miscChecker == null || !miscChecker(tileSet))))
                 return false;
@@ -1440,7 +1537,14 @@ namespace TSMapEditor.Models
             if (StandardHouseTypes.Count == 0 && firestormIni != null)
                 StandardHouseTypes = Rules.GetStandardHouseTypes(firestormIni);
 
-            StandardHouses = StandardHouseTypes.Select(ht => HouseFromHouseType(ht)).ToList();
+            if (Constants.IsRA2YR)
+            {
+                StandardHouses = Rules.RulesHouseTypes.Concat(StandardHouseTypes).Select(ht => HouseFromHouseType(ht)).ToList();
+            }
+            else
+            {
+                StandardHouses = StandardHouseTypes.Select(ht => HouseFromHouseType(ht)).ToList();
+            }
         }
 
         public House HouseFromHouseType(HouseType houseType)
@@ -1448,7 +1552,7 @@ namespace TSMapEditor.Models
             var house = new House(houseType.ININame, houseType);
             house.XNAColor = houseType.XNAColor;
 
-            if (!Constants.UseCountries)
+            if (!Constants.IsRA2YR)
                 house.ActsLike = houseType.Index;
             else
                 house.Country = houseType.ININame;
@@ -1681,8 +1785,10 @@ namespace TSMapEditor.Models
             // Check for triggers using an object-specific event (like "destroyed" or "damaged") without
             // being linked to any object
             var objectSpecificEventIndexes = new List<int>() {
+                4,  // Discovered by player
                 6,  // Attacked by any house
                 7,  // Destroyed by any house
+                29, // Destroyed by anything (not infiltrate)
                 33, // Selected by player
                 34, // Comes near waypoint
                 38, // First damaged (combat only)
@@ -1693,8 +1799,10 @@ namespace TSMapEditor.Models
                 43, // Quarter health (any source)
                 44, // Attacked by (house)
                 48  // Destroyed by anything
-                /*55 Limpet Attached - need to think how to handle YR*/
             };
+
+            if (!Constants.IsRA2YR)
+                objectSpecificEventIndexes.Add(55); // Limpet attached - Firestorm only, not in RA2/YR
 
             foreach (var trigger in Triggers)
             {
@@ -1722,17 +1830,6 @@ namespace TSMapEditor.Models
                     string eventName = triggerEventType.Name;
 
                     issueList.Add($"Trigger '{trigger.Name}' is using the {eventName} event without being attached to any object or team. Did you forget to attach it?");
-                }
-            }
-
-            // Check for AITriggerTypes that have a non-existing condition object
-            foreach (var aiTrigger in AITriggerTypes)
-            {
-                if (!string.IsNullOrWhiteSpace(aiTrigger.ConditionObjectString) &&
-                    !Helpers.IsStringNoneValue(aiTrigger.ConditionObjectString) &&
-                    Rules.FindTechnoType(aiTrigger.ConditionObjectString) == null)
-                {
-                    issueList.Add($"AITrigger '{aiTrigger.Name}' has a condition object '{aiTrigger.ConditionObjectString}' that does not exist in Rules!");
                 }
             }
 
@@ -1775,6 +1872,28 @@ namespace TSMapEditor.Models
                         }
                     }
                 }
+            }
+
+            // Check for triggers having too many actions. This can cause a crash because the game's buffer for parsing trigger actions
+            // is limited (to 512 chars according to ModEnc)
+            if (Constants.WarnOfTooManyTriggerActions)
+            {
+                const int maxActionCount = 18;
+                foreach (var trigger in Triggers)
+                {
+                    if (trigger.Actions.Count > maxActionCount)
+                    {
+                        issueList.Add($"Trigger '{trigger.Name}' has more than {maxActionCount} actions! This can cause the game to crash! Consider splitting it up to multiple triggers.");
+                    }
+                }
+            }
+
+            // In Tiberian Sun, waypoint #100 should be reserved for special dynamic use cases like paradrops
+            // (it is defined as WAYPT_SPECIAL in original game code)
+            const int wpSpecial = 100;
+            if (!Constants.IsRA2YR && Waypoints.Exists(wp => wp.Identifier == wpSpecial))
+            {
+                issueList.Add($"The map makes use of waypoint #{wpSpecial}. In Tiberian Sun, this waypoint is reserved for special use cases (WAYPT_SPECIAL). Using it as a normal waypoint may cause issues as it may be dynamically moved by game events.");
             }
 
             return issueList;

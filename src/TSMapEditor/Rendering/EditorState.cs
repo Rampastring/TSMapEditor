@@ -2,6 +2,7 @@
 using TSMapEditor.GameMath;
 using TSMapEditor.Misc;
 using TSMapEditor.Models;
+using TSMapEditor.Models.Enums;
 using TSMapEditor.Mutations.Classes;
 using TSMapEditor.UI;
 
@@ -24,6 +25,8 @@ namespace TSMapEditor.Rendering
         public event EventHandler MarbleMadnessChanged;
         public event EventHandler Is2DModeChanged;
         public event EventHandler RenderedObjectsChanged;
+        public event EventHandler LightingPreviewStateChanged;
+        public event EventHandler IsLightingChanged;
 
         private CursorAction _cursorAction;
         public CursorAction CursorAction
@@ -35,7 +38,7 @@ namespace TSMapEditor.Rendering
                 {
                     if (_cursorAction != null)
                     {
-                        _cursorAction.OnActionExit();
+                        _cursorAction.OnExit();
                         _cursorAction.OnExitingAction -= CursorAction_OnExitingAction;
                     }
 
@@ -180,6 +183,7 @@ namespace TSMapEditor.Rendering
                 {
                     _isMarbleMadness = value;
                     MarbleMadnessChanged?.Invoke(this, EventArgs.Empty);
+                    RefreshLightingEnabledState();
                 }
             }
         }
@@ -198,6 +202,39 @@ namespace TSMapEditor.Rendering
             }
         }
 
+        private bool _isLighting = true;
+        public bool IsLighting
+        {
+            get => _isLighting;
+        }
+
+        private void RefreshLightingEnabledState()
+        {
+            bool oldIsLighting = _isLighting;
+            _isLighting = (LightingPreviewState != LightingPreviewMode.NoLighting) && !IsMarbleMadness;
+
+            if (oldIsLighting != _isLighting)
+                IsLightingChanged?.Invoke(this, EventArgs.Empty);
+        }
+
+        private LightingPreviewMode _lightingPreviewState = LightingPreviewMode.Normal;
+        public LightingPreviewMode LightingPreviewState
+        {
+            get => _lightingPreviewState;
+            set
+            {
+                if (!Enum.IsDefined(value.GetType(), value))
+                    value = LightingPreviewMode.NoLighting;
+
+                if (value == _lightingPreviewState)
+                    return;
+
+                _lightingPreviewState = value;
+                RefreshLightingEnabledState();
+                LightingPreviewStateChanged?.Invoke(this, EventArgs.Empty);
+            }
+        }
+
         public DeletionMode DeletionMode { get; set; } = DeletionMode.All;
 
         private RenderObjectFlags _renderObjectFlags = RenderObjectFlags.All;
@@ -213,6 +250,8 @@ namespace TSMapEditor.Rendering
                 }
             }
         }
+
+        public bool RenderInvisibleInGameObjects { get; set; } = true;
 
         public CopiedMapData CopiedMapData { get; set; }
     }

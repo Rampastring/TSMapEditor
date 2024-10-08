@@ -18,6 +18,8 @@ namespace TSMapEditor.UI.Windows.TerrainGenerator
     /// </summary>
     public class TerrainGeneratorTileGroupsPanel : EditorPanel
     {
+        private const int MaxTileGroupCount = 8;
+
         public TerrainGeneratorTileGroupsPanel(WindowManager windowManager, Map map) : base(windowManager)
         {
             this.map = map;
@@ -36,8 +38,6 @@ namespace TSMapEditor.UI.Windows.TerrainGenerator
 
         public override void Initialize()
         {
-            const int MaxTileGroupCount = 8;
-
             tileSetSelectors = new EditorPopUpSelector[MaxTileGroupCount];
             tileIndices = new EditorTextBox[MaxTileGroupCount];
             tileGroupOpenChances = new EditorNumberTextBox[MaxTileGroupCount];
@@ -175,7 +175,7 @@ namespace TSMapEditor.UI.Windows.TerrainGenerator
 
         public void LoadConfig(TerrainGeneratorConfiguration configuration)
         {
-            for (int i = 0; i < configuration.TileGroups.Count; i++)
+            for (int i = 0; i < configuration.TileGroups.Count && i < MaxTileGroupCount; i++)
             {
                 var tileGroup = configuration.TileGroups[i];
 

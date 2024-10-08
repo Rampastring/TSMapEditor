@@ -1,5 +1,6 @@
 ﻿using Rampastring.XNAUI.Input;
 using System;
+using System.Collections.Generic;
 using TSMapEditor.GameMath;
 using TSMapEditor.Models;
 using TSMapEditor.Mutations;
@@ -31,12 +32,20 @@ namespace TSMapEditor.UI.CursorActions
 
         private int heightOffset;
 
+        private HashSet<MapTile> previewTiles = new HashSet<MapTile>();
+
         public override void OnActionEnter()
         {
             heightOffset = 0;
         }
 
-        public override void OnKeyPressed(KeyPressEventArgs e)
+        public override void OnActionExit()
+        {
+            ClearPreview();
+            base.OnActionExit();
+        }
+
+        public override void OnKeyPressed(KeyPressEventArgs e, Point2D cellCoords)
         {
             if (Constants.IsFlatWorld)
                 return;
@@ -76,16 +85,28 @@ namespace TSMapEditor.UI.CursorActions
         public override void PreMapDraw(Point2D cellCoords)
         {
             // Assign preview data
-            DoActionForCells(cellCoords, t => t.PreviewTileImage = Tile);
+            ApplyPreviewForCells(cellCoords);
         }
 
         public override void PostMapDraw(Point2D cellCoords)
         {
-            // Clear preview data
-            DoActionForCells(cellCoords, t => t.PreviewTileImage = null);
+            ClearPreview();
         }
 
-        private void DoActionForCells(Point2D cellCoords, Action<MapTile> action)
+        private void ClearPreview()
+        {
+            // Clear preview data
+            foreach (var cell in previewTiles)
+            {
+                cell.PreviewTileImage = null;
+                cell.PreviewLevel = -1;
+            }
+
+            previewTiles.Clear();
+            CursorActionTarget.InvalidateMap();
+        }
+
+        private void ApplyPreviewForCells(Point2D cellCoords)
         {
             if (Tile == null)
                 return;
@@ -149,10 +170,46 @@ namespace TSMapEditor.UI.CursorActions
                     {
                         mapTile.PreviewSubTileIndex = i;
                         mapTile.PreviewLevel = Math.Min(originLevel + image.TmpImage.Height, Constants.MaxMapHeightLevel);
-                        action(mapTile);
+                        mapTile.PreviewTileImage = Tile;
+                        previewTiles.Add(mapTile);
                     }
                 }
             });
+
+            if (CursorActionTarget.AutoLATEnabled)
+            {
+                // Get potential base tilesets of the placed LAT (if we're placing LAT)
+                // This allows placing certain LATs on top of other LATs (example: snowy dirt on snow, when snow is also placed on grass)
+                (var baseTileSet, var altBaseTileSet) = Mutation.GetBaseTileSetsForTileSet(Map.TheaterInstance, Tile.TileSetId);
+
+                // Calculate total area to apply Auto-LAT into
+                int totalWidth = (Tile.Width * brush.Width) + 1;
+                int totalHeight = (Tile.Height * brush.Height) + 1;
+
+                for (int y = -1; y < totalHeight; y++)
+                {
+                    for (int x = -1; x < totalWidth; x++)
+                    {
+                        int cx = adjustedCellCoords.X + x;
+                        int cy = adjustedCellCoords.Y + y;
+
+                        var cell = Map.GetTile(cx, cy);
+                        if (cell == null)
+                            continue;
+
+                        int autoLatTileIndex = Mutation.GetAutoLATTileIndexForCell(Map, cell.CoordsToPoint(), baseTileSet, altBaseTileSet, true);
+
+                        if (autoLatTileIndex > -1)
+                        {
+                            cell.PreviewTileImage = CursorActionTarget.TheaterGraphics.GetTileGraphics(autoLatTileIndex, 0);
+                            cell.PreviewSubTileIndex = 0;
+                            if (cell.PreviewLevel < 0)
+                                cell.PreviewLevel = cell.Level;
+                            previewTiles.Add(cell);
+                        }
+                    }
+                }
+            }
 
             CursorActionTarget.AddRefreshPoint(adjustedCellCoords, Math.Max(Tile.Width, Tile.Height) * Math.Max(brush.Width, brush.Height) + 1);
         }

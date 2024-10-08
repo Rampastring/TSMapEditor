@@ -3,7 +3,7 @@ using Rampastring.Tools;
 using Rampastring.XNAUI;
 using Rampastring.XNAUI.XNAControls;
 using System;
-using TSMapEditor.Settings;
+using System.Linq;
 
 namespace TSMapEditor.UI.Controls
 {
@@ -41,6 +41,20 @@ namespace TSMapEditor.UI.Controls
             PanelBackgroundDrawMode = PanelBackgroundImageDrawMode.STRETCHED;
 
             base.Initialize();
+
+            WindowManager.RenderResolutionChanged += WindowManager_RenderResolutionChanged;
+        }
+
+        private void WindowManager_RenderResolutionChanged(object sender, EventArgs e)
+        {
+            ConstrainPosition();
+        }
+
+        public override void Kill()
+        {
+            WindowManager.RenderResolutionChanged -= WindowManager_RenderResolutionChanged;
+
+            base.Kill();
         }
 
         private void CloseButton_LeftClick(object sender, EventArgs e)
@@ -75,8 +89,28 @@ namespace TSMapEditor.UI.Controls
             AlphaRate = AppearingRate;
             Alpha = 0f;
             Enable();
+            IsDragged = false;
+
+            ConstrainPosition();
 
             InteractedWith?.Invoke(this, EventArgs.Empty);
+        }
+
+        private void ConstrainPosition()
+        {
+            if (ScaledWidth > WindowManager.RenderResolutionX)
+                X = (WindowManager.RenderResolutionX - ScaledWidth) / 2;
+            else if (X + ScaledWidth > WindowManager.RenderResolutionX)
+                X = WindowManager.RenderResolutionX - ScaledWidth;
+            else if (X < 0)
+                X = 0;
+
+            if (ScaledHeight > WindowManager.RenderResolutionY)
+                Y = (WindowManager.RenderResolutionY - ScaledHeight) / 2;
+            else if (Y + ScaledHeight > WindowManager.RenderResolutionY)
+                Y = WindowManager.RenderResolutionY - ScaledHeight;
+            else if (Y < 0)
+                Y = 0;
         }
 
         public override void Update(GameTime gameTime)
@@ -86,42 +120,42 @@ namespace TSMapEditor.UI.Controls
             if (Alpha <= 0f && AlphaRate < 0.0f)
                 Disable();
 
-            if (IsActive && CanBeMoved &&
-                !(WindowManager.SelectedControl is XNAScrollBar) &&
-                !(WindowManager.SelectedControl is XNATrackbar))
+            if (IsDragged)
             {
-                if (Cursor.LeftPressedDown)
+                Point newCursorPoint = GetCursorPoint();
+                X = X + (newCursorPoint.X - lastCursorPoint.X) * Scaling;
+                Y = Y + (newCursorPoint.Y - lastCursorPoint.Y) * Scaling;
+
+                ConstrainPosition();
+                lastCursorPoint = GetCursorPoint();
+                IsDragged = Cursor.LeftDown;
+            }
+
+            if (IsActive && CanBeMoved && Cursor.LeftPressedDown)
+            {
+                var activeChild = Children.FirstOrDefault(c => c.IsActive);
+
+                if (activeChild != null)
+                {
+                    // Find the last active child from the control hierarchy
+                    while (true)
+                    {
+                        var childOfChild = activeChild.Children.FirstOrDefault(c => c.IsActive);
+                        if (childOfChild == null)
+                            break;
+
+                        activeChild = childOfChild;
+                    }
+                }
+
+                // Only allow moving window if the active child is not a control that is used by dragging
+                // TODO this could be made more object-oriented with a property at XNAControl level
+                if (activeChild == null || !(activeChild is XNAPanel || activeChild is XNAScrollBar || activeChild is XNATrackbar))
                 {
                     InteractedWith?.Invoke(this, EventArgs.Empty);
                     IsDragged = true;
                     lastCursorPoint = GetCursorPoint();
                 }
-                else
-                {
-                    IsDragged = IsDragged && Cursor.LeftDown;
-
-                    if (IsDragged)
-                    {
-                        Point newCursorPoint = GetCursorPoint();
-                        X = X + (newCursorPoint.X - lastCursorPoint.X) * Scaling;
-                        Y = Y + (newCursorPoint.Y - lastCursorPoint.Y) * Scaling;
-                        if (X + ScaledWidth > WindowManager.RenderResolutionX)
-                            X = WindowManager.RenderResolutionX - ScaledWidth;
-                        else if (X < 0)
-                            X = 0;
-
-                        if (Y + ScaledHeight > WindowManager.RenderResolutionY)
-                            Y = WindowManager.RenderResolutionY - ScaledHeight;
-                        else if (Y < 0)
-                            Y = 0;
-                    }
-
-                    lastCursorPoint = GetCursorPoint();
-                }
-            }
-            else
-            {
-                IsDragged = false;
             }
         }
     }

@@ -20,7 +20,8 @@ namespace TSMapEditor.UI.Windows
     {
         ID,
         Name,
-        Color
+        Color,
+        ColorThenName,
     }
 
     public class TriggersWindow : INItializableWindow
@@ -35,16 +36,26 @@ namespace TSMapEditor.UI.Windows
             changeAttachedTagCursorAction = new ChangeAttachedTagCursorAction(cursorActionTarget);
         }
 
+        public event EventHandler<TeamTypeEventArgs> TeamTypeOpened;
+
         private readonly Map map;
         private readonly ICursorActionTarget cursorActionTarget;
         private readonly PlaceCellTagCursorAction placeCellTagCursorAction;
         private readonly ChangeAttachedTagCursorAction changeAttachedTagCursorAction;
         private readonly EditorState editorState;
+        private readonly TriggerParamType[] supportedGoToSourceTriggerParamTypes = 
+        {
+            TriggerParamType.Trigger,
+            TriggerParamType.TeamType,
+            TriggerParamType.Waypoint,
+            TriggerParamType.WaypointZZ
+        };
 
         private XNADropDown ddActions;
 
         // Trigger list
         private EditorListBox lbTriggers;
+        private EditorSuggestionTextBox tbFilter;
 
         // General trigger settings
         private EditorTextBox tbName;
@@ -71,6 +82,7 @@ namespace TSMapEditor.UI.Windows
         private EditorDescriptionPanel panelActionDescription;
         private EditorListBox lbActionParameters;
         private EditorTextBox tbActionParameterValue;
+        private EditorButton btnActionGoToTarget;        
         private XNAContextMenu ctxActionParameterPresetValues;
 
         private SelectEventWindow selectEventWindow;
@@ -88,10 +100,12 @@ namespace TSMapEditor.UI.Windows
         private SelectTechnoTypeWindow selectTechnoTypeWindow;
         private SelectTagWindow selectTagWindow;
         private SelectStringWindow selectStringWindow;
+        private SelectSpeechWindow selectSpeechWindow;
+        private SelectSoundWindow selectSoundWindow;
+        private SelectParticleSystemTypeWindow selectParticleSystemTypeWindow;
 
         private XNAContextMenu actionContextMenu;
         private XNAContextMenu eventContextMenu;
-        private XNAContextMenu triggerListContextMenu;
 
         private Trigger editedTrigger;
 
@@ -124,6 +138,9 @@ namespace TSMapEditor.UI.Windows
             tbName = FindChild<EditorTextBox>(nameof(tbName));
             tbName.AllowComma = false;
 
+            tbFilter = FindChild<EditorSuggestionTextBox>(nameof(tbFilter));            
+            tbFilter.TextChanged += TbFilter_TextChanged;            
+
             ddHouseType = FindChild<XNADropDown>(nameof(ddHouseType));
             ddType = FindChild<XNADropDown>(nameof(ddType));
             selAttachedTrigger = FindChild<EditorPopUpSelector>(nameof(selAttachedTrigger));
@@ -145,6 +162,7 @@ namespace TSMapEditor.UI.Windows
             panelEventDescription = FindChild<EditorDescriptionPanel>(nameof(panelEventDescription));
             lbEventParameters = FindChild<EditorListBox>(nameof(lbEventParameters));
             tbEventParameterValue = FindChild<EditorTextBox>(nameof(tbEventParameterValue));
+            btnActionGoToTarget = FindChild<EditorButton>(nameof(btnActionGoToTarget));
 
             ctxEventParameterPresetValues = new XNAContextMenu(WindowManager);
             ctxEventParameterPresetValues.Name = nameof(ctxEventParameterPresetValues);
@@ -180,21 +198,33 @@ namespace TSMapEditor.UI.Windows
             ddActions.AddItem(new XNADropDownItem() { Text = "Clear CellTags", Tag = new Action(ClearCellTags) });
             ddActions.AddItem(new XNADropDownItem() { Text = "Attach to Objects", Tag = new Action(AttachTagToObjects) });
             ddActions.AddItem(new XNADropDownItem() { Text = "View Attached Objects", Tag = new Action(ShowAttachedObjects) });
+
+            if (!Constants.IsRA2YR)
+            {
+                ddActions.AddItem(new XNADropDownItem() { Text = string.Empty, Selectable = false });
+                ddActions.AddItem(new XNADropDownItem() { Text = "Wrap in EVA disable/enable actions", Tag = new Action(WrapInEVADisableAndEnableActions) });
+            }
+
             ddActions.AddItem(new XNADropDownItem() { Text = string.Empty, Selectable = false });
             ddActions.AddItem(new XNADropDownItem() { Text = "Re-generate Trigger IDs", Tag = new Action(RegenerateIDs) });
             ddActions.AddItem(new XNADropDownItem() { Text = "Clone for Easier Difficulties", Tag = new Action(CloneForEasierDifficulties) });
+            ddActions.AddItem(new XNADropDownItem() { Text = "Clone (no dependencies)", Tag = new Action(CloneForEasierDifficultiesWithoutDependencies) });
 
             ddActions.SelectedIndex = 0;
             ddActions.SelectedIndexChanged += DdActions_SelectedIndexChanged;
 
             FindChild<EditorButton>("btnAddEvent").LeftClick += BtnAddEvent_LeftClick;
             FindChild<EditorButton>("btnDeleteEvent").LeftClick += BtnDeleteEvent_LeftClick;
+            FindChild<EditorButton>("btnCloneEvent").LeftClick += BtnCloneEvent_LeftClick;
 
             FindChild<EditorButton>("btnAddAction").LeftClick += BtnAddAction_LeftClick;
             FindChild<EditorButton>("btnDeleteAction").LeftClick += BtnDeleteAction_LeftClick;
+            FindChild<EditorButton>("btnCloneAction").LeftClick += BtnCloneAction_LeftClick;
 
             FindChild<EditorButton>("btnActionParameterValuePreset").LeftClick += BtnActionParameterValuePreset_LeftClick;
             FindChild<EditorButton>("btnEventParameterValuePreset").LeftClick += BtnEventParameterValuePreset_LeftClick;
+
+            btnActionGoToTarget.LeftClick += btnActionGoToTarget_LeftClick;
 
             selectEventWindow = new SelectEventWindow(WindowManager, map);
             var eventWindowDarkeningPanel = DarkeningPanel.InitializeAndAddToParentControlWithChild(WindowManager, Parent, selectEventWindow);
@@ -256,7 +286,19 @@ namespace TSMapEditor.UI.Windows
             var stringDarkeningPanel = DarkeningPanel.InitializeAndAddToParentControlWithChild(WindowManager, Parent, selectStringWindow);
             stringDarkeningPanel.Hidden += StringDarkeningPanel_Hidden;
 
-            eventContextMenu = new XNAContextMenu(WindowManager);
+            selectSpeechWindow = new SelectSpeechWindow(WindowManager, map);
+            var speechDarkeningPanel = DarkeningPanel.InitializeAndAddToParentControlWithChild(WindowManager, Parent, selectSpeechWindow);
+            speechDarkeningPanel.Hidden += SpeechDarkeningPanel_Hidden;
+
+            selectSoundWindow = new SelectSoundWindow(WindowManager, map);
+            var soundDarkeningPanel = DarkeningPanel.InitializeAndAddToParentControlWithChild(WindowManager, Parent, selectSoundWindow);
+            soundDarkeningPanel.Hidden += SoundDarkeningPanel_Hidden;
+
+            selectParticleSystemTypeWindow = new SelectParticleSystemTypeWindow(WindowManager, map);
+            var particleSystemTypeDarkeningPanel = DarkeningPanel.InitializeAndAddToParentControlWithChild(WindowManager, Parent, selectParticleSystemTypeWindow);
+            particleSystemTypeDarkeningPanel.Hidden += ParticleSystemTypeDarkeningPanel_Hidden;
+
+            eventContextMenu = new EditorContextMenu(WindowManager);
             eventContextMenu.Name = nameof(eventContextMenu);
             eventContextMenu.Width = lbEvents.Width;
             eventContextMenu.AddItem("Move Up", EventContextMenu_MoveUp, () => editedTrigger != null && lbEvents.SelectedItem != null && lbEvents.SelectedIndex > 0);
@@ -268,7 +310,7 @@ namespace TSMapEditor.UI.Windows
             lbEvents.AllowRightClickUnselect = false;
             lbEvents.RightClick += (s, e) => { if (editedTrigger != null) { lbEvents.OnMouseLeftDown(); eventContextMenu.Open(GetCursorPoint()); } };
 
-            actionContextMenu = new XNAContextMenu(WindowManager);
+            actionContextMenu = new EditorContextMenu(WindowManager);
             actionContextMenu.Name = nameof(actionContextMenu);
             actionContextMenu.Width = lbActions.Width;
             actionContextMenu.AddItem("Move Up", ActionContextMenu_MoveUp, () => editedTrigger != null && lbActions.SelectedItem != null && lbActions.SelectedIndex > 0);
@@ -280,16 +322,18 @@ namespace TSMapEditor.UI.Windows
             lbActions.AllowRightClickUnselect = false;
             lbActions.RightClick += (s, e) => { if (editedTrigger != null) { lbActions.OnMouseLeftDown(); actionContextMenu.Open(GetCursorPoint()); } };
 
-            triggerListContextMenu = new XNAContextMenu(WindowManager);
-            triggerListContextMenu.Name = nameof(triggerListContextMenu);
-            triggerListContextMenu.Width = lbTriggers.Width;
-            triggerListContextMenu.AddItem("Sort by ID", () => TriggerSortMode = TriggerSortMode.ID);
-            triggerListContextMenu.AddItem("Sort by Name", () => TriggerSortMode = TriggerSortMode.Name);
-            triggerListContextMenu.AddItem("Sort by Color", () => TriggerSortMode = TriggerSortMode.Color);
-            AddChild(triggerListContextMenu);
+            var sortContextMenu = new EditorContextMenu(WindowManager);
+            sortContextMenu.Name = nameof(sortContextMenu);
+            sortContextMenu.Width = lbTriggers.Width;
+            sortContextMenu.AddItem("Sort by ID", () => TriggerSortMode = TriggerSortMode.ID);
+            sortContextMenu.AddItem("Sort by Name", () => TriggerSortMode = TriggerSortMode.Name);
+            sortContextMenu.AddItem("Sort by Color", () => TriggerSortMode = TriggerSortMode.Color);
+            sortContextMenu.AddItem("Sort by Color, then by Name", () => TriggerSortMode = TriggerSortMode.ColorThenName);
+            AddChild(sortContextMenu);
 
-            lbTriggers.AllowRightClickUnselect = false;
-            lbTriggers.RightClick += (s, e) => triggerListContextMenu.Open(GetCursorPoint());
+            FindChild<EditorButton>("btnSortOptions").LeftClick += (s, e) => sortContextMenu.Open(GetCursorPoint());
+
+            lbTriggers.AllowRightClickUnselect = true;
             lbTriggers.SelectedIndexChanged += LbTriggers_SelectedIndexChanged;
         }
 
@@ -383,59 +427,68 @@ namespace TSMapEditor.UI.Windows
             if (editedTrigger == null)
                 return;
 
+            var stringBuilder = new StringBuilder();
+
             var tag = map.Tags.Find(t => t.Trigger == editedTrigger);
             if (tag == null)
             {
-                EditorMessageBox.Show(WindowManager, "No tag found", 
-                    $"The selected trigger '{editedTrigger.Name}' has no" +
-                    $"associated tag. As such, it is not attached to any objects.",
-                    MessageBoxButtons.OK);
-
-                return;
+                stringBuilder.Append($"The selected trigger {editedTrigger.Name} has no associated tag. As such, it is not attached to any objects.");
             }
-
-            var objectList = new List<TechnoBase>();
-            map.Infantry.ForEach(inf => AddObjectToListIfLinkedToTag(inf, objectList, tag));
-            map.Units.ForEach(unit => AddObjectToListIfLinkedToTag(unit, objectList, tag));
-            map.Structures.ForEach(structure => AddObjectToListIfLinkedToTag(structure, objectList, tag));
-            map.Aircraft.ForEach(aircraft => AddObjectToListIfLinkedToTag(aircraft, objectList, tag));
-
-            var stringBuilder = new StringBuilder();
-
-            if (objectList.Count > 0)
+            else
             {
-                stringBuilder.Append($"The selected trigger '{editedTrigger.Name}' is linked to the following objects:\r\n");
+                var objectList = new List<TechnoBase>();
+                map.Infantry.ForEach(inf => AddObjectToListIfLinkedToTag(inf, objectList, tag));
+                map.Units.ForEach(unit => AddObjectToListIfLinkedToTag(unit, objectList, tag));
+                map.Structures.ForEach(structure => AddObjectToListIfLinkedToTag(structure, objectList, tag));
+                map.Aircraft.ForEach(aircraft => AddObjectToListIfLinkedToTag(aircraft, objectList, tag));
 
-                objectList.ForEach(techno =>
+                if (objectList.Count > 0)
                 {
-                    switch (techno.WhatAmI())
+                    stringBuilder.Append($"The selected trigger '{editedTrigger.Name}' is linked to the following objects:\r\n");
+
+                    objectList.ForEach(techno =>
                     {
-                        case RTTIType.Aircraft:
-                            AppendToStringBuilder((Aircraft)techno, stringBuilder);
-                            break;
-                        case RTTIType.Building:
-                            AppendToStringBuilder((Structure)techno, stringBuilder);
-                            break;
-                        case RTTIType.Infantry:
-                            AppendToStringBuilder((Infantry)techno, stringBuilder);
-                            break;
-                        case RTTIType.Unit:
-                            AppendToStringBuilder((Unit)techno, stringBuilder);
-                            break;
-                        default:
-                            throw new NotImplementedException("Unknown RTTI type encountered when listing linked objects for a trigger.");
+                        switch (techno.WhatAmI())
+                        {
+                            case RTTIType.Aircraft:
+                                AppendToStringBuilder((Aircraft)techno, stringBuilder);
+                                break;
+                            case RTTIType.Building:
+                                AppendToStringBuilder((Structure)techno, stringBuilder);
+                                break;
+                            case RTTIType.Infantry:
+                                AppendToStringBuilder((Infantry)techno, stringBuilder);
+                                break;
+                            case RTTIType.Unit:
+                                AppendToStringBuilder((Unit)techno, stringBuilder);
+                                break;
+                            default:
+                                throw new NotImplementedException("Unknown RTTI type encountered when listing linked objects for a trigger.");
+                        }
+                    });
+
+                    stringBuilder.Append(Environment.NewLine);
+                }
+
+                var teamTypes = map.TeamTypes.FindAll(tt => tt.Tag == tag);
+                if (teamTypes.Count > 0)
+                {
+                    foreach (var teamType in teamTypes)
+                    {
+                        stringBuilder.Append($"The trigger is linked to TeamType '{teamType.Name}' ({teamType.ININame}).");
+                        stringBuilder.Append(Environment.NewLine);
                     }
-                });
+                }
+
+                var celltag = map.CellTags.Find(ct => ct.Tag == tag);
+                if (celltag != null)
+                {
+                    stringBuilder.Append(Environment.NewLine);
+                    stringBuilder.Append("The trigger is linked to one or more celltags (first match at " + celltag.Position + ").");
+                }
             }
 
-            var celltag = map.CellTags.Find(ct => ct.Tag == tag);
-            if (celltag != null)
-            {
-                stringBuilder.Append(Environment.NewLine);
-                stringBuilder.Append("The trigger is linked to one or more celltags (first match at " + celltag.Position + ").");
-            }
-
-            // Check other triggers to see whether this trigger is referenced to by them
+            // Check other triggers to see whether this trigger is referenced by them
             var allReferringTriggers = map.Triggers.FindAll(trig => {
                 foreach (var triggerAction in trig.Actions)
                 {
@@ -460,7 +513,7 @@ namespace TSMapEditor.UI.Windows
             if (allReferringTriggers.Count > 0)
             {
                 stringBuilder.Append(Environment.NewLine);
-                stringBuilder.Append("The trigger is referenced to by the following other triggers:");
+                stringBuilder.Append("The trigger is referenced by the following other triggers:");
                 allReferringTriggers.ForEach(trig => stringBuilder.Append(Environment.NewLine + $"    - {trig.Name} ({trig.ID})"));
             }
 
@@ -496,6 +549,32 @@ namespace TSMapEditor.UI.Windows
                 technoList.Add(techno);
         }
 
+        private void WrapInEVADisableAndEnableActions()
+        {
+            if (editedTrigger == null)
+                return;
+
+            const int TSDisableSpeechActionIndex = 102;
+            const int TSEnableSpeechActionIndex = 103;
+
+            if (!map.EditorConfig.TriggerActionTypes.TryGetValue(TSDisableSpeechActionIndex, out TriggerActionType disableSpeechTriggerActionType))
+            {
+                EditorMessageBox.Show(WindowManager, "Trigger action type not found", $"Could not find trigger action type for \"Disable Speech\" {TSDisableSpeechActionIndex}", MessageBoxButtons.OK);
+                return;
+            }
+
+            if (!map.EditorConfig.TriggerActionTypes.TryGetValue(TSEnableSpeechActionIndex, out TriggerActionType enableSpeechTriggerActionType))
+            {
+                EditorMessageBox.Show(WindowManager, "Trigger action type not found", $"Could not find trigger action type for \"Enable Speech\" {TSEnableSpeechActionIndex}", MessageBoxButtons.OK);
+                return;
+            }
+
+            editedTrigger.Actions.Insert(0, CreateTriggerAction(disableSpeechTriggerActionType));
+            editedTrigger.Actions.Add(CreateTriggerAction(enableSpeechTriggerActionType));
+
+            EditTrigger(editedTrigger);
+        }
+
         #endregion
 
         private void RegenerateIDs()
@@ -526,15 +605,83 @@ namespace TSMapEditor.UI.Windows
                 "and their TaskForces are also created for the easier-difficulty triggers." + Environment.NewLine + Environment.NewLine +
                 "No un-do is available. Do you want to continue?", MessageBoxButtons.YesNo);
 
-            messageBox.YesClickedAction = _ => DoCloneForEasierDifficulties();
+            messageBox.YesClickedAction = _ => DoCloneForEasierDifficulties(true);
         }
 
-        private void DoCloneForEasierDifficulties()
+        private void CloneForEasierDifficultiesWithoutDependencies()
+        {
+            if (editedTrigger == null)
+                return;
+
+            var messageBox = EditorMessageBox.Show(WindowManager,
+                "Are you sure?",
+                "Cloning this trigger for easier difficulties will create duplicate instances" + Environment.NewLine +
+                "of this trigger for Medium and Easy difficulties, replacing Hard-mode globals" + Environment.NewLine +
+                "with respective globals of easier difficulties." + Environment.NewLine + Environment.NewLine +
+                "No un-do is available. Do you want to continue?", MessageBoxButtons.YesNo);
+
+            messageBox.YesClickedAction = _ => DoCloneForEasierDifficulties(false);
+        }
+
+        private TeamType FindOrCloneTeamTypeForDifficulty(TeamType hardTeamType, Difficulty targetDifficulty)
+        {
+            string targetDiffTeamTypeName = Helpers.ConvertNameToNewDifficulty(hardTeamType.Name, Difficulty.Hard, targetDifficulty);
+            TeamType targetDiffTeamType = map.TeamTypes.Find(tt => tt.Name == targetDiffTeamTypeName);
+
+            // Only create new TeamType and TaskForce if they weren't already found
+            if (targetDiffTeamType == null)
+            {
+                string targetDiffTaskForceName = Helpers.ConvertNameToNewDifficulty(hardTeamType.TaskForce.Name, Difficulty.Hard, targetDifficulty);
+                TaskForce targetDiffTaskForce = map.TaskForces.Find(tt => tt.Name == targetDiffTaskForceName);
+
+                if (targetDiffTaskForce == null)
+                {
+                    targetDiffTaskForce = hardTeamType.TaskForce.Clone(map.GetNewUniqueInternalId());
+                    targetDiffTaskForce.Name = targetDiffTaskForceName;
+                    map.AddTaskForce(targetDiffTaskForce);
+                }
+
+                targetDiffTeamType = hardTeamType.Clone(map.GetNewUniqueInternalId());
+                targetDiffTeamType.Name = targetDiffTeamTypeName;
+                targetDiffTeamType.TaskForce = targetDiffTaskForce;
+                map.AddTeamType(targetDiffTeamType);
+            }
+
+            return targetDiffTeamType;
+        }
+
+        private void DoCloneForEasierDifficulties(bool cloneDependencies)
         {
             var originalTag = map.Tags.Find(t => t.Trigger == editedTrigger);
 
             var mediumDifficultyTrigger = editedTrigger.Clone(map.GetNewUniqueInternalId());
+            mediumDifficultyTrigger.Hard = false;
+            mediumDifficultyTrigger.Normal = true;
+            mediumDifficultyTrigger.Easy = false;
             map.AddTrigger(mediumDifficultyTrigger);
+
+            var easyDifficultyTrigger = editedTrigger.Clone(map.GetNewUniqueInternalId());
+            easyDifficultyTrigger.Hard = false;
+            easyDifficultyTrigger.Normal = false;
+            easyDifficultyTrigger.Easy = true;
+            map.AddTrigger(easyDifficultyTrigger);
+
+            if (editedTrigger.Name.Contains("Hard"))
+            {
+                mediumDifficultyTrigger.Name = editedTrigger.Name.Replace("Hard", "Medium");
+                easyDifficultyTrigger.Name = editedTrigger.Name.Replace("Hard", "Easy");
+            }
+            else if (editedTrigger.Name.StartsWith("H "))
+            {
+                mediumDifficultyTrigger.Name = "M " + editedTrigger.Name[2..];
+                easyDifficultyTrigger.Name = "E " + editedTrigger.Name[2..];
+            }
+            else if (editedTrigger.Name.EndsWith(" H"))
+            {
+                mediumDifficultyTrigger.Name = editedTrigger.Name[..^2] + " M";
+                easyDifficultyTrigger.Name = editedTrigger.Name[..^2] + " E";
+            }
+
             map.Tags.Add(new Tag()
             {
                 ID = map.GetNewUniqueInternalId(),
@@ -543,8 +690,6 @@ namespace TSMapEditor.UI.Windows
                 Repeating = originalTag == null ? 0 : originalTag.Repeating
             });
 
-            var easyDifficultyTrigger = editedTrigger.Clone(map.GetNewUniqueInternalId());
-            map.AddTrigger(easyDifficultyTrigger);
             map.Tags.Add(new Tag()
             {
                 ID = map.GetNewUniqueInternalId(),
@@ -552,18 +697,6 @@ namespace TSMapEditor.UI.Windows
                 Trigger = easyDifficultyTrigger,
                 Repeating = originalTag == null ? 0 : originalTag.Repeating
             });
-
-            mediumDifficultyTrigger.Name = editedTrigger.Name.Replace("Hard", "Medium");
-            if (editedTrigger.Name.StartsWith("H "))
-                mediumDifficultyTrigger.Name = "M " + editedTrigger.Name[2..];
-            else if (editedTrigger.Name.EndsWith(" H"))
-                mediumDifficultyTrigger.Name = editedTrigger.Name[..^2] + " M";
-
-            easyDifficultyTrigger.Name = editedTrigger.Name.Replace("Hard", "Easy");
-            if (editedTrigger.Name.StartsWith("H "))
-                easyDifficultyTrigger.Name = "E " + editedTrigger.Name[2..];
-            else if (editedTrigger.Name.EndsWith(" H"))
-                easyDifficultyTrigger.Name = editedTrigger.Name[..^2] + " E";
 
             int mediumDiffGlobalVariableIndex = map.Rules.GlobalVariables.FindIndex(gv => gv.Name == "Difficulty Medium");
             int easyDiffGlobalVariableIndex = map.Rules.GlobalVariables.FindIndex(gv => gv.Name == "Difficulty Easy");
@@ -606,47 +739,33 @@ namespace TSMapEditor.UI.Windows
                 }
             }
 
-            // Go through used actions. If they refer to any TeamTypes, clone the
-            // TeamTypes and replace the references
-            for (int i = 0; i < editedTrigger.Actions.Count; i++)
+            if (cloneDependencies)
             {
-                TriggerAction action = editedTrigger.Actions[i];
+                // Go through used actions and their parameters.
+                // If they refer to any TeamTypes, clone the TeamTypes and replace the references.
 
-                TriggerActionType triggerActionType = map.EditorConfig.TriggerActionTypes[action.ActionIndex];
-
-                for (int j = 0; j < triggerActionType.Parameters.Length; j++)
+                for (int i = 0; i < editedTrigger.Actions.Count; i++)
                 {
-                    var param = triggerActionType.Parameters[j];
+                    TriggerAction action = editedTrigger.Actions[i];
 
-                    if (param != null && param.TriggerParamType == TriggerParamType.TeamType)
+                    TriggerActionType triggerActionType = map.EditorConfig.TriggerActionTypes[action.ActionIndex];
+
+                    for (int j = 0; j < triggerActionType.Parameters.Length; j++)
                     {
-                        TeamType teamType = map.TeamTypes.Find(tt => tt.ININame == action.ParamToString(j));
+                        var param = triggerActionType.Parameters[j];
 
-                        if (teamType != null && teamType.TaskForce != null)
+                        if (param != null && param.TriggerParamType == TriggerParamType.TeamType)
                         {
-                            TaskForce mediumTaskForce = teamType.TaskForce.Clone(map.GetNewUniqueInternalId());
-                            map.AddTaskForce(mediumTaskForce);
+                            TeamType teamType = map.TeamTypes.Find(tt => tt.ININame == action.ParamToString(j));
 
-                            TaskForce easyTaskForce = teamType.TaskForce.Clone(map.GetNewUniqueInternalId());
-                            map.AddTaskForce(easyTaskForce);
+                            if (teamType != null && teamType.TaskForce != null)
+                            {
+                                TeamType mediumTeamType = FindOrCloneTeamTypeForDifficulty(teamType, Difficulty.Medium);
+                                TeamType easyTeamType = FindOrCloneTeamTypeForDifficulty(teamType, Difficulty.Easy);
 
-                            mediumTaskForce.Name = teamType.TaskForce.Name.Replace("H ", "M ").Replace(" H", " M").Replace("Hard", "Medium");
-                            easyTaskForce.Name = teamType.TaskForce.Name.Replace("H ", "E ").Replace(" H", " E").Replace("Hard", "Easy");
-
-                            TeamType mediumTeamType = teamType.Clone(map.GetNewUniqueInternalId());
-                            map.AddTeamType(mediumTeamType);
-
-                            TeamType easyTeamType = teamType.Clone(map.GetNewUniqueInternalId());
-                            map.AddTeamType(easyTeamType);
-
-                            mediumTeamType.Name = teamType.Name.Replace("H ", "M ").Replace(" H", " M").Replace("Hard", "Medium");
-                            easyTeamType.Name = teamType.Name.Replace("H ", "E ").Replace(" H", " E").Replace("Hard", "Easy");
-
-                            mediumTeamType.TaskForce = mediumTaskForce;
-                            easyTeamType.TaskForce = easyTaskForce;
-
-                            mediumDifficultyTrigger.Actions[i].Parameters[j] = mediumTeamType.ININame;
-                            easyDifficultyTrigger.Actions[i].Parameters[j] = easyTeamType.ININame;
+                                mediumDifficultyTrigger.Actions[i].Parameters[j] = mediumTeamType.ININame;
+                                easyDifficultyTrigger.Actions[i].Parameters[j] = easyTeamType.ININame;
+                            }
                         }
                     }
                 }
@@ -778,6 +897,17 @@ namespace TSMapEditor.UI.Windows
                     map.Waypoints.ForEach(wp => ctxEventParameterPresetValues.AddItem(wp.Identifier.ToString(CultureInfo.InvariantCulture)));
                     ctxEventParameterPresetValues.Open(GetCursorPoint());
                     break;
+                case TriggerParamType.SuperWeapon:
+                    ctxEventParameterPresetValues.ClearItems();
+                    ctxEventParameterPresetValues.Width = 250;
+                    map.Rules.SuperWeaponTypes.ForEach(sw => ctxEventParameterPresetValues.AddItem(sw.GetDisplayString()));
+                    ctxEventParameterPresetValues.Open(GetCursorPoint());
+                    break;
+                case TriggerParamType.TeamType:
+                    TeamType existingTeamType = map.TeamTypes.Find(tt => tt.ININame == triggerEvent.Parameters[paramIndex]);
+                    selectTeamTypeWindow.IsForEvent = true;
+                    selectTeamTypeWindow.Open(existingTeamType);
+                    break;
                 default:
                     break;
             }
@@ -868,7 +998,7 @@ namespace TSMapEditor.UI.Windows
                     selectTutorialLineWindow.Open(new TutorialLine(Conversions.IntFromString(triggerAction.Parameters[paramIndex], -1), string.Empty));
                     break;
                 case TriggerParamType.Theme:
-                    selectThemeWindow.Open(map.Rules.Themes.GetByIndex(Conversions.IntFromString(triggerAction.Parameters[paramIndex], -1)));
+                    selectThemeWindow.Open(map.Rules.Themes.Get(Conversions.IntFromString(triggerAction.Parameters[paramIndex], -1)));
                     break;
                 case TriggerParamType.Tag:
                     Tag existingTag = map.Tags.Find(tag => tag.ID == triggerAction.Parameters[paramIndex]);
@@ -881,13 +1011,96 @@ namespace TSMapEditor.UI.Windows
                     ctxActionParameterPresetValues.Width = 100;
                     map.Waypoints.ForEach(wp => ctxActionParameterPresetValues.AddItem(wp.Identifier.ToString(CultureInfo.InvariantCulture)));
                     ctxActionParameterPresetValues.Open(GetCursorPoint());
-                    return;
+                    break;
                 case TriggerParamType.StringTableEntry:
                     string label = triggerAction.Parameters[paramIndex];
                     CsfString existingString = map.StringTable.LookUpString(label) ?? new(label, string.Empty);
                     selectStringWindow.IsForEvent = false;
                     selectStringWindow.Open(existingString);
                     break;
+                case TriggerParamType.SuperWeapon:
+                    ctxActionParameterPresetValues.ClearItems();
+                    ctxActionParameterPresetValues.Width = 250;
+                    map.Rules.SuperWeaponTypes.ForEach(sw => ctxActionParameterPresetValues.AddItem(sw.GetDisplayString()));
+                    ctxActionParameterPresetValues.Open(GetCursorPoint());
+                    break;
+                case TriggerParamType.ParticleSystem:
+                    ParticleSystemType existingParticleSystemType = map.Rules.ParticleSystemTypes.Find(pst => pst.Index == Conversions.IntFromString(triggerAction.Parameters[paramIndex], -1));
+                    selectParticleSystemTypeWindow.IsForEvent = false;
+                    selectParticleSystemTypeWindow.Open(existingParticleSystemType);
+                    break;
+                case TriggerParamType.Speech:
+                    selectSpeechWindow.IsForEvent = false;
+                    EvaSpeech speech = Constants.IsRA2YR
+                        ? map.Rules.Speeches.Get(triggerAction.Parameters[paramIndex])
+                        : map.EditorConfig.Speeches.Get(Conversions.IntFromString(triggerAction.Parameters[paramIndex], -1));
+                    selectSpeechWindow.Open(speech);
+                    break;
+                case TriggerParamType.Sound:
+                    selectSoundWindow.IsForEvent = false;
+                    Sound sound = Constants.IsRA2YR
+                        ? map.Rules.Sounds.Get(triggerAction.Parameters[paramIndex])
+                        : map.Rules.Sounds.Get(Conversions.IntFromString(triggerAction.Parameters[paramIndex], -1));
+                    selectSoundWindow.Open(sound);
+                    break;
+                default:
+                    break;
+            }
+        }
+
+        private void btnActionGoToTarget_LeftClick(object sender, EventArgs e)
+        {
+            if (lbActions.SelectedItem == null)
+                return;
+
+            GetTriggerActionAndParamIndex(out TriggerAction triggerAction, out int paramIndex);            
+
+            var triggerActionType = GetTriggerActionType(triggerAction.ActionIndex);
+            var triggerActionParam = triggerActionType.Parameters[paramIndex];
+            var triggerParamType = triggerActionParam.TriggerParamType;            
+
+            switch (triggerParamType)
+            {
+                case TriggerParamType.Trigger:
+                    var triggerId = triggerAction.Parameters[paramIndex];
+                    var triggerIndex = lbTriggers.Items.FindIndex(listBoxTrigger => ((Trigger)listBoxTrigger.Tag).ID == triggerId);
+                    if (triggerIndex == -1)
+                        break;
+
+                    lbTriggers.SelectedIndex = triggerIndex;
+                    break;
+
+                case TriggerParamType.TeamType:
+                    var teamTypeId = triggerAction.Parameters[paramIndex];
+                    var teamType = map.TeamTypes.Find(teamType => teamType.ININame == teamTypeId);
+                    if (teamType == null) 
+                        break;
+
+                    OpenTeamType(teamType);
+                    break;
+
+                case TriggerParamType.Waypoint:
+                case TriggerParamType.WaypointZZ:
+                    int waypointNumber;
+                    if (triggerParamType == TriggerParamType.WaypointZZ)
+                    {
+                        waypointNumber = Helpers.GetWaypointNumberFromAlphabeticalString(triggerAction.Parameters[paramIndex]);
+                    }
+                    else
+                    {
+                        waypointNumber = Conversions.IntFromString(triggerAction.Parameters[paramIndex], -1);
+                    }
+
+                    if (waypointNumber == -1)
+                        break;
+                    
+                    Waypoint waypoint = map.Waypoints.Find(wp => wp.Identifier == waypointNumber);
+                    if (waypoint == null)
+                        break;
+
+                    cursorActionTarget.Camera.CenterOnCell(waypoint.Position);
+                    break;
+
                 default:
                     break;
             }
@@ -985,6 +1198,32 @@ namespace TSMapEditor.UI.Windows
             AssignParamValue(selectStringWindow.IsForEvent, selectStringWindow.SelectedObject.ID);
         }
 
+        private void SpeechDarkeningPanel_Hidden(object sender, EventArgs e)
+        {
+            if (selectSpeechWindow.SelectedObject == null)
+                return;
+
+            var speech = selectSpeechWindow.SelectedObject;
+            AssignParamValue(selectSpeechWindow.IsForEvent, Constants.IsRA2YR ? speech.Name : speech.Index.ToString(CultureInfo.InvariantCulture));
+        }
+
+        private void SoundDarkeningPanel_Hidden(object sender, EventArgs e)
+        {
+            if (selectSoundWindow.SelectedObject == null)
+                return;
+
+            var sound = selectSoundWindow.SelectedObject;
+            AssignParamValue(selectSoundWindow.IsForEvent, Constants.IsRA2YR ? sound.Name : sound.Index.ToString(CultureInfo.InvariantCulture));
+        }
+
+        private void ParticleSystemTypeDarkeningPanel_Hidden(object sender, EventArgs e)
+        {
+            if (selectParticleSystemTypeWindow.SelectedObject == null)
+                return;
+
+            AssignParamValue(selectParticleSystemTypeWindow.IsForEvent, selectParticleSystemTypeWindow.SelectedObject.Index);
+        }
+
         private void AssignParamValue(bool isForEvent, int paramValue)
         {
             if (isForEvent)
@@ -1039,9 +1278,8 @@ namespace TSMapEditor.UI.Windows
             if (selectTeamTypeWindow.SelectedObject == null)
                 return;
 
-            GetTriggerActionAndParamIndex(out TriggerAction triggerAction, out int paramIndex);
-            triggerAction.Parameters[paramIndex] = selectTeamTypeWindow.SelectedObject.ININame;
-            EditTrigger(editedTrigger);
+            var teamType = selectTeamTypeWindow.SelectedObject;
+            AssignParamValue(selectTeamTypeWindow.IsForEvent, teamType.ININame);
         }
 
         private void GetTriggerActionAndParamIndex(out TriggerAction triggerAction, out int paramIndex)
@@ -1121,10 +1359,23 @@ namespace TSMapEditor.UI.Windows
 
         private void EventWindowDarkeningPanel_Hidden(object sender, EventArgs e)
         {
-            if (editedTrigger == null || lbEvents.SelectedItem == null || selectEventWindow.SelectedObject == null)
+            if (editedTrigger == null || selectEventWindow.SelectedObject == null)
                 return;
 
             TriggerEventType triggerEventType = selectEventWindow.SelectedObject;
+
+            if (selectEventWindow.IsAddingNew)
+            {
+                editedTrigger.Conditions.Add(new TriggerCondition());
+                EditTrigger(editedTrigger);
+                lbEvents.SelectedIndex = lbEvents.Items.Count - 1;
+            }
+            else
+            {
+                if (lbEvents.SelectedItem == null)
+                    return;
+            }
+
             TriggerCondition condition = editedTrigger.Conditions[lbEvents.SelectedIndex];
             condition.ConditionIndex = selectEventWindow.SelectedObject.ID;
 
@@ -1152,36 +1403,71 @@ namespace TSMapEditor.UI.Windows
 
         private void ActionWindowDarkeningPanel_Hidden(object sender, EventArgs e)
         {
-            if (editedTrigger == null || lbActions.SelectedItem == null || selectActionWindow.SelectedObject == null)
+            if (editedTrigger == null || selectActionWindow.SelectedObject == null)
                 return;
 
             TriggerActionType triggerActionType = selectActionWindow.SelectedObject;
-            TriggerAction action = editedTrigger.Actions[lbActions.SelectedIndex];
-            action.ActionIndex = selectActionWindow.SelectedObject.ID;
+
+            if (selectActionWindow.IsAddingNew)
+            {
+                if (triggerActionType == null)
+                    return;
+
+                editedTrigger.Actions.Add(CreateTriggerAction(triggerActionType));
+                EditTrigger(editedTrigger);
+                lbActions.SelectedIndex = lbActions.Items.Count - 1;
+            }
+            else
+            {
+                if (lbActions.SelectedItem == null)
+                    return;
+
+                TriggerAction existingAction = editedTrigger.Actions[lbActions.SelectedIndex];
+                existingAction.ActionIndex = selectActionWindow.SelectedObject.ID;
+                SetTriggerActionHardcodedParameters(existingAction);
+            }
+
+            EditTrigger(editedTrigger);
+        }
+
+        private TriggerAction CreateTriggerAction(TriggerActionType triggerActionType)
+        {
+            var triggerAction = new TriggerAction();
+            triggerAction.ActionIndex = triggerActionType.ID;
+            SetTriggerActionHardcodedParameters(triggerAction);
+
+            return triggerAction;
+        }
+
+        private void SetTriggerActionHardcodedParameters(TriggerAction triggerAction)
+        {
+            if (!map.EditorConfig.TriggerActionTypes.TryGetValue(triggerAction.ActionIndex, out var triggerActionType))
+            {
+                Logger.Log($"{nameof(TriggersWindow)}.{nameof(SetTriggerActionHardcodedParameters)}: Unknown action type {triggerAction.ActionIndex}");
+                return;
+            }
 
             for (int i = 0; i < TriggerActionType.MAX_PARAM_COUNT; i++)
             {
                 if ((int)triggerActionType.Parameters[i].TriggerParamType < 0)
                 {
-                    action.Parameters[i] = Math.Abs((int)triggerActionType.Parameters[i].TriggerParamType).ToString(CultureInfo.InvariantCulture);
+                    triggerAction.Parameters[i] = Math.Abs((int)triggerActionType.Parameters[i].TriggerParamType).ToString(CultureInfo.InvariantCulture);
                     continue;
                 }
 
                 // Special dirty hack for handling for P7Type, defaults to "WaypointZZ"
                 if (i == TriggerActionType.MAX_PARAM_COUNT - 1 && triggerActionType.Parameters[i].TriggerParamType == TriggerParamType.Unused)
                 {
-                    action.Parameters[i] = "A";
+                    triggerAction.Parameters[i] = "A";
                     continue;
                 }
 
                 if (triggerActionType.Parameters[i].TriggerParamType == TriggerParamType.Unused)
                 {
-                    action.Parameters[i] = "0";
+                    triggerAction.Parameters[i] = "0";
                     continue;
                 }
             }
-
-            EditTrigger(editedTrigger);
         }
 
         private void BtnAddAction_LeftClick(object sender, EventArgs e)
@@ -1189,12 +1475,8 @@ namespace TSMapEditor.UI.Windows
             if (editedTrigger == null)
                 return;
 
-            editedTrigger.Actions.Add(new TriggerAction());
-            EditTrigger(editedTrigger);
-            lbActions.SelectedIndex = lbActions.Items.Count - 1;
-
-            if (Keyboard.IsCtrlHeldDown())
-                SelActionType_LeftClick(this, EventArgs.Empty);
+            selectActionWindow.IsAddingNew = true;
+            selectActionWindow.Open(null);
         }
 
         private void BtnDeleteAction_LeftClick(object sender, EventArgs e)
@@ -1206,17 +1488,15 @@ namespace TSMapEditor.UI.Windows
             EditTrigger(editedTrigger);
         }
 
+        private void BtnCloneAction_LeftClick(object sender, EventArgs e) => CloneEventOrAction(lbActions, editedTrigger.Actions);
+
         private void BtnAddEvent_LeftClick(object sender, EventArgs e)
         {
             if (editedTrigger == null)
                 return;
 
-            editedTrigger.Conditions.Add(new TriggerCondition());
-            EditTrigger(editedTrigger);
-            lbEvents.SelectedIndex = lbEvents.Items.Count - 1;
-
-            if (Keyboard.IsCtrlHeldDown())
-                SelEventType_LeftClick(this, EventArgs.Empty);
+            selectEventWindow.IsAddingNew = true;
+            selectEventWindow.Open(null);
         }
 
         private void BtnDeleteEvent_LeftClick(object sender, EventArgs e)
@@ -1227,6 +1507,8 @@ namespace TSMapEditor.UI.Windows
             editedTrigger.Conditions.RemoveAt(lbEvents.SelectedIndex);
             EditTrigger(editedTrigger);
         }
+
+        private void BtnCloneEvent_LeftClick(object sender, EventArgs e) => CloneEventOrAction(lbEvents, editedTrigger.Conditions);
 
         private void LbTriggers_SelectedIndexChanged(object sender, EventArgs e)
         {
@@ -1256,18 +1538,29 @@ namespace TSMapEditor.UI.Windows
         {
             lbTriggers.Clear();
 
-            List<Trigger> sortedTriggers = map.Triggers;
+            IEnumerable<Trigger> sortedTriggers = map.Triggers;
+
+            var shouldViewTop = false; // when filtering the scroll bar should update so we use a flag here
+            if (tbFilter.Text != string.Empty && tbFilter.Text != tbFilter.Suggestion)
+            {
+                sortedTriggers = sortedTriggers.Where(sortedTrigger => sortedTrigger.Name.Contains(tbFilter.Text, StringComparison.CurrentCultureIgnoreCase));
+                shouldViewTop = true;
+            }
+
             switch (TriggerSortMode)
             {
                 case TriggerSortMode.Color:
-                    sortedTriggers = sortedTriggers.OrderBy(t => t.EditorColor).ThenBy(t => t.ID).ToList();
+                    sortedTriggers = sortedTriggers.OrderBy(t => t.EditorColor).ThenBy(t => t.ID);
                     break;
                 case TriggerSortMode.Name:
-                    sortedTriggers = sortedTriggers.OrderBy(t => t.Name).ThenBy(t => t.ID).ToList();
+                    sortedTriggers = sortedTriggers.OrderBy(t => t.Name).ThenBy(t => t.ID);
+                    break;                
+                case TriggerSortMode.ColorThenName:
+                    sortedTriggers = sortedTriggers.OrderBy(t => t.EditorColor).ThenBy(t => t.Name);
                     break;
                 case TriggerSortMode.ID:
                 default:
-                    sortedTriggers = sortedTriggers.OrderBy(t => t.ID).ToList();
+                    sortedTriggers = sortedTriggers.OrderBy(t => t.ID);
                     break;
             }
 
@@ -1277,11 +1570,14 @@ namespace TSMapEditor.UI.Windows
                 { 
                     Text = trigger.Name, 
                     Tag = trigger, 
-                    TextColor = trigger.EditorColor == null ? lbTriggers.DefaultItemColor : trigger.XNAColor 
+                    TextColor = trigger.EditorColor == null ? lbTriggers.DefaultItemColor : trigger.XNAColor
                 });
             }
 
             LbTriggers_SelectedIndexChanged(this, EventArgs.Empty);
+
+            if (shouldViewTop)
+                lbTriggers.TopIndex = 0;
         }
 
         private void EditTrigger(Trigger trigger)
@@ -1306,6 +1602,7 @@ namespace TSMapEditor.UI.Windows
                 ddHouseType.SelectedIndex = -1;
                 ddType.SelectedIndex = -1;
                 selAttachedTrigger.Text = string.Empty;
+                chkDisabled.Checked = false;
 
                 lbEvents.Clear();
                 selEventType.Text = string.Empty;
@@ -1318,6 +1615,8 @@ namespace TSMapEditor.UI.Windows
                 panelActionDescription.Text = string.Empty;
                 lbActionParameters.Clear();
                 tbActionParameterValue.Text = string.Empty;
+
+                btnActionGoToTarget.Disable();
 
                 return;
             }
@@ -1339,7 +1638,7 @@ namespace TSMapEditor.UI.Windows
             }
 
             tbName.Text = editedTrigger.Name;
-            ddHouseType.SelectedIndex = map.GetHouses().FindIndex(h => h.ININame == trigger.HouseType);
+            ddHouseType.SelectedIndex = map.GetHouseTypes().FindIndex(h => h.ININame == trigger.HouseType);
             ddType.SelectedIndex = tag == null ? 3 : tag.Repeating;
             selAttachedTrigger.Text = editedTrigger.LinkedTrigger == null ? Constants.NoneValue1 : editedTrigger.LinkedTrigger.Name;
             selAttachedTrigger.Tag = editedTrigger.LinkedTrigger;
@@ -1437,6 +1736,8 @@ namespace TSMapEditor.UI.Windows
             lbTriggers.SelectedItem.Text = tbName.Text;
         }
 
+        private void TbFilter_TextChanged(object sender, EventArgs e) => ListTriggers();
+
         private void LbActions_SelectedIndexChanged(object sender, EventArgs e)
         {
             lbActionParameters.SelectedIndexChanged -= LbActionParameters_SelectedIndexChanged;
@@ -1447,6 +1748,8 @@ namespace TSMapEditor.UI.Windows
                 panelActionDescription.Text = string.Empty;
                 lbActionParameters.Clear();
                 tbActionParameterValue.Text = string.Empty;
+
+                btnActionGoToTarget.Disable();
                 return;
             }
 
@@ -1491,6 +1794,7 @@ namespace TSMapEditor.UI.Windows
                 return;
 
             int actionTypeIndex = editedTrigger.Actions[lbActions.SelectedIndex].ActionIndex;
+            selectActionWindow.IsAddingNew = false;
             selectActionWindow.Open(GetTriggerActionType(actionTypeIndex));
         }
 
@@ -1507,11 +1811,31 @@ namespace TSMapEditor.UI.Windows
             TriggerAction triggerAction = editedTrigger.Actions[lbActions.SelectedIndex];
             int paramNumber = (int)lbActionParameters.SelectedItem.Tag;
             var triggerActionType = GetTriggerActionType(triggerAction.ActionIndex);
-            var triggerActionParam = triggerActionType.Parameters[paramNumber];
-            var triggerParamType = triggerActionParam.TriggerParamType;
+            if (triggerActionType != null)
+            {
+                var triggerActionParam = triggerActionType.Parameters[paramNumber];
+                var triggerParamType = triggerActionParam.TriggerParamType;
 
-            tbActionParameterValue.Text = GetParamValueText(triggerAction.Parameters[paramNumber], triggerParamType, triggerActionParam.PresetOptions);
-            tbActionParameterValue.TextColor = GetParamValueColor(triggerAction.Parameters[paramNumber], triggerParamType);
+                tbActionParameterValue.Text = GetParamValueText(triggerAction.Parameters[paramNumber], triggerParamType, triggerActionParam.PresetOptions);
+                tbActionParameterValue.TextColor = GetParamValueColor(triggerAction.Parameters[paramNumber], triggerParamType);
+
+                bool isSupportedGoToSourceParamType = supportedGoToSourceTriggerParamTypes.Contains(triggerParamType);
+                if (isSupportedGoToSourceParamType)
+                {
+                    btnActionGoToTarget.Enable();
+                }
+                else
+                {
+                    btnActionGoToTarget.Disable();
+                }
+            }
+            else
+            {
+                tbActionParameterValue.Text = triggerAction.Parameters[paramNumber];
+                tbActionParameterValue.TextColor = UISettings.ActiveSettings.AltColor;
+
+                btnActionGoToTarget.Disable();
+            }
 
             tbActionParameterValue.TextChanged += TbActionParameterValue_TextChanged;
         }
@@ -1617,6 +1941,7 @@ namespace TSMapEditor.UI.Windows
                 return;
 
             int eventTypeIndex = editedTrigger.Conditions[lbEvents.SelectedIndex].ConditionIndex;
+            selectEventWindow.IsAddingNew = false;
             selectEventWindow.Open(GetTriggerEventType(eventTypeIndex));
         }
 
@@ -1633,10 +1958,19 @@ namespace TSMapEditor.UI.Windows
             TriggerCondition triggerCondition = editedTrigger.Conditions[lbEvents.SelectedIndex];
             int paramNumber = (int)lbEventParameters.SelectedItem.Tag;
             var triggerEventType = GetTriggerEventType(editedTrigger.Conditions[lbEvents.SelectedIndex].ConditionIndex);
-            var triggerParamType = triggerEventType.Parameters[paramNumber]?.TriggerParamType ?? TriggerParamType.Unknown;
 
-            tbEventParameterValue.Text = GetParamValueText(triggerCondition.Parameters[paramNumber], triggerParamType, null);
-            tbEventParameterValue.TextColor = GetParamValueColor(triggerCondition.Parameters[paramNumber], triggerParamType);
+            if (triggerEventType != null)
+            {
+                var triggerParamType = triggerEventType.Parameters[paramNumber]?.TriggerParamType ?? TriggerParamType.Unknown;
+
+                tbEventParameterValue.Text = GetParamValueText(triggerCondition.Parameters[paramNumber], triggerParamType, null);
+                tbEventParameterValue.TextColor = GetParamValueColor(triggerCondition.Parameters[paramNumber], triggerParamType);
+            }
+            else
+            {
+                tbEventParameterValue.Text = triggerCondition.Parameters[paramNumber];
+                tbEventParameterValue.TextColor = UISettings.ActiveSettings.AltColor;
+            }
 
             tbEventParameterValue.TextChanged += TbEventParameterValue_TextChanged;
         }
@@ -1718,7 +2052,19 @@ namespace TSMapEditor.UI.Windows
                         return houses[intValue].XNAColor;
                     }
                     goto case TriggerParamType.Unused;
+                case TriggerParamType.TeamType:
+                    var teamType = map.TeamTypes.Find(tt => tt.ININame == paramValue);
+                    if (teamType != null)
+                    {
+                        return Helpers.GetHouseTypeUITextColor(teamType.HouseType);
+                    }
+                    goto case TriggerParamType.Unused;
+                case TriggerParamType.Trigger:
+                    Trigger trigger = map.Triggers.Find(t => t.ID == paramValue);
+                    if (trigger == null || trigger.EditorColor == null)
+                        goto case TriggerParamType.Unused;
 
+                    return trigger.XNAColor;
                 case TriggerParamType.Unused:
                 default:
                     return UISettings.ActiveSettings.AltColor;
@@ -1823,11 +2169,11 @@ namespace TSMapEditor.UI.Windows
                     if (!intParseSuccess)
                         return paramValue;
 
-                    Theme theme = map.Rules.Themes.GetByIndex(intValue);
+                    Theme theme = map.Rules.Themes.Get(intValue);
                     if (theme == null)
                         return paramValue + " - nonexistent theme";
 
-                    return paramValue + " " + theme.Name;
+                    return theme.ToString();
                 case TriggerParamType.Tag:
                     Tag tag = map.Tags.Find(t => t.ID == paramValue);
 
@@ -1835,13 +2181,76 @@ namespace TSMapEditor.UI.Windows
                         return paramValue + " - nonexistent tag";
 
                     return paramValue + " " + tag.Name;
+                case TriggerParamType.SuperWeapon:
+                    if (!intParseSuccess)
+                        return paramValue;
+
+                    if (intValue >= map.Rules.SuperWeaponTypes.Count)
+                        return intValue + " - nonexistent super weapon";
+
+                    return intValue + " " + map.Rules.SuperWeaponTypes[intValue].GetDisplayStringWithoutIndex();
+                case TriggerParamType.ParticleSystem:
+                    if (!intParseSuccess)
+                        return paramValue;
+
+                    if (intValue >= map.Rules.ParticleSystemTypes.Count)
+                        return intValue + " - nonexistent particle system";
+
+                    return intValue + " " + map.Rules.ParticleSystemTypes[intValue].ININame;
+                case TriggerParamType.Speech:
+                    EvaSpeech speech;
+
+                    if (Constants.IsRA2YR)
+                    {
+                        speech = map.Rules.Speeches.Get(paramValue);
+
+                        if (speech == null)
+                            return paramValue + " - unknown speech";
+
+                        return speech.Name;
+                    }
+                    else
+                    {
+                        if (!intParseSuccess)
+                            return paramValue;
+
+                        speech = map.EditorConfig.Speeches.Get(intValue);
+
+                        if (speech == null)
+                            return intValue + " - unknown speech";
+
+                        return $"{intValue} {speech.Name}";
+                    }
+                case TriggerParamType.Sound:
+                    Sound sound;
+
+                    if (Constants.IsRA2YR)
+                    {
+                        sound = map.Rules.Sounds.Get(paramValue);
+
+                        if (sound == null)
+                            return paramValue + " - unknown sound";
+
+                        return sound.Name;
+                    }
+                    else
+                    {
+                        if (!intParseSuccess)
+                            return paramValue;
+
+                        sound = map.Rules.Sounds.Get(intValue);
+
+                        if (sound == null)
+                            return intValue + " - unknown sound";
+
+                        return $"{intValue} {sound.Name}";
+                    }
                 case TriggerParamType.Float:
                     if (!intParseSuccess)
                         return paramValue;
 
                     float floatValue = BitConverter.ToSingle(BitConverter.GetBytes(intValue));
                     return floatValue.ToString(CultureInfo.InvariantCulture) + " (" + paramValue + ")";
-
                 case TriggerParamType.Boolean:
                 default:
                     return paramValue;
@@ -1873,6 +2282,12 @@ namespace TSMapEditor.UI.Windows
             }
 
             return intValue + " " + objectTypeList[intValue].GetEditorDisplayName();
+        }
+
+        private void OpenTeamType(TeamType teamType)
+        {
+            TeamTypeOpened?.Invoke(this, new TeamTypeEventArgs(teamType));
+            PutOnBackground();
         }
     }
 }

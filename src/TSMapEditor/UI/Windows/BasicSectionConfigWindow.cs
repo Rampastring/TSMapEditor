@@ -117,7 +117,7 @@ namespace TSMapEditor.UI.Windows
             map.Basic.IceGrowthEnabled = chkGrowingIce.Checked;
             map.Basic.TiberiumDeathToVisceroid = chkTiberiumDeathToVisceroid.Checked;
             map.Basic.FreeRadar = chkFreeRadar.Checked;
-            if (!Constants.UseCountries)
+            if (!Constants.IsRA2YR)
             {
                 map.Basic.RequiredAddOn = chkRequiredAddOn.Checked ? 1 : 0;
             }

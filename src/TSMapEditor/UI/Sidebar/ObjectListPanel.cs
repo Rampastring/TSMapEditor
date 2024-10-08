@@ -5,6 +5,7 @@ using Rampastring.XNAUI.XNAControls;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using TSMapEditor.CCEngine;
 using TSMapEditor.Models;
 using TSMapEditor.Models.ArtConfig;
 using TSMapEditor.Rendering;
@@ -142,6 +143,63 @@ namespace TSMapEditor.UI.Sidebar
 
         protected abstract void InitObjects();
 
+        protected (Texture2D regular, Texture2D remap) GetTextureForVoxel<T>(T objectType, VoxelModel[] typeGraphicsArray, RenderTarget2D renderTarget, byte facing) where T : TechnoType, IArtConfigContainer
+        {
+            var voxelModel = typeGraphicsArray[objectType.Index];
+
+            if (voxelModel == null)
+                return (null, null);
+
+            Renderer.BeginDraw();
+
+            var frame = voxelModel.GetFrame(facing, RampType.None, false);
+            if (frame == null || frame.Texture == null)
+            {
+                Renderer.EndDraw();
+                return (null, null);
+            }
+
+            var remapFrame = voxelModel.GetRemapFrame(facing, RampType.None, false);
+
+            Renderer.EndDraw();
+
+            // Render them as smaller textures to be independent of the voxel cache
+            Texture2D regularTexture = Helpers.RenderTextureAsSmaller(frame.Texture, renderTarget, GraphicsDevice);
+            Texture2D remapTexture = null;
+
+            if (remapFrame != null && remapFrame.Texture != null)
+                remapTexture = Helpers.RenderTextureAsSmaller(remapFrame.Texture, renderTarget, GraphicsDevice);
+
+            return (regularTexture, remapTexture);
+        }
+
+        protected virtual (Texture2D regular, Texture2D remap) GetObjectTextures<T>(T objectType, ShapeImage[] textures) where T : TechnoType, IArtConfigContainer
+        {
+            Texture2D texture = null;
+            Texture2D remapTexture = null;
+            if (textures != null)
+            {
+                if (textures[objectType.Index] != null)
+                {
+                    int frameCount = textures[objectType.Index].GetFrameCount();
+
+                    for (int frameIndex = 0; frameIndex < frameCount; frameIndex++)
+                    {
+                        var frame = textures[objectType.Index].GetFrame(frameIndex);
+                        if (frame != null)
+                        {
+                            texture = textures[objectType.Index].GetTextureForFrame_RGBA(frameIndex);
+                            if (objectType.GetArtConfig().Remapable && textures[objectType.Index].HasRemapFrames())
+                                remapTexture = textures[objectType.Index].GetRemapTextureForFrame_RGBA(frameIndex);
+                            break;
+                        }
+                    }
+                }
+            }
+
+            return (texture, remapTexture);
+        }
+
         protected void InitObjectsBase<T>(List<T> objectTypeList, ShapeImage[] textures, Func<T, bool> filter = null) where T : TechnoType, IArtConfigContainer
         {
             var sideCategories = new List<TreeViewCategory>();
@@ -152,15 +210,8 @@ namespace TSMapEditor.UI.Sidebar
                 if (!objectType.EditorVisible)
                     continue;
 
-                if (objectType.WhatAmI() == RTTIType.BuildingType)
-                {
-                    var buildingType = (BuildingType)(TechnoType)objectType;
-                    if (buildingType.PowersUpBuilding != null)
-                    {
-                        // Don't list upgrades
-                        continue;
-                    }
-                }
+                if (!objectType.IsValidForTheater(Map.LoadedTheaterName))
+                    continue;
 
                 if (filter != null && !filter(objectType))
                     continue;
@@ -197,7 +248,20 @@ namespace TSMapEditor.UI.Sidebar
 
                         House ownerHouse = Map.StandardHouses.Find(h => h.ININame == ownerName);
                         if (ownerHouse != null)
+                        {
                             remapColor = ownerHouse.XNAColor;
+                        }
+                        else
+                        {
+                            // As as last resort, check if EditorRules has a remap color specified for the side
+                            string colorOverrideName = Map.EditorConfig.EditorRulesIni.GetStringValue("ObjectOwnerColors", ownerName, null);
+                            if (!string.IsNullOrWhiteSpace(colorOverrideName))
+                            {
+                                var rulesColor = Map.Rules.Colors.Find(c => c.Name == colorOverrideName);
+                                if (rulesColor != null)
+                                    remapColor = rulesColor.XNAColor;
+                            }
+                        }
 
                         // Prevent duplicates that can occur due to category overrides
                         // (For example, if objects owned by "Soviet1" are overridden to be listed under
@@ -209,28 +273,7 @@ namespace TSMapEditor.UI.Sidebar
                     }
                 }
 
-                Texture2D texture = null;
-                Texture2D remapTexture = null;
-                if (textures != null)
-                {
-                    if (textures[i] != null)
-                    {
-                        int frameCount = textures[i].GetFrameCount();
-
-                        // Find the first valid frame and use its RGBA variant as our texture
-                        for (int frameIndex = 0; frameIndex < frameCount; frameIndex++)
-                        {
-                            var frame = textures[i].GetFrame(frameIndex);
-                            if (frame != null)
-                            {
-                                texture = textures[i].GetTextureForFrame_RGBA(frameIndex);
-                                if (Constants.HQRemap && objectType.GetArtConfig().Remapable && textures[i].HasRemapFrames())
-                                    remapTexture = textures[i].GetRemapTextureForFrame_RGBA(frameIndex);
-                                break;
-                            }
-                        }
-                    }
-                }
+                var extractedTextures = GetObjectTextures(objectType, textures);
 
                 categories = categories.OrderBy(c => Map.EditorConfig.EditorRulesIni.GetIntValue("ObjectCategoryPriorities", c.Name, 0)).ToList();
 
@@ -241,8 +284,8 @@ namespace TSMapEditor.UI.Sidebar
                     category.Nodes.Add(new TreeViewNode()
                     {
                         Text = objectType.GetEditorDisplayName() + " (" + objectType.ININame + ")",
-                        Texture = texture,
-                        RemapTexture = remapTexture,
+                        Texture = extractedTextures.regular,
+                        RemapTexture = extractedTextures.remap,
                         RemapColor = categories[categoryIndex].RemapColor,
                         Tag = objectType
                     });

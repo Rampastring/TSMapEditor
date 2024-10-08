@@ -2,6 +2,8 @@
 {
     public class Overlay : GameObject
     {
+        public override GameObjectType GetObjectType() => OverlayType;
+
         public override RTTIType WhatAmI() => RTTIType.Overlay;
 
         public OverlayType OverlayType { get; set; }
@@ -17,6 +19,10 @@
         {
             return 100;
         }
+
+        public override bool HasShadow() => true;
+
+        public override bool IsInvisibleInGame() => OverlayType.InvisibleInGame;
 
         public override int GetYDrawOffset()
         {

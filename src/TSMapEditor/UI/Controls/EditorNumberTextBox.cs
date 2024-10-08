@@ -67,7 +67,7 @@ namespace TSMapEditor.UI.Controls
 
                 return Conversions.DoubleFromString(Text.Substring(0, firstNonDigitIndex), DefaultValue);
             }
-            set => Text = value.ToString(".#######################", CultureInfo.InvariantCulture); // prevent scientific notation
+            set => Text = value.ToString("0.#######################", CultureInfo.InvariantCulture); // prevent scientific notation
         }
 
         protected override void ParseControlINIAttribute(IniFile iniFile, string key, string value)

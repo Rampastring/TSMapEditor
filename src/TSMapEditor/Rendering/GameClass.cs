@@ -34,9 +34,18 @@ namespace TSMapEditor.Rendering
             Logger.WriteToConsole = true;
             Logger.WriteLogFile = true;
             Logger.Initialize(Environment.CurrentDirectory + "/", "MapEditorLog.log");
-            File.Delete(Environment.CurrentDirectory + "/MapEditorLog.log");
 
-            Logger.Log("C&C World-Altering Editor (WAE) version " + System.Reflection.Assembly.GetExecutingAssembly().GetName().Version.ToString());
+            try
+            {
+                File.Delete(Environment.CurrentDirectory + "/MapEditorLog.log");
+            }
+            catch (IOException ex)
+            {
+                Logger.Log("Failed to delete log file! Returned error: " + ex.Message);
+            }
+
+            Logger.Log("C&C World-Altering Editor (WAE) build " + System.Reflection.Assembly.GetExecutingAssembly().GetName().Version.ToString());
+            Logger.Log("Release version: " + Constants.ReleaseVersion);
 
             AutoLATType.InitArray();
 
@@ -62,6 +71,10 @@ namespace TSMapEditor.Rendering
 
             StringBuilder sb = new StringBuilder();
 
+            string fullName = typeof(GameClass).Assembly.FullName;
+
+            LogLineGenerate("World-Altering Editor (" + fullName + ")", sb, exceptLogPath);
+            LogLineGenerate("Release version: " + Constants.ReleaseVersion, sb, exceptLogPath);
             LogLineGenerate("Unhandled exception! @ " + DateTime.Now.ToLongTimeString(), sb, exceptLogPath);
             LogLineGenerate("Message: " + ex.Message, sb, exceptLogPath);
             LogLineGenerate("Stack trace: " + ex.StackTrace, sb, exceptLogPath);

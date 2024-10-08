@@ -53,11 +53,12 @@ namespace TSMapEditor.UI.Windows
                 house.Allies = house.ININame;
                 house.TechLevel = 7;
 
-                if (!Constants.UseCountries)
+                if (!Constants.IsRA2YR)
                 {
                     var houseType = new HouseType(house.ININame);
                     houseType.Index = i;
                     houseType.Color = house.Color;
+                    houseType.XNAColor = house.XNAColor;
 
                     // Find reasonable default for Side and ActsLike
                     Helpers.FindDefaultSideForNewHouseType(houseType, map.Rules);
@@ -67,6 +68,15 @@ namespace TSMapEditor.UI.Windows
 
                     map.AddHouseType(houseType);
                     house.HouseType = houseType;
+                }
+                else
+                {
+                    var houseTypes = map.GetHouseTypes();
+
+                    // Try to set a meaningful default country value
+                    house.HouseType = houseTypes.Find(ht => ht.ININame == house.ININame);
+                    if (house.HouseType == null)
+                        house.HouseType = houseTypes[0];
                 }
             }
 

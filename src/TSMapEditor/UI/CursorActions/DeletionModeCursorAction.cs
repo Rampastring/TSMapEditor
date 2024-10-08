@@ -1,7 +1,7 @@
 ﻿using Microsoft.Xna.Framework;
 using Rampastring.XNAUI;
 using TSMapEditor.GameMath;
-using TSMapEditor.Rendering;
+using TSMapEditor.Mutations.Classes;
 
 namespace TSMapEditor.UI.CursorActions
 {
@@ -42,8 +42,11 @@ namespace TSMapEditor.UI.CursorActions
 
         public override void LeftClick(Point2D cellCoords)
         {
-            CursorActionTarget.Map.DeleteObjectFromCell(cellCoords, CursorActionTarget.DeletionMode);
-            CursorActionTarget.AddRefreshPoint(cellCoords);
+            if (Map.HasObjectToDelete(cellCoords, CursorActionTarget.DeletionMode))
+            {
+                PerformMutation(new DeleteObjectMutation(MutationTarget, cellCoords, CursorActionTarget.DeletionMode));
+                CursorActionTarget.AddRefreshPoint(cellCoords);
+            }
         }
 
         public override void LeftDown(Point2D cellCoords) => LeftClick(cellCoords);

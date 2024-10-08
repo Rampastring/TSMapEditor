@@ -8,7 +8,7 @@ namespace TSMapEditor.UI
     /// <summary>
     /// Combines many overlays into a single entry.
     /// </summary>
-    public class OverlayCollection
+    public class OverlayCollection : ObjectTypeCollection
     {
         public struct OverlayCollectionEntry
         {
@@ -22,13 +22,13 @@ namespace TSMapEditor.UI
             }
         }
 
-        public string Name { get; set; }
         public OverlayCollectionEntry[] Entries;
 
         public static OverlayCollection InitFromIniSection(IniSection iniSection, List<OverlayType> overlayTypes)
         {
             var overlayCollection = new OverlayCollection();
             overlayCollection.Name = iniSection.GetStringValue("Name", "Unnamed Collection");
+            overlayCollection.AllowedTheaters = iniSection.GetListValue("AllowedTheaters", ',', s => s);
 
             var entryList = new List<OverlayCollectionEntry>();
 

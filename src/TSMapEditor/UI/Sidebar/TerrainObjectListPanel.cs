@@ -126,9 +126,39 @@ namespace TSMapEditor.UI.Sidebar
             ObjectTreeView.FindNode(SearchBox.Text, false);
         }
 
+        private Texture2D GetSidebarTextureForTerrainType(TerrainType terrainType, RenderTarget2D renderTarget)
+        {
+            Texture2D fullSizeRGBATexture = null;
+
+            var textures = TheaterGraphics.TerrainObjectTextures[terrainType.Index];
+            if (textures != null)
+            {
+                const int frameIndex = 0;
+
+                if (textures.GetFrameCount() > frameIndex)
+                {
+                    var frame = textures.GetFrame(frameIndex);
+                    if (frame != null)
+                        fullSizeRGBATexture = textures.GetTextureForFrame_RGBA(frameIndex);
+                }
+            }
+
+            Texture2D finalTexture = null;
+            if (fullSizeRGBATexture != null)
+            {
+                // Render a smaller version of the full-size texture to save VRAM
+                finalTexture = Helpers.RenderTextureAsSmaller(fullSizeRGBATexture, renderTarget, GraphicsDevice);
+                fullSizeRGBATexture.Dispose();
+            }
+
+            return finalTexture;
+        }
+
         private void InitTerrainObjects()
         {
             var categories = new List<TreeViewCategory>();
+
+            var renderTarget = new RenderTarget2D(GraphicsDevice, ObjectTreeView.Width, ObjectTreeView.LineHeight, false, SurfaceFormat.Color, DepthFormat.None, 0, RenderTargetUsage.PreserveContents);
 
             if (Map.EditorConfig.TerrainObjectCollections.Count > 0)
             {
@@ -140,27 +170,16 @@ namespace TSMapEditor.UI.Sidebar
                     if (collection.Entries.Length == 0)
                         continue;
 
-                    Texture2D texture = null;
-                    var firstEntry = collection.Entries[0];
-                    var textures = TheaterGraphics.TerrainObjectTextures[firstEntry.TerrainType.Index];
-                    if (textures != null)
-                    {
-                        int frameCount = textures.GetFrameCount();
-                        const int frameNumber = 0;
+                    if (!collection.IsValidForTheater(Map.LoadedTheaterName))
+                        continue;
 
-                        if (frameCount > frameNumber)
-                        {
-                            var frame = textures.GetFrame(frameNumber);
-                            if (frame != null)
-                                texture = frame.Texture;
-                        }
-                    }
+                    var firstEntry = collection.Entries[0];
 
                     collectionsCategory.Nodes.Add(new TreeViewNode()
                     {
                         Text = collection.Name,
                         Tag = collection,
-                        Texture = texture
+                        Texture = GetSidebarTextureForTerrainType(firstEntry.TerrainType, renderTarget)
                     });
                 }
             }
@@ -173,6 +192,9 @@ namespace TSMapEditor.UI.Sidebar
                 if (!terrainType.EditorVisible)
                     continue;
 
+                if (!terrainType.IsValidForTheater(Map.LoadedTheaterName))
+                    continue;
+
                 if (string.IsNullOrEmpty(terrainType.EditorCategory))
                 {
                     category = FindOrMakeCategory("Uncategorized", categories);
@@ -182,35 +204,19 @@ namespace TSMapEditor.UI.Sidebar
                     category = FindOrMakeCategory(terrainType.EditorCategory, categories);
                 }
 
-                Texture2D texture = null;
-                var terrainObjectGraphics = TheaterGraphics.TerrainObjectTextures[i];
-                if (terrainObjectGraphics != null)
-                {
-                    int frameCount = terrainObjectGraphics.GetFrameCount();
-
-                    // Find the first valid frame and use that as our texture
-                    for (int frameIndex = 0; frameIndex < frameCount; frameIndex++)
-                    {
-                        var frame = terrainObjectGraphics.GetFrame(frameIndex);
-                        if (frame != null)
-                        {
-                            texture = frame.Texture;
-                            break;
-                        }
-                    }
-                }
-
                 category.Nodes.Add(new TreeViewNode()
                 {
                     Text = terrainType.GetEditorDisplayName() + " (" + terrainType.ININame + ")",
-                    Texture = texture,
+                    Texture = GetSidebarTextureForTerrainType(terrainType, renderTarget),
                     Tag = terrainType
                 });
 
                 category.Nodes = category.Nodes.OrderBy(n => n.Text).ToList();
             }
 
-            categories.ForEach(c => ObjectTreeView.AddCategory(c));
+            renderTarget.Dispose();
+
+            categories.ForEach(ObjectTreeView.AddCategory);
         }
 
         private TreeViewCategory FindOrMakeCategory(string categoryName, List<TreeViewCategory> categoryList)

@@ -1,5 +1,5 @@
-﻿using Microsoft.Xna.Framework;
-using System;
+using Microsoft.Xna.Framework;
+using System.Linq;
 using TSMapEditor.CCEngine;
 using TSMapEditor.GameMath;
 using TSMapEditor.Models;
@@ -10,11 +10,22 @@ namespace TSMapEditor.Rendering.ObjectRenderers
     {
         public BuildingRenderer(RenderDependencies renderDependencies) : base(renderDependencies)
         {
+            buildingAnimRenderer = new AnimRenderer(renderDependencies);
         }
 
         protected override Color ReplacementColor => Color.Yellow;
 
-        private void DrawFoundationLines(Structure gameObject)
+        private AnimRenderer buildingAnimRenderer;
+
+        public Point2D GetBuildingCenterPoint(Structure structure)
+        {
+            Point2D topPoint = CellMath.CellCenterPointFromCellCoords(structure.Position, Map);
+            var foundation = structure.ObjectType.ArtConfig.Foundation;
+            Point2D bottomPoint = CellMath.CellCenterPointFromCellCoords(structure.Position + new Point2D(foundation.Width - 1, foundation.Height - 1), Map);
+            return topPoint + new Point2D((bottomPoint.X - topPoint.X) / 2, (bottomPoint.Y - topPoint.Y) / 2);
+        }
+
+        public void DrawFoundationLines(Structure gameObject)
         {
             int foundationX = gameObject.ObjectType.ArtConfig.Foundation.Width;
             int foundationY = gameObject.ObjectType.ArtConfig.Foundation.Height;
@@ -34,20 +45,37 @@ namespace TSMapEditor.Rendering.ObjectRenderers
             if (cell != null && !RenderDependencies.EditorState.Is2DMode)
                 heightOffset = cell.Level * Constants.CellHeight;
 
-            SetEffectParams_RGBADraw(0.0f, 0.0f, Vector2.Zero, Vector2.Zero, false);
+            // Cell lighting ranges from 0.0 to 2.0, XNA colors from 0.0 to 1.0. Thus division by 2
+            foundationLineColor = new Color((foundationLineColor.R / 255.0f) * (float)cell.CellLighting.R / 2.0f,
+                (foundationLineColor.G / 255.0f) * (float)cell.CellLighting.G / 2.0f,
+                (foundationLineColor.B / 255.0f) * (float)cell.CellLighting.B / 2.0f,
+                0.5f);
 
             foreach (var edge in gameObject.ObjectType.ArtConfig.Foundation.Edges)
             {
                 // Translate edge vertices from cell coordinate space to world coordinate space.
                 var start = CellMath.CellTopLeftPointFromCellCoords(gameObject.Position + edge[0], map);
                 var end = CellMath.CellTopLeftPointFromCellCoords(gameObject.Position + edge[1], map);
+
+                float depth = GetFoundationLineDepth(gameObject, start, end);
                 // Height is an illusion, just move everything up or down.
                 // Also offset X to match the top corner of an iso tile.
                 start += new Point2D(Constants.CellSizeX / 2, -heightOffset);
                 end += new Point2D(Constants.CellSizeX / 2, -heightOffset);
                 // Draw edge.
-                DrawLine(start.ToXNAVector(), end.ToXNAVector(), foundationLineColor, 1);
+                RenderDependencies.ObjectSpriteRecord.AddLineEntry(new LineEntry(start.ToXNAVector(), end.ToXNAVector(), foundationLineColor, 1, depth));
             }
+        }
+
+        private float GetFoundationLineDepth(Structure gameObject, Point2D startPoint, Point2D endPoint)
+        {
+            float lowerPoint = startPoint.Y > endPoint.Y ? startPoint.Y : endPoint.Y;
+
+            var cell = Map.GetTile(gameObject.Position);
+            float depthFromCellHeight = cell != null ? cell.Level * Constants.DepthRenderStep : 0f;
+            float result = ((lowerPoint / (float)RenderDependencies.Map.HeightInPixelsWithCellHeight) * Constants.DownwardsDepthRenderSpace)
+                + depthFromCellHeight + Constants.DepthEpsilon * ObjectDepthAdjustments.BuildingFoundationLines;
+            return result;
         }
 
         protected override CommonDrawParams GetDrawParams(Structure gameObject)
@@ -70,50 +98,99 @@ namespace TSMapEditor.Rendering.ObjectRenderers
             if (bibGraphics != null)
                 return false;
 
-            if (gameObject.ObjectType.ArtConfig.TurretAnim != null)
+            if (gameObject.TurretAnim != null)
+                return false;
+
+            if (gameObject.Anims.Length > 0)
                 return false;
 
             return base.ShouldRenderReplacementText(gameObject);
         }
 
-        private void DrawBibGraphics(Structure gameObject, ShapeImage bibGraphics, int heightOffset, Point2D drawPoint, in CommonDrawParams drawParams)
+        protected override float GetDepthAddition(Structure gameObject)
         {
-            DrawShapeImage(gameObject, drawParams, bibGraphics, 0, Color.White, false, true, gameObject.GetRemapColor(), drawPoint, heightOffset);
+            return Constants.DepthEpsilon * ObjectDepthAdjustments.Building;
         }
 
-        protected override void Render(Structure gameObject, int heightOffset, Point2D drawPoint, in CommonDrawParams drawParams)
+        // protected override bool IncludeTextureHeightAsAdditionalDepth() => false;
+
+        private void DrawBibGraphics(Structure gameObject, ShapeImage bibGraphics, Point2D drawPoint, in CommonDrawParams drawParams, bool affectedByLighting)
         {
-            DrawFoundationLines(gameObject);
+            DrawShapeImage(gameObject, bibGraphics, 0, Color.White, true, gameObject.GetRemapColor(),
+                affectedByLighting, !drawParams.ShapeImage.SubjectToLighting, drawPoint);
+        }
 
+        protected override void Render(Structure gameObject, Point2D drawPoint, in CommonDrawParams drawParams)
+        {
+            if (RenderDependencies.EditorState.RenderInvisibleInGameObjects)
+                DrawFoundationLines(gameObject);
+
+            bool affectedByLighting = RenderDependencies.EditorState.IsLighting && (drawParams.ShapeImage != null && drawParams.ShapeImage.SubjectToLighting);
+
+            // Bib is on the ground, gets grawn first
             var bibGraphics = RenderDependencies.TheaterGraphics.BuildingBibTextures[gameObject.ObjectType.Index];
-            
             if (bibGraphics != null)
-                DrawBibGraphics(gameObject, bibGraphics, heightOffset, drawPoint, drawParams);
-
-            if (!gameObject.ObjectType.NoShadow)
-                DrawShadow(gameObject, drawParams, drawPoint, heightOffset);
+                DrawBibGraphics(gameObject, bibGraphics, drawPoint, drawParams, affectedByLighting);
 
             Color nonRemapColor = gameObject.IsBaseNodeDummy ? new Color(150, 150, 255) * 0.5f : Color.White;
 
-            DrawShapeImage(gameObject, drawParams, drawParams.ShapeImage,
-                gameObject.GetFrameIndex(drawParams.ShapeImage.GetFrameCount()),
-                nonRemapColor, false, true, gameObject.GetRemapColor(), drawPoint, heightOffset);
+            int frameCount = drawParams.ShapeImage == null ? 0 : drawParams.ShapeImage.GetFrameCount();
+            int frameIndex = gameObject.GetFrameIndex(frameCount);
 
-            // Render building upgrades
-            for (int i = 0; i < gameObject.UpgradeCount; i++)
+            float depthAddition = Constants.DepthEpsilon * ObjectDepthAdjustments.Building;
+
+            // Form the anims list
+            var animsList = gameObject.Anims.ToList();
+            animsList.AddRange(gameObject.PowerUpAnims);
+            if (gameObject.TurretAnim != null)
+                animsList.Add(gameObject.TurretAnim);
+            
+            // Sort the anims according to their settings
+            animsList.Sort((anim1, anim2) =>
+                anim1.BuildingAnimDrawConfig.SortValue.CompareTo(anim2.BuildingAnimDrawConfig.SortValue));
+
+            // The building itself has an offset of 0, so first draw all anims with sort values < 0
+            foreach (var anim in animsList.Where(a => a.BuildingAnimDrawConfig.SortValue < 0))
             {
-                BuildingType upgradeBuilding = gameObject.Upgrades[i];
-                var upgradeShape = RenderDependencies.TheaterGraphics.BuildingTextures[upgradeBuilding.Index];
-
-                if (upgradeShape == null)
-                    continue;
-
-                var config = gameObject.ObjectType.ArtConfig.PowerUpAnims[i];
-                var upgradeDrawPoint = drawPoint + new Point2D(config.LocXX, config.LocYY);
-
-                DrawShapeImage(gameObject, drawParams, upgradeShape, 0, nonRemapColor, false, true, gameObject.GetRemapColor(), upgradeDrawPoint, heightOffset);
+                buildingAnimRenderer.BuildingAnimDepthAddition = depthAddition - Constants.DepthEpsilon;
+                buildingAnimRenderer.Draw(anim, false);
             }
 
+            // Then the building itself
+            if (!gameObject.ObjectType.NoShadow)
+                DrawShadow(gameObject);
+
+            bool affectedByAmbient = !affectedByLighting;
+
+            var foundation = gameObject.ObjectType.ArtConfig.Foundation;
+            float foundationCenterXPoint = (float)foundation.Width / (foundation.Width + foundation.Height);
+
+            DrawShapeImage(gameObject, drawParams.ShapeImage,
+                gameObject.GetFrameIndex(frameCount),
+                nonRemapColor, true, gameObject.GetRemapColor(),
+                affectedByLighting, affectedByAmbient, drawPoint, 0, foundationCenterXPoint);
+
+            // Then draw all anims with sort values >= 0
+            foreach (var anim in animsList.Where(a => a.BuildingAnimDrawConfig.SortValue >= 0))
+            {
+                buildingAnimRenderer.BuildingAnimDepthAddition = depthAddition + Constants.DepthEpsilon;
+                buildingAnimRenderer.Draw(anim, false);
+            }
+
+            DrawVoxelTurret(gameObject, drawPoint, drawParams, nonRemapColor, affectedByLighting);
+
+            if (gameObject.ObjectType.HasSpotlight)
+            {
+                Point2D cellCenter = RenderDependencies.EditorState.Is2DMode ?
+                    CellMath.CellTopLeftPointFromCellCoords(gameObject.Position, Map) :
+                    CellMath.CellTopLeftPointFromCellCoords_3D(gameObject.Position, Map);
+
+                DrawObjectFacingArrow(gameObject.Facing, cellCenter);
+            }
+        }
+
+        private void DrawVoxelTurret(Structure gameObject, Point2D drawPoint, in CommonDrawParams drawParams, Color nonRemapColor, bool affectedByLighting)
+        {
             if (gameObject.ObjectType.Turret && gameObject.ObjectType.TurretAnimIsVoxel)
             {
                 var turretOffset = new Point2D(gameObject.ObjectType.TurretAnimX, gameObject.ObjectType.TurretAnimY);
@@ -124,49 +201,39 @@ namespace TSMapEditor.Rendering.ObjectRenderers
 
                 if (gameObject.Facing is > facingStartDrawAbove and <= facingEndDrawAbove)
                 {
-                    DrawVoxelModel(gameObject, drawParams, drawParams.TurretVoxel,
+                    DrawVoxelModel(gameObject, drawParams.TurretVoxel,
                         gameObject.Facing, RampType.None, nonRemapColor, true, gameObject.GetRemapColor(),
-                        turretDrawPoint, heightOffset);
+                        affectedByLighting, turretDrawPoint, Constants.DepthEpsilon, true);
 
-                    DrawVoxelModel(gameObject, drawParams, drawParams.BarrelVoxel,
+                    DrawVoxelModel(gameObject, drawParams.BarrelVoxel,
                         gameObject.Facing, RampType.None, nonRemapColor, true, gameObject.GetRemapColor(),
-                        turretDrawPoint, heightOffset);
+                        affectedByLighting, turretDrawPoint, Constants.DepthEpsilon * 2, true);
                 }
                 else
                 {
-                    DrawVoxelModel(gameObject, drawParams, drawParams.BarrelVoxel,
+                    DrawVoxelModel(gameObject, drawParams.BarrelVoxel,
                         gameObject.Facing, RampType.None, nonRemapColor, true, gameObject.GetRemapColor(),
-                        turretDrawPoint, heightOffset);
+                        affectedByLighting, turretDrawPoint, -Constants.DepthEpsilon, false);
 
-                    DrawVoxelModel(gameObject, drawParams, drawParams.TurretVoxel,
+                    DrawVoxelModel(gameObject, drawParams.TurretVoxel,
                         gameObject.Facing, RampType.None, nonRemapColor, true, gameObject.GetRemapColor(),
-                        turretDrawPoint, heightOffset);
+                        affectedByLighting, turretDrawPoint, Constants.DepthEpsilon, true); // Turret is always drawn above building
                 }
             }
             else if (gameObject.ObjectType.Turret && !gameObject.ObjectType.TurretAnimIsVoxel &&
                      gameObject.ObjectType.BarrelAnimIsVoxel)
             {
-                DrawVoxelModel(gameObject, drawParams, drawParams.BarrelVoxel,
+                DrawVoxelModel(gameObject, drawParams.BarrelVoxel,
                     gameObject.Facing, RampType.None, nonRemapColor, true, gameObject.GetRemapColor(),
-                    drawPoint, heightOffset);
-            }
-
-            if (gameObject.ObjectType.HasSpotlight ||
-                (gameObject.ObjectType.Turret && gameObject.ObjectType.TurretAnimIsVoxel && drawParams.TurretVoxel == null))
-            {
-                Point2D cellCenter = RenderDependencies.EditorState.Is2DMode ?
-                    CellMath.CellTopLeftPointFromCellCoords(gameObject.Position, Map) :
-                    CellMath.CellTopLeftPointFromCellCoords_3D(gameObject.Position, Map);
-
-                DrawObjectFacingArrow(gameObject.Facing, cellCenter);
+                    affectedByLighting, drawPoint, Constants.DepthEpsilon, true);
             }
         }
 
-        protected override void DrawObjectReplacementText(Structure gameObject, in CommonDrawParams drawParams, Point2D drawPoint)
+        protected override void DrawObjectReplacementText(Structure gameObject, string text, Point2D drawPoint)
         {
             DrawFoundationLines(gameObject);
 
-            base.DrawObjectReplacementText(gameObject, drawParams, drawPoint);
+            base.DrawObjectReplacementText(gameObject, text, drawPoint);
         }
     }
 }

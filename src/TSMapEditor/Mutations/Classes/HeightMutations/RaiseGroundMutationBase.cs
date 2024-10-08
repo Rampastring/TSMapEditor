@@ -4,7 +4,6 @@ using System.Linq;
 using TSMapEditor.CCEngine;
 using TSMapEditor.GameMath;
 using TSMapEditor.Models.Enums;
-using TSMapEditor.Rendering;
 using TSMapEditor.UI;
 using HCT = TSMapEditor.Mutations.Classes.HeightMutations.HeightComparisonType;
 
@@ -43,10 +42,19 @@ namespace TSMapEditor.Mutations.Classes.HeightMutations
                 int height = targetCell.Level;
                 BrushSize.DoForBrushSize(offset =>
                 {
+                    if (!canCreateSmallHill)
+                        return;
+
                     var otherCellCoords = OriginCell + offset;
                     var otherCell = Map.GetTile(otherCellCoords);
+                    if (otherCell == null)
+                    {
+                        canCreateSmallHill = false;
+                        return;
+                    }
+
                     var subTile = Map.TheaterInstance.GetTile(otherCell.TileIndex).GetSubTile(otherCell.SubTileIndex);
-                    if (otherCell == null || !IsCellMorphable(otherCell) || otherCell.Level != height || subTile.TmpImage.RampType != RampType.None)
+                    if (!IsCellMorphable(otherCell) || otherCell.Level != height || subTile.TmpImage.RampType != RampType.None)
                         canCreateSmallHill = false;
                 });
 

@@ -10,7 +10,7 @@ using System.Runtime.Versioning;
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("Rampastring")]
 [assembly: AssemblyProduct("World-Altering Editor (WAE)")]
-[assembly: AssemblyCopyright("Copyright © Rami 'Rampastring' Pasanen 2023")]
+[assembly: AssemblyCopyright("Copyright © Rami 'Rampastring' Pasanen 2024")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 
@@ -22,7 +22,7 @@ using System.Runtime.Versioning;
 // The following GUID is for the ID of the typelib if this project is exposed to COM
 [assembly: Guid("7f1101de-6849-404c-9141-0df6a6bf12e7")]
 
-[assembly: SupportedOSPlatform("Windows7.0")]
+[assembly: SupportedOSPlatform("windows10.0.14393.0")]
 
 // Version information for an assembly consists of the following four values:
 //
@@ -34,4 +34,4 @@ using System.Runtime.Versioning;
 // You can specify all the values or you can default the Build and Revision Numbers
 // by using the '*' as shown below:
 // [assembly: AssemblyVersion("1.0.*")]
-[assembly: AssemblyVersion("0.9.*")]
+[assembly: AssemblyVersion("1.2.*")]

@@ -6,39 +6,36 @@ namespace TSMapEditor.Rendering.ObjectRenderers
 {
     public struct RenderDependencies
     {
-        public Map Map;
-        public TheaterGraphics TheaterGraphics;
-        public EditorState EditorState;
-        public GraphicsDevice GraphicsDevice;
-        public Effect ColorDrawEffect;
-        public Effect PalettedColorDrawEffect;
-        public Camera Camera;
-        public Func<int> GetCameraRightXCoord;
-        public Func<int> GetCameraBottomYCoord;
-        public RenderTarget2D DepthRenderTarget;
+        public readonly Map Map;
+        public readonly TheaterGraphics TheaterGraphics;
+        public readonly EditorState EditorState;
+        public readonly GraphicsDevice GraphicsDevice;
+        public readonly ObjectSpriteRecord ObjectSpriteRecord;
+        public readonly Effect PalettedColorDrawEffect;
+        public readonly Camera Camera;
+        public readonly Func<int> GetCameraRightXCoord;
+        public readonly Func<int> GetCameraBottomYCoord;
 
 
         public RenderDependencies(Map map, 
             TheaterGraphics theaterGraphics,
             EditorState editorState,
             GraphicsDevice graphicsDevice,
-            Effect colorDrawEffect,
+            ObjectSpriteRecord objectSpriteRecord,
             Effect palettedColorDrawEffect,
             Camera camera,
             Func<int> getCameraRightXCoord,
-            Func<int> getCameraBottomYCoord,
-            RenderTarget2D depthRenderTarget)
+            Func<int> getCameraBottomYCoord)
         {
             Map = map;
             TheaterGraphics = theaterGraphics;
             EditorState = editorState;
             GraphicsDevice = graphicsDevice;
-            ColorDrawEffect = colorDrawEffect;
+            ObjectSpriteRecord = objectSpriteRecord;
             PalettedColorDrawEffect = palettedColorDrawEffect;
             Camera = camera;
             GetCameraRightXCoord = getCameraRightXCoord;
             GetCameraBottomYCoord = getCameraBottomYCoord;
-            DepthRenderTarget = depthRenderTarget;
         }
     }
 }

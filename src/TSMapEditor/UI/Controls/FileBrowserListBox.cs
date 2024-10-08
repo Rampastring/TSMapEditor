@@ -35,7 +35,7 @@ namespace TSMapEditor.UI.Controls
             get => directoryPath;
             set
             {
-                if (!value.EndsWith(Path.DirectorySeparatorChar.ToString()))
+                if (value != null && !value.EndsWith(Path.DirectorySeparatorChar.ToString()))
                     value += Path.DirectorySeparatorChar;
 
                 directoryPath = value;
@@ -43,8 +43,13 @@ namespace TSMapEditor.UI.Controls
             }
         }
 
+        private bool IsShowingRoot => DirectoryPath == null;
+
         private void FileBrowserListBox_SelectedIndexChanged(object sender, EventArgs e)
         {
+            if (IsShowingRoot)
+                return;
+
             if (SelectedItem == null)
                 return;
 
@@ -62,11 +67,17 @@ namespace TSMapEditor.UI.Controls
             if (SelectedItem == null)
                 return;
 
+            if (IsShowingRoot)
+            {
+                // Special case - select a drive
+                DirectoryPath = SelectedItem.Text;
+                return;
+            }
+
             if (SelectedIndex == 0)
             {
                 // Special case -- go up a directory
                 DirectoryPath = Path.GetDirectoryName(DirectoryPath.TrimEnd('/', '\\'));
-                ListFiles();
                 return;
             }
 
@@ -77,7 +88,6 @@ namespace TSMapEditor.UI.Controls
             {
                 // Browse to next directory
                 DirectoryPath = DirectoryPath + SelectedItem.Text.Substring(DirectoryPrefix.Length) + Path.DirectorySeparatorChar;
-                ListFiles();
                 return;
             }
 
@@ -90,6 +100,15 @@ namespace TSMapEditor.UI.Controls
             ViewTop = 0;
             SelectedIndex = -1;
             Clear();
+
+            if (IsShowingRoot)
+            {
+                var drives = Directory.GetLogicalDrives();
+                foreach (var drive in drives)
+                    AddItem(drive);
+
+                return;
+            }
 
             if (string.IsNullOrWhiteSpace(DirectoryPath) || !Directory.Exists(DirectoryPath))
             {
@@ -110,7 +129,9 @@ namespace TSMapEditor.UI.Controls
             var files = Directory.GetFiles(DirectoryPath);
             foreach (string file in files)
             {
-                if (!Path.GetExtension(file).Equals(".map", StringComparison.InvariantCultureIgnoreCase))
+                if (!Path.GetExtension(file).Equals(".map", StringComparison.InvariantCultureIgnoreCase) &&
+                    !Path.GetExtension(file).Equals(".mpr", StringComparison.InvariantCultureIgnoreCase) &&
+                    !Path.GetExtension(file).Equals(".yrm", StringComparison.InvariantCultureIgnoreCase))
                     continue;
 
                 AddItem(Path.GetFileName(file));

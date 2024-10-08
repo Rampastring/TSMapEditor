@@ -21,6 +21,8 @@ namespace TSMapEditor.UI.Windows.TerrainGenerator
             this.map = map;
         }
 
+        public event EventHandler ConfigApplied;
+
         private readonly Map map;
 
         public TerrainGeneratorConfiguration TerrainGeneratorConfig { get; private set; }
@@ -293,7 +295,13 @@ namespace TSMapEditor.UI.Windows.TerrainGenerator
         {
             TerrainGeneratorConfig = GatherConfiguration("Customized Configuration");
 
-            Hide();
+            if (TerrainGeneratorConfig != null)
+            {
+                // Do not close the window if there's an error condition
+                Hide();
+
+                ConfigApplied?.Invoke(this, EventArgs.Empty);
+            }
         }
 
         public void Open()

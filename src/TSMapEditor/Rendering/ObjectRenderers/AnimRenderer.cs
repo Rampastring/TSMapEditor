@@ -10,6 +10,8 @@ namespace TSMapEditor.Rendering.ObjectRenderers
         {
         }
 
+        public float BuildingAnimDepthAddition { get; set; }
+
         protected override Color ReplacementColor => Color.Orange;
 
         protected override CommonDrawParams GetDrawParams(Animation gameObject)
@@ -27,7 +29,30 @@ namespace TSMapEditor.Rendering.ObjectRenderers
             return false;
         }
 
-        protected override void Render(Animation gameObject, int heightOffset, Point2D drawPoint, in CommonDrawParams drawParams)
+        public override Point2D GetDrawPoint(Animation gameObject)
+        {
+            Point2D position = gameObject.Position;
+
+            if (gameObject.IsBuildingAnim && gameObject.ParentBuilding != null)
+            {
+                position = gameObject.ParentBuilding.Position;
+            }
+
+            Point2D drawPointWithoutCellHeight = CellMath.CellTopLeftPointFromCellCoords(position, RenderDependencies.Map);
+
+            var mapCell = RenderDependencies.Map.GetTile(position);
+            int heightOffset = RenderDependencies.EditorState.Is2DMode ? 0 : mapCell.Level * Constants.CellHeight;
+            Point2D drawPoint = new Point2D(drawPointWithoutCellHeight.X, drawPointWithoutCellHeight.Y - heightOffset);
+
+            return drawPoint;
+        }
+
+        protected override float GetDepthAddition(Animation gameObject)
+        {
+            return Constants.DepthEpsilon * ObjectDepthAdjustments.Animation;
+        }
+
+        protected override void Render(Animation gameObject, Point2D drawPoint, in CommonDrawParams drawParams)
         {
             if (drawParams.ShapeImage == null)
                 return;
@@ -36,8 +61,9 @@ namespace TSMapEditor.Rendering.ObjectRenderers
             if (gameObject.IsTurretAnim)
             {
                 // Turret anims have their facing frames reversed
+                // Turret anims also only have 32 facings
                 byte facing = (byte)(255 - gameObject.Facing - 31);
-                frameIndex = facing / (512 / drawParams.ShapeImage.GetFrameCount());
+                frameIndex = facing / (256 / 32);
             }
 
             float alpha = 1.0f;
@@ -46,29 +72,44 @@ namespace TSMapEditor.Rendering.ObjectRenderers
             // this will need some investigating into
             switch (gameObject.AnimType.ArtConfig.Translucency)
             {
-                case 75:
-                    alpha = 0.1f;
+                case 0:
                     break;
-                case 50:
-                    alpha = 0.2f;
-                    break;
-                case 25:
-                    alpha = 0.5f;
-                    break;
+                default:
+                    return; // TODO Renderer does not currently support transparency for anims
+                // case 75:
+                //     alpha = 0.1f;
+                //     break;
+                // case 50:
+                //     alpha = 0.2f;
+                //     break;
+                // case 25:
+                //     alpha = 0.5f;
+                //     break;
             }
 
-            DrawShadow(gameObject, drawParams, drawPoint, heightOffset);
+            bool affectedByLighting = RenderDependencies.EditorState.IsLighting;
+            bool affectedByAmbient = !drawParams.ShapeImage.SubjectToLighting;
 
-            DrawShapeImage(gameObject, drawParams, drawParams.ShapeImage,
-                frameIndex, Color.White * alpha, false,
+            float depthAddition = 0f;
+            if (gameObject.IsBuildingAnim)
+            {
+                depthAddition = BuildingAnimDepthAddition;
+            }
+
+            DrawShadow(gameObject);
+            DrawShapeImage(gameObject, drawParams.ShapeImage,
+                frameIndex, Color.White * alpha,
                 gameObject.IsBuildingAnim, gameObject.GetRemapColor() * alpha,
-                drawPoint, heightOffset);
+                affectedByLighting, affectedByAmbient, drawPoint, depthAddition);
         }
 
-        protected override void DrawShadow(Animation gameObject, in CommonDrawParams drawParams, Point2D drawPoint, int heightOffset)
+        public override void DrawShadow(Animation gameObject)
         {
             if (!Constants.DrawBuildingAnimationShadows && gameObject.IsBuildingAnim)
                 return;
+
+            var drawParams = GetDrawParams(gameObject);
+            var drawPoint = GetDrawPoint(gameObject);
 
             int shadowFrameIndex = gameObject.GetShadowFrameIndex(drawParams.ShapeImage.GetFrameCount());
 
@@ -81,8 +122,13 @@ namespace TSMapEditor.Rendering.ObjectRenderers
 
             if (shadowFrameIndex > 0 && shadowFrameIndex < drawParams.ShapeImage.GetFrameCount())
             {
-                DrawShapeImage(gameObject, drawParams, drawParams.ShapeImage, shadowFrameIndex,
-                    new Color(0, 0, 0, 128), true, false, Color.White, drawPoint, heightOffset);
+                var frame = drawParams.ShapeImage.GetFrame(shadowFrameIndex);
+                if (frame != null && frame.Texture != null)
+                {
+                    Rectangle drawingBounds = GetTextureDrawCoords(gameObject, frame, drawPoint);
+
+                    RenderDependencies.ObjectSpriteRecord.AddGraphicsEntry(new ObjectSpriteEntry(null, frame.Texture, drawingBounds, Color.White, false, true, GetDepthAddition(gameObject)));
+                }
             }
         }
     }

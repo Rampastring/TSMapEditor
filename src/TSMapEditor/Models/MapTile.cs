@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using Microsoft.Xna.Framework;
 using TSMapEditor.GameMath;
+using TSMapEditor.Models.Enums;
 using TSMapEditor.Models.MapFormat;
 using TSMapEditor.Rendering;
 
@@ -50,6 +52,83 @@ namespace TSMapEditor.Models
         /// rendering iteration, there is no need to draw this tile.
         /// </summary>
         public ulong LastRefreshIndex;
+
+        public MapColor CellLighting { get; set; } = new MapColor(1.0, 1.0, 1.0);
+
+        public List<(Structure Source, double DistanceInLeptons)> LightSources { get; set; } = new();
+
+        public void RefreshLighting(Lighting lighting, LightingPreviewMode lightingPreviewMode)
+        {
+            if (lightingPreviewMode == LightingPreviewMode.NoLighting)
+            {
+                CellLighting = new MapColor(1.0, 1.0, 1.0);
+                return;
+            }
+
+            double globalAmbient = lighting.GetAmbientComponent(lightingPreviewMode);
+            double globalLevel = lighting.GetLevelComponent(lightingPreviewMode);
+            double globalGround = lighting.GetGroundComponent(lightingPreviewMode);
+            double globalRed = lighting.GetRedComponent(lightingPreviewMode);
+            double globalGreen = lighting.GetGreenComponent(lightingPreviewMode);
+            double globalBlue = lighting.GetBlueComponent(lightingPreviewMode);
+
+            double redDivisor = globalRed >= 1.0 ? globalRed : 1.0;
+            double greenDivisor = globalGreen >= 1.0 ? globalGreen : 1.0;
+            double blueDivisor = globalBlue >= 1.0 ? globalBlue : 1.0;
+
+            double cellAmbient = globalAmbient;
+            double cellR = globalRed;
+            double cellG = globalGreen;
+            double cellB = globalBlue;
+
+            // Apply Ground
+            cellAmbient *= (1.0 - globalGround);
+
+            // Apply Level
+            cellAmbient += globalLevel * Level;
+
+            // Check all the light sources and how they affect this light
+            foreach (var source in LightSources)
+            {
+                double distanceRatio = 1.0 - (source.DistanceInLeptons / source.Source.ObjectType.LightVisibility);
+
+                // Intensity modifies the cell ambient value.
+                // For example, if Ambient=0.5 and LightIntensity=1.0, in a cell that is fully
+                // lit by the light post, the overall ambient level becomes 0.5 + 1.0 = 1.5
+                cellAmbient += source.Source.ObjectType.LightIntensity * distanceRatio;
+
+                // Apply tint. Tint does NOT depend on LightIntensity, but is independent of it
+                // (as long as LightIntensity != 0).
+                // Strength of tint depends on strength of global tint. For example, adding local red of 1.0
+                // to global red of 1.5 leads to a much smaller change than if the local red was added to global red of 0.5.
+                double redStrength = (source.Source.ObjectType.LightRedTint / redDivisor) * distanceRatio;
+                double greenStrength = (source.Source.ObjectType.LightGreenTint / greenDivisor) * distanceRatio;
+                double blueStrength = (source.Source.ObjectType.LightBlueTint / blueDivisor) * distanceRatio;
+
+                cellR += redStrength;
+                cellG += greenStrength;
+                cellB += blueStrength;
+            }
+
+            const double lightingComponentMax = 2.0;
+
+            // Apply Ambient to all components
+            cellR *= cellAmbient;
+            cellG *= cellAmbient;
+            cellB *= cellAmbient;
+
+            // In case the components exceed 2.0, they are all scaled down to fit within 0.0 to 2.0
+            double highestComponentValue = Math.Max(cellR, Math.Max(cellG, cellB));
+            if (highestComponentValue > lightingComponentMax)
+            {
+                double scale = lightingComponentMax / highestComponentValue;
+                cellR *= scale;
+                cellG *= scale;
+                cellB *= scale;
+            }
+
+            CellLighting = new MapColor(cellR, cellG, cellB);
+        }
 
 
         public void ShiftPosition(int x, int y)
@@ -118,6 +197,29 @@ namespace TSMapEditor.Models
             {
                 action(waypoint);
             }
+        }       
+
+        public SubCell GetSubCellClosestToPosition(Point2D position, bool onlyOccupiedCells)
+        {
+            SubCell closestSubcell = SubCell.None;
+            float shortestDistance = float.MaxValue;
+            for (int i = 0; i < SubCellCount; i++)
+            {
+                SubCell subCell = (SubCell)i;
+
+                if (onlyOccupiedCells && GetInfantryFromSubCellSpot(subCell) == null)
+                    continue;
+
+                var subCellCoords = GetTileCenter() + CellMath.GetSubCellOffset(subCell);
+                var distanceToSubCell = Vector2.Distance(position.ToXNAVector(), subCellCoords.ToXNAVector());
+                if (distanceToSubCell < shortestDistance)
+                {
+                    closestSubcell = subCell;
+                    shortestDistance = distanceToSubCell;
+                }
+            }
+
+            return closestSubcell;
         }
 
         public SubCell GetFreeSubCellSpot()
@@ -150,6 +252,8 @@ namespace TSMapEditor.Models
             return null;
         }
 
+        public bool HasInfantry() => GetFirstInfantry() != null;
+
         public bool HasTechno()
         {
             return Structures.Count > 0 || Vehicles.Count > 0 || Aircraft.Count > 0 || Array.Exists(Infantry, inf => inf != null);
@@ -174,7 +278,7 @@ namespace TSMapEditor.Models
             return Array.Find(Infantry, inf => inf != null && predicate(inf));
         }
 
-        public TechnoBase GetTechno()
+        public TechnoBase GetTechno(Point2D? position = null)
         {
             if (Structures.Count > 0)
                 return Structures[0];
@@ -185,12 +289,23 @@ namespace TSMapEditor.Models
             if (Aircraft.Count > 0)
                 return Aircraft[0];
 
-            return Array.Find(Infantry, inf => inf != null);
-        }
+            if (position != null)
+            {
+                var closestSubcell = GetSubCellClosestToPosition((Point2D)position, true);
+                if (closestSubcell == SubCell.None)
+                    return null;
 
-        public GameObject GetObject()
+                return GetInfantryFromSubCellSpot(closestSubcell);                
+            }
+            else
+            {
+                return GetFirstInfantry();
+            }            
+        }        
+
+        public GameObject GetObject(Point2D? position = null)
         {
-            GameObject obj = GetTechno();
+            GameObject obj = GetTechno(position);
             if (obj != null)
                 return obj;
 
@@ -276,5 +391,7 @@ namespace TSMapEditor.Models
         }
 
         public Point2D CoordsToPoint() => new Point2D(X, Y);
+
+        public Point2D GetTileCenter() => new Point2D(Constants.CellSizeX / 2, Constants.CellSizeY / 2);
     }
 }

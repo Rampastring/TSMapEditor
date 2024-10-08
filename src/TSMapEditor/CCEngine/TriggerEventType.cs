@@ -36,6 +36,7 @@ namespace TSMapEditor.CCEngine
 
         public void ReadPropertiesFromIniSection(IniSection iniSection)
         {
+            ID = iniSection.GetIntValue("IDOverride", ID);
             Name = iniSection.GetStringValue(nameof(Name), string.Empty);
             Description = iniSection.GetStringValue(nameof(Description), string.Empty);
             Available = iniSection.GetBooleanValue(nameof(Available), true);

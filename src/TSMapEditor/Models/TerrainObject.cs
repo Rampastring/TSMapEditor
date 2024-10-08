@@ -17,9 +17,13 @@ namespace TSMapEditor.Models
             Position = position;
         }
 
+        public override GameObjectType GetObjectType() => TerrainType;
+
         public override RTTIType WhatAmI() => RTTIType.Terrain;
 
         public TerrainType TerrainType { get; private set; }
+
+        public override bool IsInvisibleInGame() => TerrainType.InvisibleInGame;
 
         public override int GetYDrawOffset()
         {
@@ -28,5 +32,7 @@ namespace TSMapEditor.Models
 
             return TerrainType.YDrawFudge;
         }
+
+        public override bool HasShadow() => true;
     }
 }

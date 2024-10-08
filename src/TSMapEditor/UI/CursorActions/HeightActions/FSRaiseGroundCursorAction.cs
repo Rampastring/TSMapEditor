@@ -1,6 +1,5 @@
 ﻿using TSMapEditor.GameMath;
 using TSMapEditor.Mutations.Classes.HeightMutations;
-using TSMapEditor.Rendering;
 
 namespace TSMapEditor.UI.CursorActions.HeightActions
 {

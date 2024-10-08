@@ -1,10 +1,11 @@
 ﻿using Microsoft.Xna.Framework;
 using Rampastring.XNAUI;
+using Rampastring.XNAUI.Input;
 using System;
 using System.Collections.Generic;
 using TSMapEditor.GameMath;
+using TSMapEditor.Misc;
 using TSMapEditor.Models;
-using TSMapEditor.Rendering;
 
 namespace TSMapEditor.UI.CursorActions
 {
@@ -21,11 +22,17 @@ namespace TSMapEditor.UI.CursorActions
 
         public override bool DrawCellCursor => true;
 
+        public override bool HandlesKeyboardInput => true;
+
         public override void DrawPreview(Point2D cellCoords, Point2D cameraTopLeftPoint)
         {
-            string text = "Click on building to place a base node." + Environment.NewLine + Environment.NewLine +
+            string text = "Placement actions:" + Environment.NewLine +
+                "Click on building to place a base node." + Environment.NewLine +
                 "Hold SHIFT while clicking to also delete the building." + Environment.NewLine +
-                "Hold CTRL while clicking to erase a base node.";
+                "Hold CTRL while clicking to erase a base node." + Environment.NewLine + Environment.NewLine +
+                "Ordering actions:" + Environment.NewLine +
+                "Press E while hovering over a base node to shift it to be built earlier." + Environment.NewLine +
+                "Press D while hovering over a base node to shift it to be built later.";
 
             DrawText(cellCoords, cameraTopLeftPoint, text, UISettings.ActiveSettings.AltColor);
         }
@@ -38,7 +45,7 @@ namespace TSMapEditor.UI.CursorActions
             var textDimensions = Renderer.GetTextDimensions(text, Constants.UIBoldFont);
             int x = cellTopLeftPoint.X - (int)(textDimensions.X - Constants.CellSizeX) / 2;
 
-            Vector2 textPosition = new Vector2(x + 60, cellTopLeftPoint.Y - 150);
+            Vector2 textPosition = new Vector2(x + 60, cellTopLeftPoint.Y - 200);
             Rectangle textBackgroundRectangle = new Rectangle((int)textPosition.X - Constants.UIEmptySideSpace,
                 (int)textPosition.Y - Constants.UIEmptyTopSpace,
                 (int)textDimensions.X + Constants.UIEmptySideSpace * 2,
@@ -50,23 +57,41 @@ namespace TSMapEditor.UI.CursorActions
             Renderer.DrawStringWithShadow(text, Constants.UIBoldFont, textPosition, textColor);
         }
 
+        public override void OnKeyPressed(KeyPressEventArgs e, Point2D cellCoords)
+        {
+            if (cellCoords == Point2D.NegativeOne)
+                return;
+
+            if (e.PressedKey == Microsoft.Xna.Framework.Input.Keys.D)
+            {
+                ShiftBaseNodeLater(cellCoords);
+                e.Handled = true;
+            }
+            else if (e.PressedKey == Microsoft.Xna.Framework.Input.Keys.E)
+            {
+                ShiftBaseNodeEarlier(cellCoords);
+                e.Handled = true;
+            }
+        }
+
         public override void LeftClick(Point2D cellCoords)
         {
-            if (!CursorActionTarget.WindowManager.Keyboard.IsCtrlHeldDown())
+            if (Keyboard.IsCtrlHeldDown())
             {
-                CreateBaseNode(cellCoords);
+                DeleteBaseNode(cellCoords);
             }
             else
             {
-                DeleteBaseNode(cellCoords);
+                CreateBaseNode(cellCoords);
             }
 
             base.LeftClick(cellCoords);
         }
 
+        // TODO implement all these manipulations as mutations so they go through the undo/redo system
         private void CreateBaseNode(Point2D cellCoords)
         {
-            var mapCell = CursorActionTarget.Map.GetTile(cellCoords);
+            var mapCell = Map.GetTile(cellCoords);
 
             if (mapCell.Structures.Count == 0)
                 return;
@@ -140,28 +165,33 @@ namespace TSMapEditor.UI.CursorActions
             CursorActionTarget.AddRefreshPoint(cellCoords);
         }
 
+        private int GetBaseNodeIndexForHouse(House house, Point2D cellCoords)
+        {
+            return house.BaseNodes.FindIndex(baseNode =>
+            {
+                var structureType = CursorActionTarget.Map.Rules.BuildingTypes.Find(bt => bt.ININame == baseNode.StructureTypeName);
+                if (structureType == null)
+                    return false;
+
+                if (structureType.ArtConfig.Foundation.Width == 0 || structureType.ArtConfig.Foundation.Height == 0)
+                    return baseNode.Position == cellCoords;
+
+                bool clickedOnFoundation = false;
+                structureType.ArtConfig.DoForFoundationCoords(foundationOffset =>
+                {
+                    if (foundationOffset + baseNode.Position == cellCoords)
+                        clickedOnFoundation = true;
+                });
+
+                return clickedOnFoundation;
+            });
+        }
+
         private void DeleteBaseNode(Point2D cellCoords)
         {
-            foreach (House house in CursorActionTarget.Map.GetHouses())
+            foreach (House house in Map.GetHouses())
             {
-                int index = house.BaseNodes.FindIndex(baseNode =>
-                {
-                    var structureType = CursorActionTarget.Map.Rules.BuildingTypes.Find(bt => bt.ININame == baseNode.StructureTypeName);
-                    if (structureType == null)
-                        return false;
-
-                    if (structureType.ArtConfig.Foundation.Width == 0 || structureType.ArtConfig.Foundation.Height == 0)
-                        return baseNode.Position == cellCoords;
-
-                    bool clickedOnFoundation = false;
-                    structureType.ArtConfig.DoForFoundationCoords(foundationOffset =>
-                    {
-                        if (foundationOffset + baseNode.Position == cellCoords)
-                            clickedOnFoundation = true;
-                    });
-
-                    return clickedOnFoundation;
-                });
+                int index = GetBaseNodeIndexForHouse(house, cellCoords);
 
                 if (index > -1)
                 {
@@ -169,6 +199,53 @@ namespace TSMapEditor.UI.CursorActions
                     house.BaseNodes.RemoveAt(index);
                     CursorActionTarget.Map.UnregisterBaseNode(baseNode);
                     CursorActionTarget.AddRefreshPoint(cellCoords);
+                    return;
+                }
+            }
+        }
+
+        private void ShiftBaseNodeEarlier(Point2D cellCoords)
+        {
+            foreach (House house in Map.GetHouses())
+            {
+                int index = GetBaseNodeIndexForHouse(house, cellCoords);
+
+                if (index > -1)
+                {
+                    if (index == 0)
+                    {
+                        house.BaseNodes.Swap(0, house.BaseNodes.Count - 1);
+                    }
+                    else
+                    {
+                        house.BaseNodes.Swap(index, index - 1);
+                    }
+
+                    CursorActionTarget.InvalidateMap();
+                    return;
+                }
+            }
+        }
+
+        private void ShiftBaseNodeLater(Point2D cellCoords)
+        {
+            foreach (House house in Map.GetHouses())
+            {
+                int index = GetBaseNodeIndexForHouse(house, cellCoords);
+
+                if (index > -1)
+                {
+                    if (index == house.BaseNodes.Count - 1)
+                    {
+                        house.BaseNodes.Swap(0, house.BaseNodes.Count - 1);
+                    }
+                    else
+                    {
+                        house.BaseNodes.Swap(index, index + 1);
+                    }
+
+                    CursorActionTarget.InvalidateMap();
+                    return;
                 }
             }
         }

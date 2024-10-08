@@ -3,6 +3,7 @@ using TSMapEditor.GameMath;
 using Microsoft.Xna.Framework;
 using System;
 using System.Globalization;
+using TSMapEditor.Misc;
 
 namespace TSMapEditor.Models
 {

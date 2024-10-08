@@ -1,5 +1,8 @@
 ﻿using Rampastring.Tools;
 using System.Collections.Generic;
+using TSMapEditor.Misc;
+using System;
+using Microsoft.Xna.Framework;
 
 namespace TSMapEditor.Models
 {
@@ -46,6 +49,38 @@ namespace TSMapEditor.Models
             ININame = iniName;
         }
 
+        private string _editorColor;
+        /// <summary>
+        /// Editor-only. The color of the script in the UI.
+        /// If null, the script should be displayed with the default UI text color.
+        /// </summary>
+        public string EditorColor
+        {
+            get => _editorColor;
+            set
+            {
+                _editorColor = value;
+
+                if (_editorColor != null)
+                {
+                    int index = Array.FindIndex(SupportedColors, c => c.Name == value);
+                    if (index > -1)
+                    {
+                        XNAColor = SupportedColors[index].Value;
+                    }
+                    else
+                    {
+                        // Only allow assigning colors that actually exist in the color table
+                        _editorColor = null;
+                    }
+                }
+            }
+        }
+
+        public static NamedColor[] SupportedColors => NamedColors.GenericSupportedNamedColors;
+
+        public Color XNAColor;
+
         public string GetInternalID() => ININame;
         public void SetInternalID(string id) => ININame = id;
 
@@ -63,7 +98,8 @@ namespace TSMapEditor.Models
         public Script Clone(string iniName)
         {
             var script = new Script(iniName);
-            script.Name = "Clone of " + Name;
+            script.Name = Name + " (Clone)";
+
             foreach (var action in Actions)
             {
                 script.Actions.Add(new ScriptActionEntry() 
@@ -83,7 +119,15 @@ namespace TSMapEditor.Models
                 scriptSection.SetStringValue(i.ToString(), $"{Actions[i].Action},{Actions[i].Argument}");
             }
 
-            scriptSection.SetStringValue("Name", Name);
+            scriptSection.SetStringValue("Name", Name);            
+        }
+
+        public void WriteEditorProperties(IniFile iniFile)
+        {
+            if (EditorColor == null)
+                return;
+
+            iniFile.SetStringValue("EditorScriptInfo", ININame, EditorColor);
         }
 
         public static Script ParseScript(string id, IniSection scriptSection)

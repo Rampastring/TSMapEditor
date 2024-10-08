@@ -18,6 +18,7 @@ namespace TSMapEditor.UI.Windows
 
         private readonly Map map;
 
+        private XNALabel lblSelectedInfantryValue;
         private XNATrackbar trbStrength;
         private XNALabel lblStrengthValue;
         private XNADropDown ddMission;
@@ -37,6 +38,7 @@ namespace TSMapEditor.UI.Windows
             Name = nameof(InfantryOptionsWindow);
             base.Initialize();
 
+            lblSelectedInfantryValue = FindChild<XNALabel>(nameof(lblSelectedInfantryValue));
             trbStrength = FindChild<XNATrackbar>(nameof(trbStrength));
             lblStrengthValue = FindChild<XNALabel>(nameof(lblStrengthValue));
             ddMission = FindChild<XNADropDown>(nameof(ddMission));
@@ -101,6 +103,7 @@ namespace TSMapEditor.UI.Windows
 
         private void RefreshValues()
         {
+            lblSelectedInfantryValue.Text = infantry.ObjectType.GetEditorDisplayName() + ", subcell: " + infantry.SubCell;
             trbStrength.Value = infantry.HP;
             ddMission.SelectedIndex = ddMission.Items.FindIndex(item => item.Text == infantry.Mission);
             int veterancyIndex = ddVeterancy.Items.FindIndex(i => (int)i.Tag == infantry.Veterancy);

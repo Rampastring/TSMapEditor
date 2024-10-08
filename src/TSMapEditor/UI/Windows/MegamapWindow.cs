@@ -4,7 +4,6 @@ using Microsoft.Xna.Framework.Input;
 using Rampastring.XNAUI;
 using System;
 using TSMapEditor.GameMath;
-using TSMapEditor.Rendering;
 using TSMapEditor.UI.Controls;
 
 namespace TSMapEditor.UI.Windows

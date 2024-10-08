@@ -16,6 +16,9 @@
         /// </summary>
         public bool Theater { get; set; }
 
+        public int Width { get; set; } = 1;
+        public int Height { get; set; } = 1;
+
         public bool Crater { get; set; }
         public bool Burn { get; set; }
     }

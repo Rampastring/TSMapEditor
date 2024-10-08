@@ -25,7 +25,7 @@
         Speech,
         SuperWeapon,
         Animation,
-        Particle,
+        ParticleSystem,
         Waypoint,
         WaypointZZ,
         String,

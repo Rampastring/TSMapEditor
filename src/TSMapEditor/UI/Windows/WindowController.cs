@@ -66,6 +66,7 @@ namespace TSMapEditor.UI.Windows
         public DeletionModeConfigurationWindow DeletionModeConfigurationWindow { get; private set; }
         public RenderedObjectsConfigurationWindow RenderedObjectsConfigurationWindow { get; private set; }
         public ConfigureAlliesWindow ConfigureAlliesWindow { get; private set; }
+        public SelectConnectedTileWindow SelectConnectedTileWindow { get; private set; }
         public AboutWindow AboutWindow { get; private set; }
 
         private IWindowParentControl windowParentControl;
@@ -163,7 +164,7 @@ namespace TSMapEditor.UI.Windows
             CopiedEntryTypesWindow = new CopiedEntryTypesWindow(windowParentControl.WindowManager);
             Windows.Add(CopiedEntryTypesWindow);
 
-            LightingSettingsWindow = new LightingSettingsWindow(windowParentControl.WindowManager, map);
+            LightingSettingsWindow = new LightingSettingsWindow(windowParentControl.WindowManager, map, editorState);
             Windows.Add(LightingSettingsWindow);
 
             ApplyINICodeWindow = new ApplyINICodeWindow(windowParentControl.WindowManager, map);
@@ -197,16 +198,23 @@ namespace TSMapEditor.UI.Windows
             ConfigureAlliesWindow = new ConfigureAlliesWindow(windowParentControl.WindowManager, map);
             Windows.Add(ConfigureAlliesWindow);
 
+            SelectConnectedTileWindow = new SelectConnectedTileWindow(windowParentControl.WindowManager, map);
+            // TODO add a way for WindowController windows to use DarkeningPanels
+            // DarkeningPanel.InitializeAndAddToParentControlWithChild(windowParentControl.WindowManager, windowParentControl, SelectConnectedTileWindow);
+            Windows.Add(SelectConnectedTileWindow);
+
             AboutWindow = new AboutWindow(windowParentControl.WindowManager);
             Windows.Add(AboutWindow);
 
             TeamTypesWindow.TaskForceOpened += TeamTypesWindow_TaskForceOpened;
             TeamTypesWindow.ScriptOpened += TeamTypesWindow_ScriptOpened;
+            TeamTypesWindow.TagOpened += Window_TagOpened;
             AITriggersWindow.TeamTypeOpened += AITriggersWindow_TeamTypeOpened;
-            StructureOptionsWindow.TagOpened += ObjectOptionsWindow_TagOpened;
-            VehicleOptionsWindow.TagOpened += ObjectOptionsWindow_TagOpened;
-            InfantryOptionsWindow.TagOpened += ObjectOptionsWindow_TagOpened;
-            AircraftOptionsWindow.TagOpened += ObjectOptionsWindow_TagOpened;
+            TriggersWindow.TeamTypeOpened += TriggersWindow_TeamTypeOpened;
+            StructureOptionsWindow.TagOpened += Window_TagOpened;
+            VehicleOptionsWindow.TagOpened += Window_TagOpened;
+            InfantryOptionsWindow.TagOpened += Window_TagOpened;
+            AircraftOptionsWindow.TagOpened += Window_TagOpened;
 
             foreach (var window in Windows)
             {
@@ -229,7 +237,7 @@ namespace TSMapEditor.UI.Windows
             windowParentControl.RenderResolutionChanged += (s, e) => RenderResolutionChanged?.Invoke(this, EventArgs.Empty);
         }
 
-        private void ObjectOptionsWindow_TagOpened(object sender, TagEventArgs e)
+        private void Window_TagOpened(object sender, TagEventArgs e)
         {
             if (e.Tag.Trigger == null)
             {
@@ -279,6 +287,8 @@ namespace TSMapEditor.UI.Windows
             TeamTypesWindow.SelectTeamType(e.TeamType);
         }
 
+        private void TriggersWindow_TeamTypeOpened(object sender, TeamTypeEventArgs e) => AITriggersWindow_TeamTypeOpened(sender, e);
+
         private void ClearFocusSwitchHandlerFromChildrenRecursive(EditorWindow window, XNAControl control)
         {
             foreach (var child in control.Children)
@@ -295,10 +305,12 @@ namespace TSMapEditor.UI.Windows
         {
             TeamTypesWindow.TaskForceOpened -= TeamTypesWindow_TaskForceOpened;
             TeamTypesWindow.ScriptOpened -= TeamTypesWindow_ScriptOpened;
+            TeamTypesWindow.TagOpened -= Window_TagOpened;
             AITriggersWindow.TeamTypeOpened -= AITriggersWindow_TeamTypeOpened;
-            StructureOptionsWindow.TagOpened -= ObjectOptionsWindow_TagOpened;
-            VehicleOptionsWindow.TagOpened -= ObjectOptionsWindow_TagOpened;
-            InfantryOptionsWindow.TagOpened -= ObjectOptionsWindow_TagOpened;
+            TriggersWindow.TeamTypeOpened -= TriggersWindow_TeamTypeOpened;
+            StructureOptionsWindow.TagOpened -= Window_TagOpened;
+            VehicleOptionsWindow.TagOpened -= Window_TagOpened;
+            InfantryOptionsWindow.TagOpened -= Window_TagOpened;
             MapSizeWindow.OnResizeMapButtonClicked -= MapSizeWindow_OnResizeMapButtonClicked;
 
             foreach (var window in Windows)
