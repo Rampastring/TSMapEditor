@@ -1,4 +1,5 @@
 using Microsoft.Xna.Framework;
+using System.Collections.Generic;
 using System.Linq;
 using TSMapEditor.CCEngine;
 using TSMapEditor.GameMath;
@@ -112,8 +113,6 @@ namespace TSMapEditor.Rendering.ObjectRenderers
             return Constants.DepthEpsilon * ObjectDepthAdjustments.Building;
         }
 
-        // protected override bool IncludeTextureHeightAsAdditionalDepth() => false;
-
         private void DrawBibGraphics(Structure gameObject, ShapeImage bibGraphics, Point2D drawPoint, in CommonDrawParams drawParams, bool affectedByLighting)
         {
             DrawShapeImage(gameObject, bibGraphics, 0, Color.White, true, gameObject.GetRemapColor(),
@@ -140,7 +139,8 @@ namespace TSMapEditor.Rendering.ObjectRenderers
             float depthAddition = Constants.DepthEpsilon * ObjectDepthAdjustments.Building;
 
             // Form the anims list
-            var animsList = gameObject.Anims.ToList();
+            var animsList = new List<Animation>(gameObject.Anims.Length + gameObject.PowerUpAnims.Length + 1);
+            animsList.AddRange(gameObject.Anims);
             animsList.AddRange(gameObject.PowerUpAnims);
             if (gameObject.TurretAnim != null)
                 animsList.Add(gameObject.TurretAnim);
@@ -150,10 +150,15 @@ namespace TSMapEditor.Rendering.ObjectRenderers
                 anim1.BuildingAnimDrawConfig.SortValue.CompareTo(anim2.BuildingAnimDrawConfig.SortValue));
 
             // The building itself has an offset of 0, so first draw all anims with sort values < 0
-            foreach (var anim in animsList.Where(a => a.BuildingAnimDrawConfig.SortValue < 0))
+            for (int i = 0; i < animsList.Count; i++)
             {
-                buildingAnimRenderer.BuildingAnimDepthAddition = depthAddition - Constants.DepthEpsilon;
-                buildingAnimRenderer.Draw(anim, false);
+                var anim = animsList[i];
+
+                if (anim.BuildingAnimDrawConfig.SortValue < 0)
+                {
+                    buildingAnimRenderer.BuildingAnimDepthAddition = depthAddition - Constants.DepthEpsilon;
+                    buildingAnimRenderer.Draw(anim, false);
+                }
             }
 
             // Then the building itself
@@ -171,10 +176,32 @@ namespace TSMapEditor.Rendering.ObjectRenderers
                 affectedByLighting, affectedByAmbient, drawPoint, 0, foundationCenterXPoint);
 
             // Then draw all anims with sort values >= 0
-            foreach (var anim in animsList.Where(a => a.BuildingAnimDrawConfig.SortValue >= 0))
+            for (int i = 0; i < animsList.Count; i++)
             {
-                buildingAnimRenderer.BuildingAnimDepthAddition = depthAddition + Constants.DepthEpsilon;
-                buildingAnimRenderer.Draw(anim, false);
+                var anim = animsList[i];
+
+                if (anim.BuildingAnimDrawConfig.SortValue >= 0)
+                {
+                    // It gets challenging to handle depth if the anim renderer draws anims that are "above" the building, 
+                    // as it does not have proper context of the building it's drawing on.
+                    // Draw the anim here instead, like it was a part of the building.
+                    var animShape = TheaterGraphics.AnimTextures[anim.AnimType.Index];
+                    DrawShapeImage(gameObject, animShape, anim.GetFrameIndex(animShape.GetFrameCount()),
+                        nonRemapColor, true, gameObject.GetRemapColor(), affectedByLighting, affectedByAmbient,
+                        drawPoint + new Point2D(anim.BuildingAnimDrawConfig.X, anim.BuildingAnimDrawConfig.Y),
+                        depthAddition, 0.5f);
+
+                    // float animDepthAddition = depthAddition;
+                    // if (drawParams.ShapeImage != null)
+                    // {
+                    //     var frame = drawParams.ShapeImage.GetFrame(gameObject.GetFrameIndex(drawParams.ShapeImage.GetFrameCount()));
+                    //     if (frame != null && frame.Texture != null)
+                    //         animDepthAddition += ((frame.Texture.Height / 2) + anim.BuildingAnimDrawConfig.Y) / (float)Map.HeightInPixelsWithCellHeight;
+                    // }
+
+                    // buildingAnimRenderer.BuildingAnimDepthAddition = animDepthAddition;
+                    // buildingAnimRenderer.Draw(anim, false);
+                }
             }
 
             DrawVoxelTurret(gameObject, drawPoint, drawParams, nonRemapColor, affectedByLighting);

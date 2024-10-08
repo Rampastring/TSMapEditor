@@ -94,6 +94,14 @@ namespace TSMapEditor.Rendering.ObjectRenderers
             if (gameObject.IsBuildingAnim)
             {
                 depthAddition = BuildingAnimDepthAddition;
+
+                // Reduce depth addition by the size of the animation's texture
+                if (drawParams.ShapeImage != null)
+                {
+                    var frame = drawParams.ShapeImage.GetFrame(gameObject.GetFrameIndex(drawParams.ShapeImage.GetFrameCount()));
+                    if (frame != null && frame.Texture != null)
+                        depthAddition -= frame.Texture.Height / (float)Map.HeightInPixelsWithCellHeight;
+                }
             }
 
             DrawShadow(gameObject);

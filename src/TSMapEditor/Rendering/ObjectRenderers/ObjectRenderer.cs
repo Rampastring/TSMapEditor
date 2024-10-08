@@ -207,7 +207,7 @@ namespace TSMapEditor.Rendering.ObjectRenderers
             return true;
         }
 
-        private PositionedTexture GetFrameTexture(T gameObject, in CommonDrawParams drawParams, bool affectedByLighting)
+        protected PositionedTexture GetFrameTexture(T gameObject, in CommonDrawParams drawParams, bool affectedByLighting)
         {
             if (drawParams.ShapeImage != null && drawParams.ShapeImage.GetFrameCount() > 0)
             {
