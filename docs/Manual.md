@@ -1,5 +1,7 @@
 # World-Altering Editor User Manual
 
+[简体中文](./docs/Manual-CN.md)
+
 We try to make the editor's user interface intuitive, but in case it is not enough, this guide contains some helpful tips and tricks.
 
 **Note:** Most keybinds mentioned here can be changed in the *Keyboard Options* menu. This guide assumes you use the defaults.
