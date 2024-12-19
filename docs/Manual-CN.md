@@ -1,6 +1,6 @@
 # World-Altering Editor用户手册
 
-[English](./docs/Manual.md)
+[English](./Manual.md)
 
 我们试图使编辑器的用户界面更加直观易用，但如果您仍有困惑，本指南包含一些有用的提示和技巧。
 
