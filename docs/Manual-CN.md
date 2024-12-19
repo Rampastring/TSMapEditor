@@ -1,5 +1,7 @@
 # World-Altering Editor用户手册
 
+[English](./docs/Manual.md)
+
 我们试图使编辑器的用户界面更加直观易用，但如果您仍有困惑，本指南包含一些有用的提示和技巧。
 
 **注意:** 本手册提及的许多快捷键，都可以在 *Keyboard Options* 菜单进行自定义。本指南仅使用默认值进行说明。
