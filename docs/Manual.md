@@ -14,7 +14,7 @@ To paint terrain, select a tile from either the top bar or from the TileSet sele
 
 ### Painting water
 
-To paint water, select the Water TileSet from the TileSet selector in the bottom of the screen. Then a tile and paint. You can increase the brush size to cover larger areas, or use the fill functionality mentioned above.
+To paint water, select the Water TileSet from the TileSet selector in the bottom of the screen. Select a tile and paint. You can increase the brush size to cover larger areas, or use the fill functionality mentioned above.
 
 Note that the fill functonality only works with 1x1 sized tiles.
 
