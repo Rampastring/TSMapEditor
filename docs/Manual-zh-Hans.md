@@ -1,5 +1,7 @@
 # World-Altering Editor 用户手册
 
+[English](./Manual.md) | 简体中文
+
 本用户手册包含一些有用的提示和技巧。
 
 ## 翻译信息
