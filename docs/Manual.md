@@ -1,6 +1,6 @@
 # World-Altering Editor User Manual
 
-[简体中文](./Manual-CN.md)
+[简体中文](./Manual-zh-Hans.md)
 
 We try to make the editor's user interface intuitive, but in case it is not enough, this guide contains some helpful tips and tricks.
 
